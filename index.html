@@ -1,42 +1,394 @@
 <!DOCTYPE html>
 <html lang="hu">
 <head>
-<meta charset="UTF-8">
-<title>Szaki-App</title>
-<style>
-body {
-  font-family: Arial, sans-serif;
-  background: #f2f2f2;
-  padding: 30px;
-  text-align: center;
-}
-.box {
-  background: white;
-  padding: 20px;
-  border-radius: 10px;
-  display: inline-block;
-}
-button {
-  background: #008cff;
-  color: white;
-  padding: 12px 20px;
-  border: none;
-  border-radius: 8px;
-  font-size: 18px;
-  cursor: pointer;
-  margin-top: 10px;
-}
-button:hover {
-  background: #006ac7;
-}
-</style>
+  <meta charset="UTF-8" />
+  <title>Szaki-App – Szakember és megrendelő összekötő</title>
+  <style>
+    :root {
+      --bg: #f1f1f1;
+      --dark: #1f2933;
+      --accent: #e67e22;
+      --accent-dark: #c06514;
+      --card: #ffffff;
+      --border: #d0d7de;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+        Arial, sans-serif;
+      background: var(--bg);
+      color: var(--dark);
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    header {
+      background: var(--dark);
+      color: #fff;
+      padding: 14px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .logo {
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .logo span.icon {
+      font-size: 22px;
+    }
+
+    .tagline {
+      font-size: 13px;
+      opacity: 0.8;
+    }
+
+    main {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 32px 16px 40px;
+    }
+
+    .container {
+      max-width: 980px;
+      width: 100%;
+    }
+
+    .hero {
+      background: var(--card);
+      border-radius: 14px;
+      padding: 24px 20px;
+      border: 1px solid var(--border);
+      box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+      margin-bottom: 20px;
+    }
+
+    .hero-top {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 18px;
+      align-items: center;
+      margin-bottom: 18px;
+    }
+
+    .hero-title {
+      font-size: 24px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .hero-title span.emoji {
+      font-size: 26px;
+    }
+
+    .hero-sub {
+      font-size: 14px;
+      color: #4b5563;
+      line-height: 1.4;
+    }
+
+    .badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 6px;
+    }
+
+    .badge {
+      font-size: 11px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: #f9fafb;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .badge span {
+      font-size: 13px;
+    }
+
+    .roles {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+      margin-top: 10px;
+    }
+
+    .role-card {
+      border-radius: 12px;
+      padding: 18px 16px;
+      border: 1px solid var(--border);
+      background: #f9fafb;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .role-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .role-icon {
+      font-size: 26px;
+    }
+
+    .role-title {
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .role-text {
+      font-size: 13px;
+      color: #4b5563;
+      line-height: 1.45;
+    }
+
+    .role-item {
+      font-size: 13px;
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+      color: #374151;
+    }
+
+    .role-item span.bullet {
+      font-size: 13px;
+      margin-top: 2px;
+    }
+
+    .role-btn {
+      margin-top: 10px;
+      padding: 11px 16px;
+      border-radius: 999px;
+      border: none;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .role-btn:hover {
+      background: var(--accent-dark);
+    }
+
+    .info-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 18px;
+      font-size: 12px;
+      color: #4b5563;
+    }
+
+    .info-pill {
+      padding: 8px 10px;
+      border-radius: 10px;
+      background: #f9fafb;
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .info-pill strong {
+      font-weight: 600;
+    }
+
+    footer {
+      font-size: 11px;
+      color: #6b7280;
+      text-align: center;
+      padding: 10px 16px 18px;
+    }
+
+    .donate-btn {
+      border: none;
+      background: transparent;
+      color: var(--accent-dark);
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .donate-btn span {
+      font-size: 15px;
+    }
+
+    @media (max-width: 640px) {
+      .hero {
+        padding: 18px 14px;
+      }
+      .hero-title {
+        font-size: 20px;
+      }
+    }
+  </style>
 </head>
 <body>
-<div class="box">
-  <h1>Üdv a Szaki-App oldalon!</h1>
-  <p>Az oldal fejlesztés alatt áll.</p>
-  <p>Nem sokára indul a szakember–megrendelő összekötő rendszer!</p>
-  <button onclick="alert('Fejlesztés alatt, hamarosan!')">Tovább</button>
-</div>
+  <header>
+    <div class="logo">
+      <span class="icon">🛠️</span>
+      <div>
+        <div>Szaki-App</div>
+        <div class="tagline">Szakik &amp; megrendelők – tisztán, becsülettel</div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="container">
+      <section class="hero">
+        <div class="hero-top">
+          <div>
+            <div class="hero-title">
+              <span class="emoji">🏗️</span>
+              <span>Kivel kezdjük?</span>
+            </div>
+            <p class="hero-sub">
+              Válaszd ki, melyik oldalról érkezel. Az oldal
+              <strong>ingyenes</strong>, cserébe mindenkinek:
+              <strong>precíznek, pontosnak és becsületesnek</strong> kell lennie –
+              a munkában és az oldal használatában is.
+            </p>
+            <div class="badges">
+              <div class="badge"><span>✅</span> Ingyenes használat</div>
+              <div class="badge"><span>📅</span> Kötelező naptár a szakiknak</div>
+              <div class="badge"><span>❤️</span> Becsület-kassza támogatás</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="roles">
+          <!-- SZAKI KÁRTYA -->
+          <div class="role-card">
+            <div>
+              <div class="role-header">
+                <span class="role-icon">👷‍♂️</span>
+                <div class="role-title">Szakember vagyok</div>
+              </div>
+              <p class="role-text">
+                Több munkát szeretnél, normális megrendelőktől? Itt tudsz
+                regisztrálni, naptárt vezetni és referenciát feltölteni.
+              </p>
+              <div class="role-item">
+                <span class="bullet">•</span>
+                <span>Ingyenes megjelenés – ranglista a becsületes, pontos szakiknak.</span>
+              </div>
+              <div class="role-item">
+                <span class="bullet">•</span>
+                <span>
+                  Kötelező naptár: jelöld, mikor érsz rá, <strong>rövid, kicsi pár napos munkát is</strong> vállalsz-e.
+                </span>
+              </div>
+              <div class="role-item">
+                <span class="bullet">•</span>
+                <span>Profilkép, árak, referenciaképek – hogy a megrendelő tudjon dönteni.</span>
+              </div>
+            </div>
+            <button class="role-btn" onclick="selectRole('szaki')">
+              Belépek szakként
+            </button>
+          </div>
+
+          <!-- MEGRENDELŐ KÁRTYA -->
+          <div class="role-card">
+            <div>
+              <div class="role-header">
+                <span class="role-icon">🏠</span>
+                <div class="role-title">Megrendelő vagyok</div>
+              </div>
+              <p class="role-text">
+                Szakembert keresel felújításhoz, kisebb javításhoz vagy nagyobb
+                projekthez? Itt tudsz új munkát feladni.
+              </p>
+              <div class="role-item">
+                <span class="bullet">•</span>
+                <span>
+                  Add meg: <strong>leghamarabb / legkésőbb kezdés</strong> és
+                  <strong>meddig legyen kész</strong>.
+                </span>
+              </div>
+              <div class="role-item">
+                <span class="bullet">•</span>
+                <span>
+                  Jelöld, hogy <strong>rövid, kicsi, pár napos vagy egy napos munkáról</strong> van-e szó.
+                </span>
+              </div>
+              <div class="role-item">
+                <span class="bullet">•</span>
+                <span>
+                  Minden új megrendelést először az admin kap meg – csak jóváhagyás után jelenik meg.
+                </span>
+              </div>
+            </div>
+            <button class="role-btn" onclick="selectRole('megrendelo')">
+              Belépek megrendelőként
+            </button>
+          </div>
+        </div>
+
+        <div class="info-row">
+          <div class="info-pill">
+            <span>🧱</span>
+            <span><strong>Cél:</strong> normális munkák, normális embereknek – sumákok kiszűrve.</span>
+          </div>
+          <div class="info-pill">
+            <span>🕒</span>
+            <span><strong>Naptár alapú párosítás:</strong> a rendszer az időpontok szerint is összerakja a feleket.</span>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer>
+    <button class="donate-btn" onclick="openDonate()">
+      <span>❤️</span>
+      <span>Becsület-kassza – ha segítettem, meghálálhatod</span>
+    </button>
+  </footer>
+
+  <script>
+    function selectRole(role) {
+      if (role === "szaki") {
+        alert("Szaki-regisztráció és naptár – következő lépésben ezt építjük ki.");
+      } else {
+        alert("Megrendelő új munka feladás – következő lépésben ezt építjük ki.");
+      }
+    }
+
+    function openDonate() {
+      alert(
+        "Itt lesz a becsület-kassza támogatási oldal (Revolut/PayPal linkekkel)."
+      );
+    }
+  </script>
 </body>
 </html>
