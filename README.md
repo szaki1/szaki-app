@@ -1,0 +1,1 @@
+# szaki-app
