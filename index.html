@@ -76,10 +76,16 @@ Nem sokára indul a szakember–megrendelő összekötő rendszer!</p>
 <!-- [3/3 - START] -->
 <script>
 function selectRole(role) {
-    alert("Ide jön majd a következő oldal: " + role);
+    if (role === "szaki") {
+        window.location.href = "szaki-regisztracio.html";
+    }
+    if (role === "megrendelo") {
+        window.location.href = "megrendelo-regisztracio.html";
+    }
 }
 </script>
 
 </body>
 </html>
 <!-- [3/3 - END] -->
+
