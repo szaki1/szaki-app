@@ -2,230 +2,187 @@
 <!DOCTYPE html>
 <html lang="hu">
 <head>
-  <meta charset="UTF-8" />
-  <title>Szaki regisztráció</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f2f2f2;
-      margin: 0;
-      padding: 30px 10px;
-    }
-
-    .wrapper {
-      max-width: 480px;
-      margin: 0 auto;
-    }
-
-    .card {
-      background: #ffffff;
-      border-radius: 12px;
-      padding: 24px 22px 28px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
-    }
-
-    h1 {
-      text-align: center;
-      margin: 0 0 10px;
-      color: #333;
-      font-size: 26px;
-    }
-
-    .subtitle {
-      text-align: center;
-      margin-bottom: 24px;
-      color: #777;
-      font-size: 14px;
-      line-height: 1.4;
-    }
-
-    label {
-      display: block;
-      font-size: 14px;
-      margin-bottom: 4px;
-      color: #444;
-    }
-
-    .field {
-      margin-bottom: 14px;
-    }
-
-    input[type="text"],
-    select {
-      width: 100%;
-      padding: 11px 10px;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-      font-size: 14px;
-      box-sizing: border-box;
-    }
-
-    input[type="text"]:focus,
-    select:focus {
-      outline: none;
-      border-color: #f57c00;
-      box-shadow: 0 0 0 2px rgba(245,124,0,0.15);
-    }
-
-    .checkbox-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin: 10px 0 16px;
-      font-size: 13px;
-      color: #444;
-    }
-
-    .checkbox-row input {
-      width: 18px;
-      height: 18px;
-    }
-
-    .btn-primary {
-      width: 100%;
-      background: #f57c00;
-      color: white;
-      border: none;
-      padding: 13px 16px;
-      border-radius: 10px;
-      font-size: 16px;
-      cursor: pointer;
-      font-weight: bold;
-      margin-top: 6px;
-    }
-
-    .btn-primary:hover {
-      background: #e56f00;
-    }
-
-    .disclaimer {
-      margin-top: 16px;
-      font-size: 12px;
-      color: #777;
-      text-align: center;
-      line-height: 1.4;
-    }
-
-    .small-info {
-      font-size: 12px;
-      color: #999;
-      margin-top: 4px;
-    }
-
-    .error {
-      color: #c62828;
-      font-size: 12px;
-      margin-bottom: 8px;
-      display: none;
-    }
-  </style>
+    <meta charset="UTF-8" />
+    <title>Szaki regisztráció</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f2f2f2;
+            margin: 0;
+            padding: 40px 10px;
+        }
+        .wrapper {
+            max-width: 650px;
+            margin: 0 auto;
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+            padding: 35px 30px 30px;
+            text-align: center;
+        }
+        h1 {
+            margin-top: 0;
+            font-size: 28px;
+        }
+        .subtitle {
+            margin-bottom: 25px;
+            color: #555;
+            font-weight: bold;
+        }
+        .form-row {
+            margin-bottom: 15px;
+            text-align: left;
+        }
+        .form-row label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+            color: #444;
+        }
+        .form-row input[type="text"],
+        .form-row select {
+            width: 100%;
+            padding: 12px 10px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            font-size: 15px;
+            box-sizing: border-box;
+        }
+        .checkbox-row {
+            margin: 15px 0;
+            text-align: left;
+            font-size: 14px;
+            color: #444;
+        }
+        .checkbox-row input {
+            margin-right: 8px;
+        }
+        .btn-primary {
+            width: 100%;
+            background: #f57c00;
+            color: white;
+            border: none;
+            padding: 14px 20px;
+            font-size: 17px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        .btn-primary:hover {
+            background: #e56f00;
+        }
+        .footer-text {
+            margin-top: 25px;
+            font-size: 12px;
+            color: #666;
+        }
+        .required {
+            color: #d32f2f;
+        }
+    </style>
 </head>
 <body>
-<div class="wrapper">
-  <div class="card">
-    <h1>Szaki regisztráció</h1>
-    <div class="subtitle">
-      Ingyenes, becsületes szakember rendszer.<br>
-      Cserébe legyél precíz, pontos és becsületes a munkában is.
-    </div>
 <!-- [1/3 - END] -->
 
 <!-- [2/3 - START] -->
-    <div id="errorBox" class="error"></div>
+<div class="wrapper">
+    <h1>Szaki regisztráció</h1>
+    <div class="subtitle">Ingyenes, becsületes szakember rendszer</div>
 
-    <div class="field">
-      <label for="name">Teljes név *</label>
-      <input id="name" type="text" placeholder="Pl.: Kovács Béla">
+    <div class="form-row">
+        <label for="nev">Teljes név <span class="required">*</span></label>
+        <input type="text" id="nev" placeholder="Pl.: Kovács Béla">
     </div>
 
-    <div class="field">
-      <label for="city">Város / Település *</label>
-      <input id="city" type="text" placeholder="Pl.: Budapest, Dunakeszi">
+    <div class="form-row">
+        <label for="varos">Város / Település <span class="required">*</span></label>
+        <input type="text" id="varos" placeholder="Pl.: Budapest XIII.">
     </div>
 
-    <div class="field">
-      <label for="profession">Milyen szakma? *</label>
-      <input id="profession" type="text" placeholder="Pl.: burkoló, festő, gipszkarton">
+    <div class="form-row">
+        <label for="szakma">Milyen szakma? <span class="required">*</span></label>
+        <input type="text" id="szakma" placeholder="Pl.: burkoló, festő, gipszkarton">
     </div>
 
-    <div class="field">
-      <label for="experience">Tapasztalat *</label>
-      <select id="experience">
-        <option value="">Tapasztalat (válassz)</option>
-        <option value="0-1 év">0–1 év</option>
-        <option value="1-3 év">1–3 év</option>
-        <option value="3-5 év">3–5 év</option>
-        <option value="5+ év">5+ év</option>
-        <option value="10+ év">10+ év</option>
-      </select>
+    <div class="form-row">
+        <label for="tapasztalat">Tapasztalat (válassz) <span class="required">*</span></label>
+        <select id="tapasztalat">
+            <option value="">-- válassz --</option>
+            <option>0-1 év</option>
+            <option>1-3 év</option>
+            <option>3-5 év</option>
+            <option>5-10 év</option>
+            <option>10+ év</option>
+        </select>
     </div>
 
-    <div class="field">
-      <label for="profileLink">Profil link (Facebook / Insta – opcionális)</label>
-      <input id="profileLink" type="text" placeholder="Pl.: https://facebook.com/valami">
-      <div class="small-info">
-        Ezt csak az admin látja, később segít a profilod hitelesítésében.
-      </div>
+    <div class="form-row">
+        <label for="profilLink">Profil link (Facebook vagy Insta – opcionális)</label>
+        <input type="text" id="profilLink" placeholder="https://facebook.com/valami vagy @insta_nev">
     </div>
 
-    <label class="checkbox-row">
-      <input id="shortJobs" type="checkbox">
-      <span>Rövid, kicsi, pár napos vagy 1 napos munkát is vállalok.</span>
-    </label>
-
-    <button class="btn-primary" onclick="submitRegistration()">
-      Regisztráció elküldése
-    </button>
-
-    <div class="disclaimer">
-      A regisztrációval elfogadod, hogy <b>csak valós szakmai adatot</b> adsz meg,
-      és a Szaki-App <b>becsület-rangsorban</b> jeleníti meg a profilod.
+    <div class="checkbox-row">
+        <label>
+            <input type="checkbox" id="rovidMunka">
+            Rövid, kicsi, pár napos munkát is vállalok
+        </label>
     </div>
-  </div>
+
+    <button class="btn-primary" onclick="submitRegistration()">Regisztráció elküldése</button>
+
+    <div class="footer-text">
+        A regisztrációval elfogadod, hogy csak valós szakmai adatot adsz meg, és a Szaki-App
+        becsület-rangsorban jeleníti meg a profilodat.
+    </div>
 </div>
 <!-- [2/3 - END] -->
 
 <!-- [3/3 - START] -->
 <script>
-  function submitRegistration() {
-    const name = document.getElementById('name').value.trim();
-    const city = document.getElementById('city').value.trim();
-    const profession = document.getElementById('profession').value.trim();
-    const experience = document.getElementById('experience').value;
-    const profileLink = document.getElementById('profileLink').value.trim();
-    const shortJobs = document.getElementById('shortJobs').checked;
-    const errorBox = document.getElementById('errorBox');
+    const STORAGE_KEY = "szakiRegisztraciok";
 
-    // egyszerű ellenőrzés
-    if (!name || !city || !profession || !experience) {
-      errorBox.style.display = 'block';
-      errorBox.textContent = 'Kérlek töltsd ki a *-gal jelölt mezőket: név, város, szakma, tapasztalat.';
-      return;
+    function submitRegistration() {
+        const nev = document.getElementById("nev").value.trim();
+        const varos = document.getElementById("varos").value.trim();
+        const szakma = document.getElementById("szakma").value.trim();
+        const tapasztalat = document.getElementById("tapasztalat").value.trim();
+        const profilLink = document.getElementById("profilLink").value.trim();
+        const rovidMunka = document.getElementById("rovidMunka").checked;
+
+        // Kötelező mezők ellenőrzése
+        if (!nev || !varos || !szakma || !tapasztalat) {
+            alert("Kérlek tölts ki minden kötelező mezőt (név, város, szakma, tapasztalat).");
+            return;
+        }
+
+        const registration = {
+            nev,
+            varos,
+            szakma,
+            tapasztalat,
+            profilLink,
+            rovidMunka,
+            createdAt: new Date().toISOString()
+        };
+
+        // Elmentjük localStorage-be (prototípus)
+        try {
+            const existing = localStorage.getItem(STORAGE_KEY);
+            const list = existing ? JSON.parse(existing) : [];
+            list.push(registration);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+        } catch (e) {
+            console.warn("LocalStorage mentés nem sikerült, csak demo módban fut:", e);
+        }
+
+        alert(
+            "Köszönöm, a regisztrációdat elmentettük ezen az eszközön (prototípus).\n\n" +
+            "Következő lépés: a Szaki Profil – Vezérlőpult oldalról fogod tudni a profilodat és a naptáradat szerkeszteni."
+        );
+
+        // Prototípus: átirányítás a szaki profil oldalra
+        window.location.href = "szaki-profil.html";
     }
-
-    errorBox.style.display = 'none';
-
-    // (később ide kerül a valódi mentés – Firebase)
-    // most csak elmentjük localStorage-ba, hogy legyen demó adat
-    const szakiData = {
-      name,
-      city,
-      profession,
-      experience,
-      profileLink,
-      shortJobs
-    };
-    try {
-      localStorage.setItem('szakiRegisztracioDemo', JSON.stringify(szakiData));
-    } catch (e) {
-      console.warn('LocalStorage nem elérhető, csak átirányítás lesz.');
-    }
-
-    alert('Köszönjük a regisztrációt! Most belépsz a Szaki Profil – vezérlőpultra.');
-
-    // átirányítás a szaki profil oldalra
-    window.location.href = 'szaki-profil.html';
-  }
 </script>
 </body>
 </html>
