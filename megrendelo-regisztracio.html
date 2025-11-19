@@ -52,8 +52,6 @@
         }
 
         input[type="text"],
-        input[type="tel"],
-        input[type="email"],
         input[type="date"],
         select,
         textarea {
@@ -79,16 +77,6 @@
             flex: 1;
         }
 
-        .checkbox-sor {
-            margin: 10px 0 20px;
-        }
-
-        .checkbox-sor label {
-            font-weight: normal;
-            display: inline-block;
-            margin-left: 6px;
-        }
-
         .fo-gomb {
             background: #f57c00;
             color: #fff;
@@ -111,27 +99,17 @@
             text-align: center;
         }
 
-        .vissza-link {
-            margin-top: 14px;
-            text-align: center;
-            font-size: 14px;
-        }
-
-        .vissza-link a {
-            color: #f57c00;
-            text-decoration: none;
-            font-weight: bold;
-        }
-
-        .vissza-link a:hover {
-            text-decoration: underline;
+        #char-counter {
+            font-size: 13px;
+            color: #666;
+            margin-top: 5px;
         }
     </style>
 </head>
 <body>
 <!-- [1/3 - END] -->
-
 <!-- [2/3 - START] -->
+
 <div class="csomagolas">
     <h1>Megrendelő regisztráció</h1>
     <p class="alcim">Ingyenes, becsületes szakember-kereső rendszer</p>
@@ -148,34 +126,42 @@
 
     <div class="mezo-csoport">
         <label for="elerhetoseg">Elérhetőség <span class="kotelezo">(kötelező)</span></label>
-        <input type="text" id="elerhetoseg" placeholder="Telefonszám vagy e-mail (pl.: +36 30..., vagy valaki@example.com)" />
+        <input type="text" id="elerhetoseg" placeholder="Telefonszám vagy e-mail" />
     </div>
 
-   <div class="mezo-csoport">
-  <label for="jobType">
-    Milyen szakembert keresel? <span class="kotelezo">(kötelező)</span>
-  </label>
-  <select id="jobType" name="jobType" required>
-    <option value="">Válassz szakmát…</option>
-    <option value="Kőműves">Kőműves</option>
-    <option value="Szobafestő-tapétázó">Szobafestő-tapétázó</option>
-    <option value="Burkoló">Burkoló</option>
-    <option value="Hidegburkoló">Hidegburkoló</option>
-    <option value="Melegburkoló">Melegburkoló</option>
-    <option value="Villanyszerelő">Villanyszerelő</option>
-    <option value="Vízszerelő">Vízszerelő</option>
-    <option value="Gázszerelő">Gázszerelő</option>
-    <option value="Fűtésszerelő">Fűtésszerelő</option>
-    <option value="Gipszkartonos">Gipszkartonos</option>
-    <option value="Klímaszerelő">Klímaszerelő</option>
-  </select>
-</div>
+    <div class="mezo-csoport">
+        <label for="jobType">Milyen szakembert keresel? <span class="kotelezo">(kötelező)</span></label>
+        <select id="jobType">
+            <option value="">Válassz szakmát…</option>
+            <option>Kőműves</option>
+            <option>Szobafestő-tapétázó</option>
+            <option>Burkoló</option>
+            <option>Hidegburkoló</option>
+            <option>Melegburkoló</option>
+            <option>Villanyszerelő</option>
+            <option>Vízszerelő</option>
+            <option>Gázszerelő</option>
+            <option>Fűtésszerelő</option>
+            <option>Gipszkartonos</option>
+            <option>Klímaszerelő</option>
+        </select>
+    </div>
+
+    <!-- 🔵 ÚJ – RÉSZLETES MUNKALEÍRÁS + SZÁMLÁLÓ -->
+    <div class="mezo-csoport">
+        <label for="munka-leiras">
+            Írd le részletesen a munkát <span class="kotelezo">(kötelező – min. 300 karakter)</span>
+        </label>
+        <textarea id="munka-leiras" placeholder="Írd le részletesen: mi a munka, méretek, állapot, mire van szükség..." oninput="updateCharCount()"></textarea>
+        <div id="char-counter">0 / 300 karakter</div>
+    </div>
 
     <div class="sor-2">
         <div class="mezo-csoport">
             <label for="kezdes-leghamarabb">Leghamarabb mikor indulhat a munka? <span class="kotelezo">(kötelező)</span></label>
             <input type="date" id="kezdes-leghamarabb" />
         </div>
+
         <div class="mezo-csoport">
             <label for="kezdes-legkesobb">Legkésőbb mikor indulhat a munka? <span class="kotelezo">(kötelező)</span></label>
             <input type="date" id="kezdes-legkesobb" />
@@ -187,78 +173,61 @@
         <input type="date" id="hatarido" />
     </div>
 
-    <div class="mezo-csoport">
-        <label for="munka-meret">Munka nagysága (érzéssel)</label>
-        <select id="munka-meret">
-            <option value="">Válassz (nem kötelező)</option>
-            <option value="rovid">Rövid, kicsi, pár napos / 1 napos munka</option>
-            <option value="kozepes">Közepes (kb. 1–2 hét)</option>
-            <option value="nagy">Nagyobb projekt (2+ hét, komplett felújítás)</option>
-        </select>
-    </div>
-
-    <div class="checkbox-sor">
-        <input type="checkbox" id="rovid-munka" />
-        <label for="rovid-munka">
-            Kifejezetten rövid, kicsi, pár napos vagy egy napos munkáról van szó.
-        </label>
-    </div>
-
     <button class="fo-gomb" onclick="kuldesMegrendelo()">Regisztráció elküldése</button>
 
     <p class="lablec-szoveg">
-        A regisztrációval elfogadod, hogy valós adatokat és elérhetőséget adsz meg.
-        A végleges Szaki-App rendszerben az admin először ellenőrzi a munkát,
-        és csak utána jelenik meg a szakik felé.
+        A végleges rendszerben az admin jóváhagyja a munkát, és csak utána látják a szakik.
     </p>
 
-    <p class="vissza-link">
-        <a href="index.html">← Vissza a kezdőoldalra</a>
-    </p>
+    <p class="vissza-link"><a href="index.html">← Vissza a kezdőoldalra</a></p>
 </div>
-<!-- [2/3 - END] -->
 
+<!-- [2/3 - END] -->
 <!-- [3/3 - START] -->
+
 <script>
+function updateCharCount() {
+    const txt = document.getElementById("munka-leiras");
+    const counter = document.getElementById("char-counter");
+    counter.textContent = txt.value.length + " / 300 karakter";
+}
+
 function kuldesMegrendelo() {
     const nev = document.getElementById("nev").value.trim();
     const varos = document.getElementById("varos").value.trim();
     const elerhetoseg = document.getElementById("elerhetoseg").value.trim();
+    const jobType = document.getElementById("jobType").value.trim();
     const munkaLeiras = document.getElementById("munka-leiras").value.trim();
-    const kezdesLeghamarabb = document.getElementById("kezdes-leghamarabb").value;
-    const kezdesLegkesobb = document.getElementById("kezdes-legkesobb").value;
+    const kezdes1 = document.getElementById("kezdes-leghamarabb").value;
+    const kezdes2 = document.getElementById("kezdes-legkesobb").value;
     const hatarido = document.getElementById("hatarido").value;
-    const munkaMeret = document.getElementById("munka-meret").value;
-    const rovidMunka = document.getElementById("rovid-munka").checked;
 
-    if (!nev || !varos || !elerhetoseg || !munkaLeiras ||
-        !kezdesLeghamarabb || !kezdesLegkesobb || !hatarido) {
-        alert("Kérlek tölts ki minden kötelező mezőt (név, város, elérhetőség, munka leírása, kezdés-időpontok, határidő).");
+    if (!nev || !varos || !elerhetoseg || !jobType || !munkaLeiras ||
+        !kezdes1 || !kezdes2 || !hatarido) {
+        alert("Kérlek tölts ki minden kötelező mezőt!");
         return;
     }
 
-    let osszefoglalo = "Köszönjük, " + nev + "!\n\n";
-    osszefoglalo += "Város / település: " + varos + "\n";
-    osszefoglalo += "Elérhetőség: " + elerhetoseg + "\n\n";
-    osszefoglalo += "Munka leírása:\n" + munkaLeiras + "\n\n";
-    osszefoglalo += "Leghamarabb indulhat: " + kezdesLeghamarabb + "\n";
-    osszefoglalo += "Legkésőbb indulhat: " + kezdesLegkesobb + "\n";
-    osszefoglalo += "Meddig kellene kész lenni: " + hatarido + "\n\n";
-
-    if (munkaMeret) {
-        osszefoglalo += "Munka nagysága (érzésre): " + munkaMeret + "\n";
-    }
-    if (rovidMunka) {
-        osszefoglalo += "Megjegyzés: kifejezetten rövid / kicsi / pár napos munkáról van szó.\n";
+    if (munkaLeiras.length < 300) {
+        alert("A munka leírásának minimum 300 karakter hosszúnak kell lennie!");
+        return;
     }
 
-    osszefoglalo += "\n(A végleges rendszerben ez az adatlap először az adminhoz kerül jóváhagyásra, ";
-    osszefoglalo += "és csak utána kapják meg a szakik.)";
-
-    alert(osszefoglalo);
+    alert(
+        "Köszönjük, " + nev + "!\n\n" +
+        "Szakembert keresel: " + jobType + "\n" +
+        "Város: " + varos + "\n" +
+        "Elérhetőség: " + elerhetoseg + "\n\n" +
+        "Munka részletezése:\n" + munkaLeiras + "\n\n" +
+        "Leghamarabb indulhat: " + kezdes1 + "\n" +
+        "Legkésőbb indulhat: " + kezdes2 + "\n" +
+        "Kész kell legyen: " + hatarido + "\n\n" +
+        "(Ez egy DEMÓ űrlap, a végleges verzió az adminhoz kerül majd jóváhagyásra.)"
+    );
 }
 </script>
 
 </body>
 </html>
+
 <!-- [3/3 - END] -->
