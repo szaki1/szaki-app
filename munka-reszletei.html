@@ -399,7 +399,7 @@
 
 <!-- [3/3 - START] -->
 <script type="module">
-    // Firebase + Firestore importok
+    // Firebase + Firestore betöltése
     import { db } from "./firebase-config.js";
     import {
         collection,
@@ -412,6 +412,7 @@
     const textarea = document.getElementById("reszletesLeiras");
     const counter  = document.getElementById("charCounter");
 
+    // Karakterszámláló
     textarea.addEventListener("input", () => {
         const len = textarea.value.length;
         counter.textContent = len + " / " + MIN_LEN;
@@ -430,71 +431,68 @@
         chip.classList.toggle("selected");
     });
 
-    // Lebegő mikrofon-gomb (egyelőre csak üzenetet mutat)
+    // Diktálás gomb (egyelőre csak demo üzenet)
     const micButton = document.getElementById("micButton");
     if (micButton) {
         micButton.addEventListener("click", () => {
-            alert("A diktálás funkció hamarosan érkezik! 🎤\n\nMost még kézzel kell beírni a szöveget.");
+            alert("A diktálás funkció hamarosan érkezik! 🎤\n\nMost még gépelni kell, de a végleges verzióban ide tudsz majd beszélni.");
         });
     }
 
+    // Munka mentése Firestore-ba (DEMO)
     async function rogzitMunkaDemo() {
         const leiras = textarea.value.trim();
 
         if (leiras.length < MIN_LEN) {
-            alert("Kérlek írj legalább " + MIN_LEN +
-                  " karakteres leírást a munkáról. Minél részletesebb, annál pontosabb ajánlatot kapsz.");
+            alert(
+                "Kérlek írj legalább " +
+                MIN_LEN +
+                " karakteres leírást a munkáról.\n\n" +
+                "Minél részletesebb, annál pontosabb ajánlatot kapsz."
+            );
             return;
         }
 
-        // Összegyűjtjük a kiválasztott szakmákat
+        // Kiválasztott szakmák (chip-ek)
         const selectedChips = Array.from(
             document.querySelectorAll(".chip.selected")
         ).map(chip => chip.getAttribute("data-value"));
 
-        const teljes = document.getElementById("teljesFelujitas").checked;
+        // Teljes lakásfelújítás pipája
+        const teljes = document.getElementById("teljesFelujitas")?.checked || false;
 
-        // Képek (egyelőre csak a darabszámot mentjük, valódi feltöltés később Firebase Storage-ba)
-        const fileInput = document.getElementById("kepek");
-        const fileCount = fileInput && fileInput.files ? fileInput.files.length : 0;
+        // Ár-érdeklődés módja (radio gombok)
+        const arModeInput = document.querySelector('input[name="arMode"]:checked');
+        const arMode = arModeInput ? arModeInput.value : "ismeretlen";
+
+        // Később ide jöhetnek az 1. lépésből áthozott adatok (név, város, stb.)
+        const workData = {
+            description: leiras,
+            trades: selectedChips,           // pl. ["Burkoló", "Vízszerelő"]
+            fullRenovation: teljes,          // true / false
+            priceInterestMode: arMode,       // "valos-munka" / "csak-ar" / "csak-kivancsi" (ahogy a HTML-ben adtuk)
+            createdAt: serverTimestamp()     // Firestore szerver időbélyeg
+        };
 
         try {
-            // Firestore mentés – „munkak” gyűjtemény
-            const docRef = await addDoc(collection(db, "munkak"), {
-                leirasTeljes: leiras,
-                leirasElso300: leiras.substring(0, 300),
-                szakmak: selectedChips,
-                teljesFelujitas: teljes,
-                kepekDarab: fileCount,
-                letrehozva: serverTimestamp(),
+            const docRef = await addDoc(collection(db, "workRequests"), workData);
 
-                // KÉSŐBB: ide jöhet kapcsoló a megrendelő doksi ID-jához, IP, böngésző, stb.
-            });
-
-            let uzenet = "Munka rögzítve (VALÓDI mentés Firestore-ba). 🎉\n\n";
-            uzenet += "Dokumentum azonosítója: " + docRef.id + "\n\n";
-
-            if (selectedChips.length > 0) {
-                uzenet += "Szükséges szakmák: " + selectedChips.join(", ") + "\n";
-            } else {
-                uzenet += "Szükséges szakmák: nincs külön megadva.\n";
-            }
-
-            if (teljes) {
-                uzenet += "Jelölted, hogy TELJES lakásfelújítást szeretnél.\n";
-            }
-
-            uzenet += "\nKésőbb ebből az ID-ból indul majd a chat, az árkalkuláció és a kredites rendszer.";
-
-            alert(uzenet);
-
-        } catch (err) {
-            console.error("Hiba a Firestore mentésnél:", err);
-            alert("Hiba történt a mentés közben. Próbáld meg újra pár perc múlva.");
+            alert(
+                "Köszönöm! A munkaleírásodat elmentettük a rendszerbe. ✅\n\n" +
+                "Ez most még PROTOTÍPUS: a végleges Szaki-Appben innen indul majd a szakik értesítése.\n\n" +
+                "Mentett azonosító (Firestore): " + docRef.id
+            );
+        } catch (error) {
+            console.error("Firestore mentési hiba:", error);
+            alert(
+                "Hoppá, valami hiba történt a mentésnél. 😕\n\n" +
+                "Ellenőrizd az internetkapcsolatot, és próbáld meg később újra."
+            );
         }
     }
 
-    // A gomb a HTML-ben: onclick="rogzitMunkaDemo()"
+    // Gombhoz kötjük a mentő függvényt (a HTML-ben onclick hívja)
     window.rogzitMunkaDemo = rogzitMunkaDemo;
 </script>
 <!-- [3/3 - END] -->
+
