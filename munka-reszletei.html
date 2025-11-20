@@ -201,22 +201,32 @@
 <!-- [1/3 - END] -->
 
 <!-- [2/3 - START] -->
-<div class="wrapper">
-    <h1>Munka részletei</h1>
-    <p class="alcim">Minél részletesebben írod le, annál gyorsabban találsz megfelelő szakembert.</p>
-
-    <!-- Összefoglaló az 1. lépés adataiból – egyelőre demo szöveg -->
-    <div class="summary-box" id="summaryBox">
-        <div class="szakmai-info"><strong>Választott szakma:</strong> <span id="sumSzakma">nincs megadva</span></div>
-        <div class="szakmai-info"><strong>Helyszín:</strong> <span id="sumHelyszin">nincs megadva</span></div>
-        <div class="szakmai-info">
-            <strong>Időzítés:</strong>
-            leghamarabb: <span id="sumKezdesMin">-</span> ·
-            legkésőbb: <span id="sumKezdesMax">-</span> ·
-            határidő: <span id="sumHatarido">-</span>
-        </div>
-        <div class="szakmai-info"><strong>Munka nagysága:</strong> <span id="sumMeret">nincs megadva</span></div>
+<div class="textarea-wrapper" style="position: relative;">
+    <!-- Mikrofon ikon -->
+    <div id="micButton"
+         style="
+            position:absolute;
+            top:8px;
+            right:8px;
+            width:32px;
+            height:32px;
+            background:#f57c00;
+            border-radius:50%;
+            display:flex;
+            justify-content:center;
+            align-items:center;
+            cursor:pointer;
+            box-shadow:0 2px 6px rgba(0,0,0,0.25);
+         "
+         title="Diktálás (hamarosan)">
+        🎤
     </div>
+
+    <textarea id="reszletesLeiras"
+        placeholder="Pl.: 40 m² nappali padló burkolása, 15 m² konyha fal csempe, régi burkolat bontással vagy bontás nélkül, milyen állapotú a fal, milyen burkolatot szeretnél, parkolás, emelet, lift van-e, stb."></textarea>
+
+    <div id="charCounter" class="char-counter">0 / 300</div>
+</div>
 
     <!-- 1. rész: részletes leírás -->
     <div>
@@ -378,4 +388,8 @@
 
 </body>
 </html>
+document.getElementById("micButton").addEventListener("click", () => {
+    alert("A diktálás funkció hamarosan érkezik! 🎤");
+});
+
 <!-- [3/3 - END] -->
