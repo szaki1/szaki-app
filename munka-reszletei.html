@@ -398,13 +398,21 @@
 <!-- [2/3 - END] -->
 
 <!-- [3/3 - START] -->
-<script>
+<script type="module">
+    // Firebase + Firestore importok
+    import { db } from "./firebase-config.js";
+    import {
+        collection,
+        addDoc,
+        serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    // Minimum karakterszám a leíráshoz
     const MIN_LEN = 300;
     const textarea = document.getElementById("reszletesLeiras");
     const counter  = document.getElementById("charCounter");
 
-    // Karakterszámláló
-    function updateCounter() {
+    textarea.addEventListener("input", () => {
         const len = textarea.value.length;
         counter.textContent = len + " / " + MIN_LEN;
         if (len < MIN_LEN) {
@@ -412,9 +420,7 @@
         } else {
             counter.classList.remove("too-short");
         }
-    }
-    textarea.addEventListener("input", updateCounter);
-    updateCounter();
+    });
 
     // Szakma chip-ek kapcsolgatása (multi select)
     const chipsContainer = document.getElementById("szakmaChips");
@@ -424,120 +430,71 @@
         chip.classList.toggle("selected");
     });
 
-    // Mikrofongomb – Web Speech API (ha van)
-    let recognition = null;
-    let listening  = false;
-
-    function initRecognition() {
-        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (!SR) {
-            alert("A hangalapú diktálás csak olyan böngészőben működik, amely támogatja a Web Speech API-t (pl. Chrome, Edge).");
-            return null;
-        }
-
-        const rec = new SR();
-        rec.lang = "hu-HU";
-        rec.continuous = true;
-        rec.interimResults = true;
-
-        rec.onresult = (event) => {
-            let text = textarea.value;
-            for (let i = event.resultIndex; i < event.results.length; i++) {
-                const res = event.results[i];
-                if (res.isFinal) {
-                    text += " " + res[0].transcript;
-                }
-            }
-            textarea.value = text.trim();
-            updateCounter();
-        };
-
-        rec.onend = () => {
-            if (listening && rec) {
-                rec.start();
-            }
-        };
-
-        return rec;
-    }
-
+    // Lebegő mikrofon-gomb (egyelőre csak üzenetet mutat)
     const micButton = document.getElementById("micButton");
-    micButton.addEventListener("click", () => {
-        if (!recognition) {
-            recognition = initRecognition();
-            if (!recognition) return;
-        }
-
-        if (!listening) {
-            recognition.start();
-            listening = true;
-            micButton.classList.add("active");
-            micButton.title = "Diktálás leállítása";
-        } else {
-            listening = false;
-            recognition.stop();
-            micButton.classList.remove("active");
-            micButton.title = "Diktálás indítása";
-        }
-    });
-
-    // Lebegő becsületkassza / megosztás gomb (demo)
-    function showDonateInfo() {
-        alert(
-            "Becsületkassza / megosztás (DEMO)\n\n" +
-            "A végleges verzióban itt tudod majd:\n" +
-            "• megosztani az oldalt (Facebook, Insta, stb.),\n" +
-            "• vagy egy jelképes adománnyal támogatni az oldalt.\n\n" +
-            "Cserébe extra funkciókat kapsz (pl. részletesebb árkérés, PDF mentés, stb.)."
-        );
+    if (micButton) {
+        micButton.addEventListener("click", () => {
+            alert("A diktálás funkció hamarosan érkezik! 🎤\n\nMost még kézzel kell beírni a szöveget.");
+        });
     }
 
-    // Demo mentés gomb
-    function rogzitMunkaDemo() {
+    async function rogzitMunkaDemo() {
         const leiras = textarea.value.trim();
+
         if (leiras.length < MIN_LEN) {
-            alert(
-                "Kérlek írj legalább " + MIN_LEN +
-                " karakteres leírást a munkáról. Minél részletesebb, annál pontosabb ajánlatot kapsz."
-            );
+            alert("Kérlek írj legalább " + MIN_LEN +
+                  " karakteres leírást a munkáról. Minél részletesebb, annál pontosabb ajánlatot kapsz.");
             return;
         }
 
+        // Összegyűjtjük a kiválasztott szakmákat
         const selectedChips = Array.from(
             document.querySelectorAll(".chip.selected")
         ).map(chip => chip.getAttribute("data-value"));
 
         const teljes = document.getElementById("teljesFelujitas").checked;
 
-        const mode = document.querySelector('input[name="priceMode"]:checked')?.value || "normal";
+        // Képek (egyelőre csak a darabszámot mentjük, valódi feltöltés később Firebase Storage-ba)
+        const fileInput = document.getElementById("kepek");
+        const fileCount = fileInput && fileInput.files ? fileInput.files.length : 0;
 
-        let uzenet = "Munka rögzítve (DEMO).\n\n";
-        uzenet += "Leírás (első 300 karakter):\n" +
-                  leiras.substring(0, 300) + (leiras.length > 300 ? "..." : "") + "\n\n";
+        try {
+            // Firestore mentés – „munkak” gyűjtemény
+            const docRef = await addDoc(collection(db, "munkak"), {
+                leirasTeljes: leiras,
+                leirasElso300: leiras.substring(0, 300),
+                szakmak: selectedChips,
+                teljesFelujitas: teljes,
+                kepekDarab: fileCount,
+                letrehozva: serverTimestamp(),
 
-        if (selectedChips.length > 0) {
-            uzenet += "Szükséges szakmák: " + selectedChips.join(", ") + "\n";
-        } else {
-            uzenet += "Szükséges szakmák: nincs külön megadva.\n";
+                // KÉSŐBB: ide jöhet kapcsoló a megrendelő doksi ID-jához, IP, böngésző, stb.
+            });
+
+            let uzenet = "Munka rögzítve (VALÓDI mentés Firestore-ba). 🎉\n\n";
+            uzenet += "Dokumentum azonosítója: " + docRef.id + "\n\n";
+
+            if (selectedChips.length > 0) {
+                uzenet += "Szükséges szakmák: " + selectedChips.join(", ") + "\n";
+            } else {
+                uzenet += "Szükséges szakmák: nincs külön megadva.\n";
+            }
+
+            if (teljes) {
+                uzenet += "Jelölted, hogy TELJES lakásfelújítást szeretnél.\n";
+            }
+
+            uzenet += "\nKésőbb ebből az ID-ból indul majd a chat, az árkalkuláció és a kredites rendszer.";
+
+            alert(uzenet);
+
+        } catch (err) {
+            console.error("Hiba a Firestore mentésnél:", err);
+            alert("Hiba történt a mentés közben. Próbáld meg újra pár perc múlva.");
         }
-
-        if (teljes) {
-            uzenet += "Jelölted, hogy TELJES lakásfelújítást szeretnél.\n";
-        }
-
-        if (mode === "onlyPrice") {
-            uzenet += "Ár-érdeklődés módja: CSAK AZ ÁR ÉRDEKEL (tájékoztató ajánlat, kreditrendszer később).\n";
-        } else {
-            uzenet += "Ár-érdeklődés módja: KONKRÉTAN MEG SZERETNÉD CSINÁLTATNI A MUNKÁT.\n";
-        }
-
-        uzenet += "\nA végleges rendszerben itt fog történni a valódi mentés az adatbázisba, ";
-        uzenet += "és innen indul a szakik felé a munka kiküldése.";
-
-        alert(uzenet);
     }
-</script>
 
-</body>
-</html>
+    // A gomb a HTML-ben: onclick="rogzitMunkaDemo()"
+    window.rogzitMunkaDemo = rogzitMunkaDemo;
+</script>
 <!-- [3/3 - END] -->
