@@ -82,6 +82,14 @@
             margin-top: 4px;
         }
 
+        .char-counter {
+            font-weight: bold;
+        }
+
+        .char-counter.keves {
+            color: #e53935;
+        }
+
         .chip-lista {
             display: flex;
             flex-wrap: wrap;
@@ -161,7 +169,7 @@
     <textarea id="reszletes-leiras" placeholder="Pl.: 40 m² nappali burkolás, 15 m² fal csempe, stb."></textarea>
     <div class="char-sor">
         <span>Minimum 300 karakter</span>
-        <span id="char-counter" class="keves">0 / 300</span>
+        <span id="char-counter" class="char-counter keves">0 / 300</span>
     </div>
 
     <!-- Szakma specifikus -->
@@ -181,6 +189,9 @@
     <!-- Képek -->
     <div class="szekcio-cim">4. Képek</div>
     <input type="file" id="munka-kepek" accept="image/*" multiple />
+    <div class="file-info" id="file-info">
+        Maximum 10 kép, egyenként kb. 5 MB. Ügyelj, hogy ne látszódjon arc, név, pontos cím.
+    </div>
 
     <!-- Beküldés -->
     <button class="fo-gomb" id="vegleges-gomb" disabled onclick="veglegesKuldes()">Munka rögzítése (demo)</button>
@@ -198,17 +209,93 @@
         "Villanyszerelő","Vízszerelő","Gázszerelő","Fűtésszerelő","Gipszkartonos","Klímaszerelő"
     ];
 
+    // Összegzés + szakma specifikus
     function betoltOsszegzes() {
-        document.getElementById("ossz-szakma").textContent = localStorage.getItem("mr_szakma") || "-";
+        const szakma = localStorage.getItem("mr_szakma") || "-";
+        document.getElementById("ossz-szakma").textContent = szakma;
         document.getElementById("ossz-varos").textContent = localStorage.getItem("mr_varos") || "-";
         document.getElementById("ossz-idopontok").textContent =
             "leghamarabb: " + (localStorage.getItem("mr_kezdesMin") || "-") +
             " • legkésőbb: " + (localStorage.getItem("mr_kezdesMax") || "-") +
             " • határidő: " + (localStorage.getItem("mr_hatarido") || "-");
         document.getElementById("ossz-meret").textContent = localStorage.getItem("mr_meret") || "-";
+
+        epitsSzakmaSpecifikus(szakma);
     }
 
-    // Karakter számláló
+    // Szakma specifikus mezők
+    function epitsSzakmaSpecifikus(szakma) {
+        const kontener = document.getElementById("szakma-specifikus");
+        kontener.innerHTML = "";
+
+        if (szakma === "Burkoló") {
+            kontener.innerHTML = `
+                <div class="mezo-csoport">
+                    <label for="fal-csempe">Hány m² fal csempe lesz?</label>
+                    <input type="number" id="fal-csempe" min="0" placeholder="Pl.: 15" />
+                </div>
+                <div class="mezo-csoport">
+                    <label for="padlo-burkolas">Hány m² padló burkolás lesz?</label>
+                    <input type="number" id="padlo-burkolas" min="0" placeholder="Pl.: 30" />
+                </div>
+                <div class="mezo-csoport">
+                    <label for="helyisegek">Melyik helyiségek érintettek?</label>
+                    <input type="text" id="helyisegek" placeholder="Pl.: nappali, konyha, fürdő, WC, előszoba" />
+                </div>
+                <div class="mezo-csoport">
+                    <label for="bontas">Régi burkolattal mi legyen?</label>
+                    <select id="bontas">
+                        <option value="">Válassz (nem kötelező)</option>
+                        <option value="bontas_nelkul">Rá lehet burkolni, nem kell bontani</option>
+                        <option value="reszben_bontani">Csak részben kell bontani</option>
+                        <option value="teljes_bontas">Teljes bontás, mindent fel kell szedni</option>
+                        <option value="nem_tudom">Nem tudom, szakember döntse el</option>
+                    </select>
+                </div>
+                <div class="mezo-csoport">
+                    <label for="anyag">Anyagot ki veszi?</label>
+                    <select id="anyag">
+                        <option value="">Még nem döntöttem</option>
+                        <option value="megrendelo">Anyagot én veszem meg</option>
+                        <option value="szaki">Anyagot a szakember hozza</option>
+                        <option value="vegyes">Vegyes: részben én, részben a szaki</option>
+                    </select>
+                </div>
+            `;
+            initBurkoloMezok();
+        } else {
+            kontener.innerHTML = `
+                <p class="info-szoveg">
+                    Ennél a szakmánál most nincsenek külön mezők. A részletes leírásban írj minél több konkrétumot
+                    (mennyiségek, helyiségek, állapot, különleges igények).
+                </p>
+            `;
+        }
+    }
+
+    // Burkoló mezők mentése/visszatöltése
+    function initBurkoloMezok() {
+        const fal = document.getElementById("fal-csempe");
+        if (!fal) return;
+        const padlo = document.getElementById("padlo-burkolas");
+        const hely = document.getElementById("helyisegek");
+        const bontas = document.getElementById("bontas");
+        const anyag = document.getElementById("anyag");
+
+        fal.value = localStorage.getItem("mr2_falCsempe") || "";
+        padlo.value = localStorage.getItem("mr2_padloBurkolas") || "";
+        hely.value = localStorage.getItem("mr2_helyisegek") || "";
+        bontas.value = localStorage.getItem("mr2_bontas") || "";
+        anyag.value = localStorage.getItem("mr2_anyag") || "";
+
+        fal.addEventListener("input", () => localStorage.setItem("mr2_falCsempe", fal.value));
+        padlo.addEventListener("input", () => localStorage.setItem("mr2_padloBurkolas", padlo.value));
+        hely.addEventListener("input", () => localStorage.setItem("mr2_helyisegek", hely.value));
+        bontas.addEventListener("change", () => localStorage.setItem("mr2_bontas", bontas.value));
+        anyag.addEventListener("change", () => localStorage.setItem("mr2_anyag", anyag.value));
+    }
+
+    // Karakter számláló + mentés
     function initKarakterszam() {
         const ta = document.getElementById("reszletes-leiras");
         const counter = document.getElementById("char-counter");
@@ -219,8 +306,13 @@
         function frissit() {
             const h = ta.value.trim().length;
             counter.textContent = h + " / 300";
-            counter.classList.toggle("keves", h < 300);
-            gomb.disabled = h < 300;
+            if (h < 300) {
+                counter.classList.add("keves");
+                gomb.disabled = true;
+            } else {
+                counter.classList.remove("keves");
+                gomb.disabled = false;
+            }
             localStorage.setItem("mr2_leiras", ta.value);
         }
 
@@ -232,11 +324,17 @@
     function epitsChipLista() {
         const lista = document.getElementById("tobb-szakma-chipek");
         lista.innerHTML = "";
-        let kijelolt = JSON.parse(localStorage.getItem("mr2_tobbSzakma") || "[]");
+        let kijelolt = [];
+
+        try {
+            kijelolt = JSON.parse(localStorage.getItem("mr2_tobbSzakma") || "[]");
+        } catch (e) {
+            kijelolt = [];
+        }
 
         SZAKMAK.forEach(s => {
             const chip = document.createElement("div");
-            chip.className = "chip" + (kijelolt.includes(s) ? "selected" : "");
+            chip.className = "chip" + (kijelolt.includes(s) ? " selected" : "");
             chip.textContent = s;
             chip.dataset.szakma = s;
             chip.onclick = () => {
@@ -248,34 +346,128 @@
         });
     }
 
-    // ----- JAVÍTOTT VISSZA GOMB -----
+    // Teljes felújítás mentése
+    function initTeljesFelujitas() {
+        const chk = document.getElementById("teljes-felujitas");
+        const mentett = localStorage.getItem("mr2_teljesFelujitas");
+        if (mentett === "true") chk.checked = true;
+
+        chk.addEventListener("change", () => {
+            localStorage.setItem("mr2_teljesFelujitas", chk.checked ? "true" : "false");
+        });
+    }
+
+    // Képfájl infó
+    function initFileInfo() {
+        const input = document.getElementById("munka-kepek");
+        const info = document.getElementById("file-info");
+
+        input.addEventListener("change", () => {
+            const fajlok = input.files;
+            if (!fajlok || fajlok.length === 0) {
+                info.textContent = "Nem választottál ki képet. Maximum 10 kép, kb. 5 MB/kép.";
+                return;
+            }
+            if (fajlok.length > 10) {
+                info.textContent = "Túl sok kép – maximum 10 darab tölthető fel.";
+                return;
+            }
+            info.textContent = fajlok.length + " kép kiválasztva (demó: még nem kerülnek feltöltésre).";
+        });
+    }
+
+    // Vissza link
     function initVisszaLink() {
         const link = document.getElementById("vissza-1-lepes");
         link.addEventListener("click", (e) => {
             e.preventDefault();
-
-            // Van előzmény → oda lép
             if (history.length > 1) {
                 history.back();
-            }
-            // Nincs előzmény → közvetlenül 1. lépés
-            else {
+            } else {
                 window.location.href = "megrendelo-regisztracio.html";
             }
         });
     }
 
-    // Demo
+    // Demo elküldés – összefoglaló alert
     function veglegesKuldes() {
-        alert("A demo verzióban nincs végleges küldés.");
+        const nev = localStorage.getItem("mr_nev") || "ismeretlen név";
+        const varos = localStorage.getItem("mr_varos") || "ismeretlen helyszín";
+        const elerhetoseg = localStorage.getItem("mr_elerhetoseg") || "nincs elérhetőség";
+        const szakma = localStorage.getItem("mr_szakma") || "nincs megadva";
+        const kezdesMin = localStorage.getItem("mr_kezdesMin") || "-";
+        const kezdesMax = localStorage.getItem("mr_kezdesMax") || "-";
+        const hatarido = localStorage.getItem("mr_hatarido") || "-";
+        const meret = localStorage.getItem("mr_meret") || "nincs megadva";
+
+        const leiras = document.getElementById("reszletes-leiras").value.trim();
+        if (leiras.length < 300) {
+            alert("Kérlek írj legalább 300 karaktert a munka leírásánál – most csak " + leiras.length + " karakter.");
+            return;
+        }
+
+        // Burkoló extra
+        let extra = "";
+        if (szakma === "Burkoló") {
+            const fal = document.getElementById("fal-csempe")?.value || "";
+            const padlo = document.getElementById("padlo-burkolas")?.value || "";
+            const helyisegek = document.getElementById("helyisegek")?.value || "";
+            const bontas = document.getElementById("bontas")?.value || "";
+            const anyag = document.getElementById("anyag")?.value || "";
+
+            extra += "\n[Burkoló adatok]\n";
+            if (fal) extra += "- Fal csempe: " + fal + " m²\n";
+            if (padlo) extra += "- Padló burkolás: " + padlo + " m²\n";
+            if (helyisegek) extra += "- Helyiségek: " + helyisegek + "\n";
+            if (bontas) extra += "- Bontás: " + bontas + "\n";
+            if (anyag) extra += "- Anyagot veszi: " + anyag + "\n";
+        }
+
+        // Több szakma
+        const chipElemek = document.querySelectorAll(".chip.selected");
+        const valasztottSzakmak = Array.from(chipElemek).map(el => el.dataset.szakma);
+        let szakmaSzoveg = szakma;
+        if (valasztottSzakmak.length > 0) {
+            szakmaSzoveg += " (plusz: " + valasztottSzakmak.join(", ") + ")";
+        }
+
+        // Teljes felújítás
+        const teljes = document.getElementById("teljes-felujitas").checked;
+
+        // Képek száma
+        const fajlok = document.getElementById("munka-kepek").files || [];
+        const kepekSzama = fajlok.length;
+
+        let uzenet = "Köszönjük, " + nev + "!\n\n";
+        uzenet += "[Kapcsolat]\n";
+        uzenet += "Helyszín: " + varos + "\n";
+        uzenet += "Elérhetőség: " + elerhetoseg + "\n\n";
+
+        uzenet += "[Munka alapadatok]\n";
+        uzenet += "Szakma(k): " + szakmaSzoveg + "\n";
+        uzenet += "Leghamarabb indulhat: " + kezdesMin + "\n";
+        uzenet += "Legkésőbb indulhat: " + kezdesMax + "\n";
+        uzenet += "Határidő: " + hatarido + "\n";
+        uzenet += "Munka nagysága: " + meret + "\n";
+        if (teljes) uzenet += "Megjegyzés: TELJES lakásfelújítás.\n";
+
+        uzenet += "\n[Részletes leírás]\n" + leiras + "\n";
+        if (extra) uzenet += "\n" + extra;
+
+        uzenet += "\n[Képek]\n";
+        uzenet += "Csatolt képek száma: " + kepekSzama + " (demóban még nem kerülnek feltöltésre).\n";
+
+        alert(uzenet);
     }
 
-    // Init
     document.addEventListener("DOMContentLoaded", () => {
         betoltOsszegzes();
         initKarakterszam();
         epitsChipLista();
+        initTeljesFelujitas();
+        initFileInfo();
         initVisszaLink();
+        window.veglegesKuldes = veglegesKuldes;
     });
 </script>
 
