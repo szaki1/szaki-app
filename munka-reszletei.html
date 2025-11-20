@@ -47,10 +47,6 @@
             font-weight: bold;
         }
 
-        .szakmai-info {
-            margin: 2px 0;
-        }
-
         .section-title {
             font-size: 18px;
             margin: 18px 0 4px;
@@ -95,6 +91,28 @@
         .char-counter.too-short {
             color: #e53935;
             font-weight: bold;
+        }
+
+        /* Mikrofon gomb */
+        .mic-button {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 32px;
+            height: 32px;
+            background: #f57c00;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+            color: #fff;
+            font-size: 18px;
+        }
+
+        .mic-button.active {
+            background: #e53935;
         }
 
         .chips-container {
@@ -201,32 +219,18 @@
 <!-- [1/3 - END] -->
 
 <!-- [2/3 - START] -->
-<div class="textarea-wrapper" style="position: relative;">
-    <!-- Mikrofon ikon -->
-    <div id="micButton"
-         style="
-            position:absolute;
-            top:8px;
-            right:8px;
-            width:32px;
-            height:32px;
-            background:#f57c00;
-            border-radius:50%;
-            display:flex;
-            justify-content:center;
-            align-items:center;
-            cursor:pointer;
-            box-shadow:0 2px 6px rgba(0,0,0,0.25);
-         "
-         title="Diktálás (hamarosan)">
-        🎤
+<div class="wrapper">
+    <h1>Munka részletei</h1>
+    <p class="alcim">
+        Minél részletesebben írod le, annál gyorsabban találsz megfelelő szakembert.
+    </p>
+
+    <div class="summary-box" id="summaryBox">
+        <div><strong>Választott szakma:</strong> nincs megadva</div>
+        <div><strong>Helyszín:</strong> nincs megadva</div>
+        <div><strong>Időzítés:</strong> leghamarabb: - • legkésőbb: - • határidő: -</div>
+        <div><strong>Munka nagysága:</strong> nincs megadva</div>
     </div>
-
-    <textarea id="reszletesLeiras"
-        placeholder="Pl.: 40 m² nappali padló burkolása, 15 m² konyha fal csempe, régi burkolat bontással vagy bontás nélkül, milyen állapotú a fal, milyen burkolatot szeretnél, parkolás, emelet, lift van-e, stb."></textarea>
-
-    <div id="charCounter" class="char-counter">0 / 300</div>
-</div>
 
     <!-- 1. rész: részletes leírás -->
     <div>
@@ -237,8 +241,14 @@
         </div>
 
         <div class="textarea-wrapper">
+            <!-- Mikrofon gomb -->
+            <div id="micButton" class="mic-button" title="Diktálás indítása / leállítása">
+                🎤
+            </div>
+
             <textarea id="reszletesLeiras"
                 placeholder="Pl.: 40 m² nappali padló burkolása, 15 m² konyha fal csempe, régi burkolat bontással vagy bontás nélkül, milyen állapotú a fal, milyen burkolatot szeretnél, parkolás, emelet, lift van-e, stb."></textarea>
+
             <div id="charCounter" class="char-counter">0 / 300</div>
         </div>
 
@@ -247,7 +257,8 @@
             annál pontosabb ajánlatot kapsz.
         </div>
         <div class="dictation-hint">
-            Később ide kerül majd a hangalapú diktálás (nem kell majd hosszú szöveget gépelni).
+            A 🎤 gombbal diktálhatsz is (Chrome / Edge támogatott). Ha a böngésző nem támogatja,
+            figyelmeztetést kapsz.
         </div>
     </div>
 
@@ -325,12 +336,12 @@
 
 <!-- [3/3 - START] -->
 <script>
-    // Minimum karakterszám a leíráshoz
     const MIN_LEN = 300;
     const textarea = document.getElementById("reszletesLeiras");
     const counter  = document.getElementById("charCounter");
 
-    textarea.addEventListener("input", () => {
+    // Karakterszámláló
+    function updateCounter() {
         const len = textarea.value.length;
         counter.textContent = len + " / " + MIN_LEN;
         if (len < MIN_LEN) {
@@ -338,7 +349,9 @@
         } else {
             counter.classList.remove("too-short");
         }
-    });
+    }
+    textarea.addEventListener("input", updateCounter);
+    updateCounter();
 
     // Szakma chip-ek kapcsolgatása (multi select)
     const chipsContainer = document.getElementById("szakmaChips");
@@ -348,15 +361,75 @@
         chip.classList.toggle("selected");
     });
 
+    // Mikrofongomb – Web Speech API (ha van)
+    let recognition = null;
+    let listening  = false;
+
+    function initRecognition() {
+        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SR) {
+            alert("A hangalapú diktálás csak olyan böngészőben működik, amely támogatja a Web Speech API-t (pl. Chrome, Edge).");
+            return null;
+        }
+
+        const rec = new SR();
+        rec.lang = "hu-HU";
+        rec.continuous = true;
+        rec.interimResults = true;
+
+        rec.onresult = (event) => {
+            let text = textarea.value;
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                const res = event.results[i];
+                if (res.isFinal) {
+                    text += " " + res[0].transcript;
+                }
+            }
+            textarea.value = text.trim();
+            updateCounter();
+        };
+
+        rec.onend = () => {
+            // ha még listening = true, akkor újraindítjuk
+            if (listening && rec) {
+                rec.start();
+            }
+        };
+
+        return rec;
+    }
+
+    const micButton = document.getElementById("micButton");
+    micButton.addEventListener("click", () => {
+        if (!recognition) {
+            recognition = initRecognition();
+            if (!recognition) return;
+        }
+
+        if (!listening) {
+            recognition.start();
+            listening = true;
+            micButton.classList.add("active");
+            micButton.title = "Diktálás leállítása";
+        } else {
+            listening = false;
+            recognition.stop();
+            micButton.classList.remove("active");
+            micButton.title = "Diktálás indítása";
+        }
+    });
+
+    // Demo mentés gomb
     function rogzitMunkaDemo() {
         const leiras = textarea.value.trim();
         if (leiras.length < MIN_LEN) {
-            alert("Kérlek írj legalább " + MIN_LEN +
-                  " karakteres leírást a munkáról. Minél részletesebb, annál pontosabb ajánlatot kapsz.");
+            alert(
+                "Kérlek írj legalább " + MIN_LEN +
+                " karakteres leírást a munkáról. Minél részletesebb, annál pontosabb ajánlatot kapsz."
+            );
             return;
         }
 
-        // Összegyűjtjük a kiválasztott szakmákat
         const selectedChips = Array.from(
             document.querySelectorAll(".chip.selected")
         ).map(chip => chip.getAttribute("data-value"));
@@ -364,7 +437,8 @@
         const teljes = document.getElementById("teljesFelujitas").checked;
 
         let uzenet = "Munka rögzítve (DEMO).\n\n";
-        uzenet += "Leírás (első 300 karakter):\n" + leiras.substring(0, 300) + (leiras.length > 300 ? "..." : "") + "\n\n";
+        uzenet += "Leírás (első 300 karakter):\n" +
+                  leiras.substring(0, 300) + (leiras.length > 300 ? "..." : "") + "\n\n";
 
         if (selectedChips.length > 0) {
             uzenet += "Szükséges szakmák: " + selectedChips.join(", ") + "\n";
@@ -381,15 +455,8 @@
 
         alert(uzenet);
     }
-
-    // (Később ide tudunk betenni LocalStorage / query param beolvasást,
-    //  hogy a felső sárga dobozban tényleg az 1. lépés adatai jelenjenek meg.)
 </script>
 
 </body>
 </html>
-document.getElementById("micButton").addEventListener("click", () => {
-    alert("A diktálás funkció hamarosan érkezik! 🎤");
-});
-
 <!-- [3/3 - END] -->
