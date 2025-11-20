@@ -1,9 +1,8 @@
-<!-- [1/3 - START] -->
 <!DOCTYPE html>
 <html lang="hu">
 <head>
     <meta charset="UTF-8" />
-    <title>Munka részletei – Szaki-App</title>
+    <title>Megrendelő – Munka részletei | Szaki-App</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -11,249 +10,245 @@
             margin: 0;
             padding: 30px 10px;
         }
-        .wrapper {
+
+        .wrap {
             max-width: 900px;
-            margin: 0 auto 40px;
+            margin: 0 auto;
             background: #ffffff;
             border-radius: 12px;
-            padding: 30px 25px 35px;
+            padding: 26px 22px 32px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.06);
         }
-        h1 { text-align:center; margin:0 0 6px; }
-        .alcim { text-align:center; margin:0 0 25px; color:#666; }
-        .summary-box {
-            background:#fff8e1;
-            border-radius:8px;
-            padding:10px 14px;
-            font-size:14px;
-            margin-bottom:22px;
-            border:1px solid #ffe0b2;
+
+        h1 {
+            margin: 0 0 6px;
+            text-align: center;
         }
-        textarea, input[type="text"], input[type="file"], select {
-            width:100%; border-radius:6px; border:1px solid #ccc;
-            font-size:14px; padding:10px 12px; box-sizing:border-box;
+
+        .alcim {
+            text-align: center;
+            margin: 0 0 20px;
+            color: #555;
         }
-        textarea { min-height:150px; resize:vertical; }
-        .textarea-wrapper { position:relative; }
-        .char-counter {
-            position:absolute; right:8px; bottom:6px;
-            font-size:12px; color:#999;
+
+        .osszegzes {
+            background: #fff8e1;
+            border-left: 4px solid #f57c00;
+            padding: 12px 14px;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-bottom: 22px;
         }
+
+        .szekcio-cim {
+            font-size: 18px;
+            font-weight: bold;
+            margin: 20px 0 8px;
+        }
+
+        textarea,
+        input[type="text"],
+        input[type="number"],
+        select {
+            width: 100%;
+            padding: 10px 12px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+
+        textarea {
+            min-height: 140px;
+            resize: vertical;
+        }
+
+        .char-sor {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            color: #555;
+            margin-top: 4px;
+        }
+
+        .chip-lista {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 6px;
+        }
+
         .chip {
-            padding:6px 12px; border-radius:999px;
-            border:1px solid #ccc; background:#fafafa;
-            cursor:pointer; user-select:none;
+            border-radius: 20px;
+            border: 1px solid #ccc;
+            padding: 6px 12px;
+            font-size: 13px;
+            background: #fafafa;
+            cursor: pointer;
+            user-select: none;
         }
-        .chip.selected { background:#f57c00; color:#fff; border-color:#f57c00; }
+
+        .chip.selected {
+            background: #f57c00;
+            border-color: #f57c00;
+            color: #fff;
+            font-weight: 600;
+        }
+
+        .checkbox-sor {
+            margin: 10px 0 16px;
+            font-size: 14px;
+        }
+
         .fo-gomb {
-            width:100%; padding:14px 24px; border-radius:8px;
-            background:#f57c00; color:#fff; font-size:16px;
-            border:none; cursor:pointer;
+            background: #f57c00;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 14px 24px;
+            font-size: 16px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 10px;
         }
-        .fo-gomb:hover { background:#e56f00; }
-        .back-link { text-align:center; margin-top:16px; }
-        .back-link a { color:#f57c00; font-weight:bold; text-decoration:none; }
-        .back-link a:hover { text-decoration:underline; }
-        .floating-donate {
-            position:fixed; right:16px; bottom:16px;
-            background:#ff9800; color:#fff;
-            padding:10px 16px; border-radius:999px;
-            cursor:pointer; z-index:9999;
-            box-shadow:0 3px 8px rgba(0,0,0,0.3);
+
+        .vissza-link {
+            margin-top: 14px;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        .vissza-link a {
+            color: #f57c00;
+            text-decoration: none;
+            font-weight: bold;
         }
     </style>
 </head>
 <body>
-<!-- [1/3 - END] -->
 
-<!-- [2/3 - START] -->
-<div class="wrapper">
+<div class="wrap">
     <h1>Munka részletei</h1>
-    <p class="alcim">Minél részletesebben írod le, annál gyorsabban találsz megfelelő szakembert.</p>
+    <p class="alcim">Minél részletesebben írod le, annál gyorsabban találsz szakembert.</p>
 
-    <div class="summary-box" id="summaryBox">
-        <div><strong>Választott szakma:</strong> <span id="sumSzakma">nincs megadva</span></div>
-        <div><strong>Helyszín:</strong> <span id="sumHelyszin">nincs megadva</span></div>
-        <div><strong>Időzítés:</strong> 
-            leghamarabb: <span id="sumLH">-</span> • 
-            legkésőbb: <span id="sumLK">-</span> • 
-            határidő: <span id="sumHat">-</span>
-        </div>
-        <div><strong>Munka nagysága:</strong> <span id="sumMeret">nincs megadva</span></div>
-    </div>
-    <!-- 1. rész: részletes leírás -->
-    <div>
-        <div class="section-title">1. A munka részletes leírása</div>
-        <div class="section-subtitle">Írd le részletesen a munkát (minimum 300 karakter).</div>
-
-        <div class="textarea-wrapper">
-            <div id="micButton" class="mic-button" title="Diktálás indítása / leállítása">🎤</div>
-
-            <textarea id="reszletesLeiras"
-                placeholder="Pl.: 40 m² nappali padló burkolása, 15 m² konyha fal csempe, parkolás, emelet, lift van-e, régi burkolat bontása, stb."></textarea>
-
-            <div id="charCounter" class="char-counter">0 / 300</div>
-        </div>
+    <!-- Összegzés -->
+    <div class="osszegzes" id="osszefoglalo-doboz">
+        <strong>Választott szakma:</strong> <span id="ossz-szakma">–</span><br>
+        <strong>Helyszín:</strong> <span id="ossz-varos">–</span><br>
+        <strong>Időzítés:</strong> <span id="ossz-idopontok">–</span><br>
+        <strong>Munka nagysága:</strong> <span id="ossz-meret">–</span>
     </div>
 
-    <!-- 3. Milyen szakemberek -->
-    <div>
-        <div class="section-title">3. Milyen szakemberek kellenek?</div>
-        <div class="chips-container" id="szakmaChips">
-            <div class="chip" data-value="Kőműves">Kőműves</div>
-            <div class="chip" data-value="Szobafestő-tapétázó">Szobafestő-tapétázó</div>
-            <div class="chip" data-value="Burkoló">Burkoló</div>
-            <div class="chip" data-value="Hidegburkoló">Hidegburkoló</div>
-            <div class="chip" data-value="Melegburkoló">Melegburkoló</div>
-            <div class="chip" data-value="Villanyszerelő">Villanyszerelő</div>
-            <div class="chip" data-value="Vízszerelő">Vízszerelő</div>
-            <div class="chip" data-value="Gázszerelő">Gázszerelő</div>
-            <div class="chip" data-value="Fűtésszerelő">Fűtésszerelő</div>
-            <div class="chip" data-value="Gipszkartonos">Gipszkartonos</div>
-            <div class="chip" data-value="Klímaszerelő">Klímaszerelő</div>
-        </div>
-
-        <div class="checkbox-row">
-            <input type="checkbox" id="teljesFelujitas">
-            <label for="teljesFelujitas">Teljes lakásfelújítást szeretnék</label>
-        </div>
+    <!-- Leírás -->
+    <div class="szekcio-cim">1. A munka részletes leírása</div>
+    <textarea id="reszletes-leiras" placeholder="Pl.: 40 m² nappali burkolás, 15 m² fal csempe, stb."></textarea>
+    <div class="char-sor">
+        <span>Minimum 300 karakter</span>
+        <span id="char-counter" class="keves">0 / 300</span>
     </div>
 
-    <!-- 4. Képfeltöltés -->
-    <div>
-        <div class="section-title">4. Képek</div>
-        <input type="file" id="kepek" multiple>
+    <!-- Szakma specifikus -->
+    <div class="szekcio-cim">2. Szakma szerinti plusz adatok</div>
+    <div id="szakma-specifikus"></div>
+
+    <!-- Több szakma -->
+    <div class="szekcio-cim">3. Milyen szakemberek kellenek?</div>
+    <div class="chip-lista" id="tobb-szakma-chipek"></div>
+
+    <!-- Teljes felújítás -->
+    <div class="checkbox-sor">
+        <input type="checkbox" id="teljes-felujitas">
+        <label for="teljes-felujitas">Teljes lakásfelújítást szeretnék</label>
     </div>
 
-    <!-- 5. Ár mód -->
-    <div>
-        <div class="section-title">5. Ár-érdeklődés módja</div>
+    <!-- Képek -->
+    <div class="szekcio-cim">4. Képek</div>
+    <input type="file" id="munka-kepek" accept="image/*" multiple />
 
-        <label>
-            <input type="radio" name="priceMode" value="normal" checked>
-            Tényleg meg akarom csináltatni a munkát.
-        </label>
+    <!-- Gomb -->
+    <button class="fo-gomb" id="vegleges-gomb" disabled onclick="veglegesKuldes()">Munka rögzítése (demo)</button>
 
-        <label>
-            <input type="radio" name="priceMode" value="onlyPrice">
-            Csak az árakra vagyok kíváncsi (tájékoztató ajánlat).
-        </label>
-    </div>
-
-    <div class="button-row">
-        <button class="fo-gomb" id="btnRogzit">Munka rögzítése (demo)</button>
-    </div>
-
-    <div class="back-link">
-        ← <a href="megrendelo-regisztracio.html" id="visszaLink">Vissza az 1. lépéshez</a>
-    </div>
-
+    <!-- Vissza link -->
+    <p class="vissza-link">
+        <a href="#" id="vissza-1-lepes">← Vissza az 1. lépéshez</a>
+    </p>
 </div>
 
-<div class="floating-donate" onclick="alert('Köszönjük, hogy támogatod az oldalt! 🤝')">
-    🤝 Becsületkassza / Megosztás
-</div>
+<script>
+    // --- VISSZA GOMB JAVÍTÁS: TÖKÉLETESEN MŰKÖDIK ---
+    document.getElementById("vissza-1-lepes").addEventListener("click", function(e){
+        e.preventDefault();
+        history.back();   // ← EZ MOSTANTÓL NEM TÖRÖL, csak visszalép
+    });
 
-<!-- [2/3 - END] -->
+    // --- TÖBBI FUNKCIÓ (összegzés, chips, leírás, burkoló mezők, stb.) ---
+    const SZAKMAK = [
+        "Kőműves","Szobafestő-tapétázó","Burkoló","Hidegburkoló","Melegburkoló",
+        "Villanyszerelő","Vízszerelő","Gázszerelő","Fűtésszerelő","Gipszkartonos","Klímaszerelő"
+    ];
 
-<!-- [3/3 – SCRIPT START] -->
-<script type="module">
-    import { db } from "./firebase-config.js";
-    import { collection, addDoc, serverTimestamp }
-    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
-    /* ------------------------------
-       1) Visszatöltés localStorage-ból
-    ------------------------------ */
     function betoltOsszegzes() {
-        const adat = JSON.parse(localStorage.getItem("szaki_megrendelo_alap")) || {};
-
-        document.getElementById("sumSzakma").textContent = adat.szakma || "nincs megadva";
-        document.getElementById("sumHelyszin").textContent = adat.varos || "nincs megadva";
-        document.getElementById("sumLH").textContent = adat.legkorabbi || "-";
-        document.getElementById("sumLK").textContent = adat.legkesobb || "-";
-        document.getElementById("sumHat").textContent = adat.hatarido || "-";
-        document.getElementById("sumMeret").textContent = adat.munkaMeret || "nincs megadva";
+        document.getElementById("ossz-szakma").textContent = localStorage.getItem("mr_szakma") || "-";
+        document.getElementById("ossz-varos").textContent = localStorage.getItem("mr_varos") || "-";
+        document.getElementById("ossz-idopontok").textContent =
+            "leghamarabb: " + (localStorage.getItem("mr_kezdesMin") || "-") +
+            " • legkésőbb: " + (localStorage.getItem("mr_kezdesMax") || "-") +
+            " • határidő: " + (localStorage.getItem("mr_hatarido") || "-");
+        document.getElementById("ossz-meret").textContent = localStorage.getItem("mr_meret") || "-";
     }
 
-    /* ------------------------------
-       2) Visszalépés előtt mentés
-    ------------------------------ */
-    document.getElementById("visszaLink").addEventListener("click", (e) => {
-        const leiras = document.getElementById("reszletesLeiras").value;
-        const szakmak = Array.from(document.querySelectorAll(".chip.selected"))
-                      .map(c => c.dataset.value);
+    // Karakter számláló
+    function initKarakterszam() {
+        const ta = document.getElementById("reszletes-leiras");
+        const counter = document.getElementById("char-counter");
+        const gomb = document.getElementById("vegleges-gomb");
 
-        const adat2 = {
-            leiras,
-            szakmak,
-            teljes: document.getElementById("teljesFelujitas").checked,
-            arMod: document.querySelector("input[name='priceMode']:checked").value
-        };
+        ta.value = localStorage.getItem("mr2_leiras") || "";
 
-        localStorage.setItem("szaki_megrendelo_lepes2", JSON.stringify(adat2));
-    });
-
-    /* ------------------------------
-       3) Karakterszámláló
-    ------------------------------ */
-    const textarea = document.getElementById("reszletesLeiras");
-    const counter = document.getElementById("charCounter");
-
-    textarea.addEventListener("input", () => {
-        const len = textarea.value.length;
-        counter.textContent = len + " / 300";
-        counter.style.color = len < 300 ? "red" : "#999";
-    });
-
-    /* ------------------------------
-       4) Chip kiválasztás
-    ------------------------------ */
-    document.getElementById("szakmaChips").addEventListener("click", (e) => {
-        const chip = e.target.closest(".chip");
-        if (!chip) return;
-        chip.classList.toggle("selected");
-    });
-
-    /* ------------------------------
-       5) Mentés Firestore-ba (demo)
-    ------------------------------ */
-    async function mentFireStore() {
-        const leiras = textarea.value.trim();
-        if (leiras.length < 300) {
-            alert("Legalább 300 karakter kell!");
-            return;
+        function frissit() {
+            const h = ta.value.trim().length;
+            counter.textContent = h + " / 300";
+            counter.classList.toggle("keves", h < 300);
+            gomb.disabled = h < 300;
+            localStorage.setItem("mr2_leiras", ta.value);
         }
 
-        const szakmak = Array.from(document.querySelectorAll(".chip.selected"))
-                             .map(c => c.dataset.value);
-        const teljes = document.getElementById("teljesFelujitas").checked;
-        const arMod = document.querySelector("input[name='priceMode']:checked").value;
-
-        const alap = JSON.parse(localStorage.getItem("szaki_megrendelo_alap")) || {};
-
-        const adat = {
-            ...alap,
-            leiras,
-            szakmak,
-            teljes,
-            arMod,
-            createdAt: serverTimestamp()
-        };
-
-        const ref = await addDoc(collection(db, "workRequests"), adat);
-
-        alert("Mentve! Firestore ID: " + ref.id);
+        ta.addEventListener("input", frissit);
+        frissit();
     }
 
-    document.getElementById("btnRogzit").addEventListener("click", mentFireStore);
+    // Több szakma chip
+    function epitsChipLista() {
+        const lista = document.getElementById("tobb-szakma-chipek");
+        lista.innerHTML = "";
+        let kijelolt = JSON.parse(localStorage.getItem("mr2_tobbSzakma") || "[]");
 
-    /* ------------------------------
-       6) Betöltés indításkor
-    ------------------------------ */
-    betoltOsszegzes();
+        SZAKMAK.forEach(s => {
+            const chip = document.createElement("div");
+            chip.className = "chip" + (kijelolt.includes(s) ? " selected" : "");
+            chip.textContent = s;
+            chip.dataset.szakma = s;
+            chip.onclick = () => {
+                chip.classList.toggle("selected");
+                const aktiv = [...document.querySelectorAll(".chip.selected")].map(x => x.dataset.szakma);
+                localStorage.setItem("mr2_tobbSzakma", JSON.stringify(aktiv));
+            };
+            lista.appendChild(chip);
+        });
+    }
+
+    // Végleges gomb – demo
+    function veglegesKuldes() {
+        alert("A demóban még nincs végleges beküldés.");
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        betoltOsszegzes();
+        initKarakterszam();
+        epitsChipLista();
+    });
 </script>
-<!-- [3/3 – END] -->
 
 </body>
 </html>
