@@ -208,6 +208,39 @@
             font-style: italic;
         }
 
+        /* Ár-érdeklődés szekció */
+        .price-mode-row {
+            margin-top: 8px;
+            font-size: 14px;
+        }
+
+        .price-mode-row label {
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        /* Lebegő adomány / megosztás gomb */
+        .floating-donate {
+            position: fixed;
+            right: 16px;
+            bottom: 16px;
+            background: #ff9800;
+            color: #fff;
+            padding: 10px 16px;
+            border-radius: 999px;
+            font-size: 13px;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.3);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            z-index: 9999;
+        }
+
+        .floating-donate:hover {
+            background: #fb8c00;
+        }
+
         @media (max-width: 640px) {
             .wrapper {
                 padding: 20px 15px 25px;
@@ -318,6 +351,31 @@
         </div>
     </div>
 
+    <!-- 5. rész: ár-érdeklődés, kredit logika előkészítés -->
+    <div>
+        <div class="section-title">5. Ár-érdeklődés módja</div>
+        <div class="section-subtitle">
+            Itt jelezheted, ha csak az árakra vagy kíváncsi, vagy tényleg el akarod kezdeni a felújítást.
+            Később ide kerül a kreditrendszer (árkérés kreditekért, szaki kiemelés, stb.).
+        </div>
+
+        <div class="price-mode-row">
+            <label>
+                <input type="radio" name="priceMode" id="modeNormal" value="normal" checked />
+                Konkrétan meg szeretném csináltatni a munkát, nem csak az ár érdekel.
+            </label>
+            <label>
+                <input type="radio" name="priceMode" id="modeOnlyPrice" value="onlyPrice" />
+                Csak az árakra vagyok kíváncsi (tájékoztató ajánlatot kérek, személyes felmérés nélkül).
+            </label>
+        </div>
+
+        <div class="info-text">
+            A végleges rendszerben: ha „Csak az árakra vagyok kíváncsi”-t választasz, az árkérés kreditet fog fogyasztani.
+            A kredit egyik része a szakié (pl. kiemelésre), másik része az oldal működését támogatja.
+        </div>
+    </div>
+
     <!-- Mentés gomb + vissza link -->
     <div class="button-row">
         <button class="fo-gomb" onclick="rogzitMunkaDemo()">Munka rögzítése (demo)</button>
@@ -331,6 +389,11 @@
         A jelen verzió csak prototípus. A végleges Szaki-App rendszerben a munka először az adminhoz kerül
         jóváhagyásra, csak ezután látják a szakik, látják a szabad nap állapotát, rangsorát, stb.
     </div>
+</div>
+
+<!-- Lebegő adomány / megosztás gomb (demó) -->
+<div class="floating-donate" onclick="showDonateInfo()">
+    🤝 <span>Becsületkassza / Megosztás</span>
 </div>
 <!-- [2/3 - END] -->
 
@@ -390,7 +453,6 @@
         };
 
         rec.onend = () => {
-            // ha még listening = true, akkor újraindítjuk
             if (listening && rec) {
                 rec.start();
             }
@@ -419,6 +481,17 @@
         }
     });
 
+    // Lebegő becsületkassza / megosztás gomb (demo)
+    function showDonateInfo() {
+        alert(
+            "Becsületkassza / megosztás (DEMO)\n\n" +
+            "A végleges verzióban itt tudod majd:\n" +
+            "• megosztani az oldalt (Facebook, Insta, stb.),\n" +
+            "• vagy egy jelképes adománnyal támogatni az oldalt.\n\n" +
+            "Cserébe extra funkciókat kapsz (pl. részletesebb árkérés, PDF mentés, stb.)."
+        );
+    }
+
     // Demo mentés gomb
     function rogzitMunkaDemo() {
         const leiras = textarea.value.trim();
@@ -436,6 +509,8 @@
 
         const teljes = document.getElementById("teljesFelujitas").checked;
 
+        const mode = document.querySelector('input[name="priceMode"]:checked')?.value || "normal";
+
         let uzenet = "Munka rögzítve (DEMO).\n\n";
         uzenet += "Leírás (első 300 karakter):\n" +
                   leiras.substring(0, 300) + (leiras.length > 300 ? "..." : "") + "\n\n";
@@ -448,6 +523,12 @@
 
         if (teljes) {
             uzenet += "Jelölted, hogy TELJES lakásfelújítást szeretnél.\n";
+        }
+
+        if (mode === "onlyPrice") {
+            uzenet += "Ár-érdeklődés módja: CSAK AZ ÁR ÉRDEKEL (tájékoztató ajánlat, kreditrendszer később).\n";
+        } else {
+            uzenet += "Ár-érdeklődés módja: KONKRÉTAN MEG SZERETNÉD CSINÁLTATNI A MUNKÁT.\n";
         }
 
         uzenet += "\nA végleges rendszerben itt fog történni a valódi mentés az adatbázisba, ";
