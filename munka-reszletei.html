@@ -259,10 +259,12 @@
     </p>
 
     <div class="summary-box" id="summaryBox">
-        <div><strong>Választott szakma:</strong> nincs megadva</div>
-        <div><strong>Helyszín:</strong> nincs megadva</div>
-        <div><strong>Időzítés:</strong> leghamarabb: - • legkésőbb: - • határidő: -</div>
-        <div><strong>Munka nagysága:</strong> nincs megadva</div>
+        <div><strong>Választott szakma:</strong> <span id="sumSzakma">nincs megadva</span></div>
+        <div><strong>Helyszín:</strong> <span id="sumHelyszin">nincs megadva</span></div>
+        <div><strong>Időzítés:</strong>
+            <span id="sumIdozites">leghamarabb: - • legkésőbb: - • határidő: -</span>
+        </div>
+        <div><strong>Munka nagysága:</strong> <span id="sumMeret">nincs megadva</span></div>
     </div>
 
     <!-- 1. rész: részletes leírás -->
@@ -407,41 +409,80 @@
         serverTimestamp
     } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
+    // --- LOCALSTORAGE-BÓL AZ ALAPADATOK BETÖLTÉSE A SÁRGA DOBOZBA ---
+    document.addEventListener("DOMContentLoaded", () => {
+        const szakma   = localStorage.getItem("mr_szakma")   || "nincs megadva";
+        const varos    = localStorage.getItem("mr_varos")    || "nincs megadva";
+        const hamar    = localStorage.getItem("mr_kezdes_1") || "-";
+        const kesobb   = localStorage.getItem("mr_kezdes_2") || "-";
+        const hatarido = localStorage.getItem("mr_hatarido") || "-";
+        const meret    = localStorage.getItem("mr_meret")    || "nincs megadva";
+
+        const sumSzakma  = document.getElementById("sumSzakma");
+        const sumHelyszin = document.getElementById("sumHelyszin");
+        const sumIdozites = document.getElementById("sumIdozites");
+        const sumMeret    = document.getElementById("sumMeret");
+
+        if (sumSzakma)  sumSzakma.textContent = szakma;
+        if (sumHelyszin) sumHelyszin.textContent = varos;
+        if (sumIdozites) sumIdozites.textContent =
+            "leghamarabb: " + hamar + " • legkésőbb: " + kesebb + " • határidő: " + hatarido;
+        if (sumMeret)    sumMeret.textContent = meret;
+    });
+
     // Minimum karakterszám a leíráshoz
     const MIN_LEN = 300;
     const textarea = document.getElementById("reszletesLeiras");
     const counter  = document.getElementById("charCounter");
 
     // Karakterszámláló
-    textarea.addEventListener("input", () => {
-        const len = textarea.value.length;
-        counter.textContent = len + " / " + MIN_LEN;
-        if (len < MIN_LEN) {
-            counter.classList.add("too-short");
-        } else {
-            counter.classList.remove("too-short");
-        }
-    });
-
-    // Szakma chip-ek kapcsolgatása (multi select)
-    const chipsContainer = document.getElementById("szakmaChips");
-    chipsContainer.addEventListener("click", (e) => {
-        const chip = e.target.closest(".chip");
-        if (!chip) return;
-        chip.classList.toggle("selected");
-    });
-
-    // Diktálás gomb (egyelőre csak demo üzenet)
-    const micButton = document.getElementById("micButton");
-    if (micButton) {
-        micButton.addEventListener("click", () => {
-            alert("A diktálás funkció hamarosan érkezik! 🎤\n\nMost még gépelni kell, de a végleges verzióban ide tudsz majd beszélni.");
+    if (textarea && counter) {
+        textarea.addEventListener("input", () => {
+            const len = textarea.value.length;
+            counter.textContent = len + " / " + MIN_LEN;
+            if (len < MIN_LEN) {
+                counter.classList.add("too-short");
+            } else {
+                counter.classList.remove("too-short");
+            }
         });
     }
 
+    // Szakma chip-ek kapcsolgatása (multi select)
+    const chipsContainer = document.getElementById("szakmaChips");
+    if (chipsContainer) {
+        chipsContainer.addEventListener("click", (e) => {
+            const chip = e.target.closest(".chip");
+            if (!chip) return;
+            chip.classList.toggle("selected");
+        });
+    }
+
+    // Diktálás gomb – egyelőre csak demo üzenet
+    const micButton = document.getElementById("micButton");
+    if (micButton) {
+        micButton.addEventListener("click", () => {
+            alert(
+                "A diktálás funkció hamarosan érkezik! 🎤\n\n" +
+                "Most még gépelni kell, de a végleges verzióban ide tudsz majd beszélni."
+            );
+        });
+    }
+
+    // Becsületkassza / Megosztás lebegő gomb
+    function showDonateInfo() {
+        alert(
+            "Becsületkassza / megosztás ötlete (PROTOTÍPUS):\n\n" +
+            "• Ha hasznosnak érzed az oldalt, megoszthatod Facebookon, Instán, stb.\n" +
+            "• Később lesz lehetőség önkéntes támogatásra is (pl. pár száz forinttal),\n" +
+            "  cserébe extra funkciókat kaphatsz (szaki kiemelés, gyorsabb ajánlat, stb.)."
+        );
+    }
+    window.showDonateInfo = showDonateInfo;
+
     // Munka mentése Firestore-ba (DEMO)
     async function rogzitMunkaDemo() {
-        const leiras = textarea.value.trim();
+        const leiras = textarea ? textarea.value.trim() : "";
 
         if (leiras.length < MIN_LEN) {
             alert(
@@ -462,16 +503,39 @@
         const teljes = document.getElementById("teljesFelujitas")?.checked || false;
 
         // Ár-érdeklődés módja (radio gombok)
-        const arModeInput = document.querySelector('input[name="arMode"]:checked');
-        const arMode = arModeInput ? arModeInput.value : "ismeretlen";
+        const modeInput = document.querySelector('input[name="priceMode"]:checked');
+        const arMode = modeInput ? modeInput.value : "ismeretlen";
 
-        // Később ide jöhetnek az 1. lépésből áthozott adatok (név, város, stb.)
+        // 1. lépésből áthozott adatok (ha elmentettük localStorage-ba)
+        const nev      = localStorage.getItem("mr_nev")      || "ismeretlen név";
+        const varos    = localStorage.getItem("mr_varos")    || "ismeretlen helyszín";
+        const elerhet  = localStorage.getItem("mr_elerhetoseg") || "nincs elérhetőség";
+        const szakma   = localStorage.getItem("mr_szakma")   || "nincs megadva";
+        const hamar    = localStorage.getItem("mr_kezdes_1") || "-";
+        const kesobb   = localStorage.getItem("mr_kezdes_2") || "-";
+        const hatarido = localStorage.getItem("mr_hatarido") || "-";
+        const meret    = localStorage.getItem("mr_meret")    || "nincs megadva";
+
         const workData = {
+            // Kapcsolat
+            customerName: nev,
+            location: varos,
+            contact: elerhet,
+
+            // Alapadatok
+            mainTrade: szakma,
+            startEarliest: hamar,
+            startLatest: kesobb,
+            deadline: hatarido,
+            workSize: meret,
+
+            // Részletek
             description: leiras,
-            trades: selectedChips,           // pl. ["Burkoló", "Vízszerelő"]
-            fullRenovation: teljes,          // true / false
-            priceInterestMode: arMode,       // "valos-munka" / "csak-ar" / "csak-kivancsi" (ahogy a HTML-ben adtuk)
-            createdAt: serverTimestamp()     // Firestore szerver időbélyeg
+            trades: selectedChips,
+            fullRenovation: teljes,
+            priceInterestMode: arMode,   // "normal" / "onlyPrice"
+
+            createdAt: serverTimestamp()
         };
 
         try {
@@ -491,8 +555,9 @@
         }
     }
 
-    // Gombhoz kötjük a mentő függvényt (a HTML-ben onclick hívja)
+    // Gombhoz kötjük a mentő függvényt
     window.rogzitMunkaDemo = rogzitMunkaDemo;
 </script>
 <!-- [3/3 - END] -->
-
+</body>
+</html>
