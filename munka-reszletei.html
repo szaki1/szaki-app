@@ -1,0 +1,381 @@
+<!-- [1/3 - START] -->
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8" />
+    <title>Munka részletei – Szaki-App</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f2f2f2;
+            margin: 0;
+            padding: 30px 10px;
+        }
+
+        .wrapper {
+            max-width: 900px;
+            margin: 0 auto 40px;
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 30px 25px 35px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.06);
+        }
+
+        h1 {
+            text-align: center;
+            margin-top: 0;
+            margin-bottom: 6px;
+        }
+
+        .alcim {
+            text-align: center;
+            margin: 0 0 25px;
+            color: #666;
+        }
+
+        .summary-box {
+            background: #fff8e1;
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 14px;
+            line-height: 1.4;
+            margin-bottom: 22px;
+            border: 1px solid #ffe0b2;
+        }
+
+        .summary-box strong {
+            font-weight: bold;
+        }
+
+        .szakmai-info {
+            margin: 2px 0;
+        }
+
+        .section-title {
+            font-size: 18px;
+            margin: 18px 0 4px;
+            font-weight: bold;
+        }
+
+        .section-subtitle {
+            font-size: 13px;
+            color: #777;
+            margin-bottom: 8px;
+        }
+
+        textarea,
+        input[type="text"],
+        input[type="file"],
+        select {
+            width: 100%;
+            box-sizing: border-box;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            font-size: 14px;
+            padding: 10px 12px;
+        }
+
+        textarea {
+            min-height: 150px;
+            resize: vertical;
+        }
+
+        .textarea-wrapper {
+            position: relative;
+        }
+
+        .char-counter {
+            position: absolute;
+            right: 8px;
+            bottom: 6px;
+            font-size: 12px;
+            color: #999;
+        }
+
+        .char-counter.too-short {
+            color: #e53935;
+            font-weight: bold;
+        }
+
+        .chips-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 10px 0 8px;
+        }
+
+        .chip {
+            border-radius: 999px;
+            border: 1px solid #ccc;
+            padding: 6px 12px;
+            font-size: 13px;
+            background: #fafafa;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .chip.selected {
+            background: #f57c00;
+            border-color: #f57c00;
+            color: #fff;
+        }
+
+        .checkbox-row {
+            margin-top: 10px;
+            font-size: 14px;
+        }
+
+        .checkbox-row input {
+            margin-right: 6px;
+        }
+
+        .file-hint {
+            font-size: 12px;
+            color: #777;
+            margin-top: 4px;
+        }
+
+        .button-row {
+            margin-top: 22px;
+        }
+
+        .fo-gomb {
+            background: #f57c00;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 14px 24px;
+            font-size: 16px;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        .fo-gomb:hover {
+            background: #e56f00;
+        }
+
+        .back-link {
+            text-align: center;
+            margin-top: 16px;
+            font-size: 14px;
+        }
+
+        .back-link a {
+            color: #f57c00;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .back-link a:hover {
+            text-decoration: underline;
+        }
+
+        .footnote {
+            margin-top: 18px;
+            font-size: 12px;
+            color: #777;
+            line-height: 1.5;
+        }
+
+        .info-text {
+            font-size: 12px;
+            color: #777;
+            margin-top: 4px;
+        }
+
+        .dictation-hint {
+            font-size: 12px;
+            color: #999;
+            margin-top: 4px;
+            font-style: italic;
+        }
+
+        @media (max-width: 640px) {
+            .wrapper {
+                padding: 20px 15px 25px;
+            }
+        }
+    </style>
+</head>
+<body>
+<!-- [1/3 - END] -->
+
+<!-- [2/3 - START] -->
+<div class="wrapper">
+    <h1>Munka részletei</h1>
+    <p class="alcim">Minél részletesebben írod le, annál gyorsabban találsz megfelelő szakembert.</p>
+
+    <!-- Összefoglaló az 1. lépés adataiból – egyelőre demo szöveg -->
+    <div class="summary-box" id="summaryBox">
+        <div class="szakmai-info"><strong>Választott szakma:</strong> <span id="sumSzakma">nincs megadva</span></div>
+        <div class="szakmai-info"><strong>Helyszín:</strong> <span id="sumHelyszin">nincs megadva</span></div>
+        <div class="szakmai-info">
+            <strong>Időzítés:</strong>
+            leghamarabb: <span id="sumKezdesMin">-</span> ·
+            legkésőbb: <span id="sumKezdesMax">-</span> ·
+            határidő: <span id="sumHatarido">-</span>
+        </div>
+        <div class="szakmai-info"><strong>Munka nagysága:</strong> <span id="sumMeret">nincs megadva</span></div>
+    </div>
+
+    <!-- 1. rész: részletes leírás -->
+    <div>
+        <div class="section-title">1. A munka részletes leírása</div>
+        <div class="section-subtitle">
+            Írd le részletesen a munkát
+            <strong>(minimum 300 karakter)</strong>.
+        </div>
+
+        <div class="textarea-wrapper">
+            <textarea id="reszletesLeiras"
+                placeholder="Pl.: 40 m² nappali padló burkolása, 15 m² konyha fal csempe, régi burkolat bontással vagy bontás nélkül, milyen állapotú a fal, milyen burkolatot szeretnél, parkolás, emelet, lift van-e, stb."></textarea>
+            <div id="charCounter" class="char-counter">0 / 300</div>
+        </div>
+
+        <div class="info-text">
+            Minél több konkrétumot írsz (m², helyiségek, állapot, anyagminőség, parkolás, szint, lift, stb.),
+            annál pontosabb ajánlatot kapsz.
+        </div>
+        <div class="dictation-hint">
+            Később ide kerül majd a hangalapú diktálás (nem kell majd hosszú szöveget gépelni).
+        </div>
+    </div>
+
+    <!-- 2. rész: szakma-specifikus kérdések – egyelőre csak infó -->
+    <div>
+        <div class="section-title">2. Szakma szerinti plusz kérdések</div>
+        <div class="section-subtitle">
+            A választott szakmákhoz később külön kérdéssorokat adunk (m² fal / padló, bontás, anyag vagy csak munkadíj, stb.).
+            Most egyelőre a fenti részletes leírásban írj minél több konkrétumot.
+        </div>
+    </div>
+
+    <!-- 3. rész: több szakma kiválasztása, teljes felújítás -->
+    <div>
+        <div class="section-title">3. Milyen szakemberek kellenek ehhez a munkához?</div>
+        <div class="section-subtitle">
+            Válassz akár több szakmát is (nem kötelező, de ajánlott). Ha teljes lakásfelújítást szeretnél, pipáld be alul.
+        </div>
+
+        <div class="chips-container" id="szakmaChips">
+            <div class="chip" data-value="Kőműves">Kőműves</div>
+            <div class="chip" data-value="Szobafestő-tapétázó">Szobafestő-tapétázó</div>
+            <div class="chip" data-value="Burkoló">Burkoló</div>
+            <div class="chip" data-value="Hidegburkoló">Hidegburkoló</div>
+            <div class="chip" data-value="Melegburkoló">Melegburkoló</div>
+            <div class="chip" data-value="Villanyszerelő">Villanyszerelő</div>
+            <div class="chip" data-value="Vízszerelő">Vízszerelő</div>
+            <div class="chip" data-value="Gázszerelő">Gázszerelő</div>
+            <div class="chip" data-value="Fűtésszerelő">Fűtésszerelő</div>
+            <div class="chip" data-value="Gipszkartonos">Gipszkartonos</div>
+            <div class="chip" data-value="Klímaszerelő">Klímaszerelő</div>
+        </div>
+
+        <div class="checkbox-row">
+            <input type="checkbox" id="teljesFelujitas" />
+            <label for="teljesFelujitas">
+                Teljes lakásfelújítást szeretnék (több szakma, teljes projekt).
+            </label>
+        </div>
+
+        <div class="info-text">
+            Ha pl. fürdőfelújítást szeretnél, jelöld a burkolót, vízszerelőt és villanyszerelőt is.
+        </div>
+    </div>
+
+    <!-- 4. rész: képfeltöltés (demo) -->
+    <div>
+        <div class="section-title">4. Képek a jelenlegi állapotról</div>
+        <div class="section-subtitle">
+            Képek feltöltése (nem kötelező, de erősen ajánlott).
+        </div>
+
+        <input type="file" id="kepek" multiple />
+        <div class="file-hint">
+            Maximum 10 kép, egyenként legfeljebb ~5 MB. Ügyelj rá, hogy ne látszódjon személyes adat
+            (arc, név, pontos cím).
+        </div>
+    </div>
+
+    <!-- Mentés gomb + vissza link -->
+    <div class="button-row">
+        <button class="fo-gomb" onclick="rogzitMunkaDemo()">Munka rögzítése (demo)</button>
+    </div>
+
+    <div class="back-link">
+        ← <a href="megrendelo-regisztracio.html">Vissza az 1. lépéshez (alapadatok módosítása)</a>
+    </div>
+
+    <div class="footnote">
+        A jelen verzió csak prototípus. A végleges Szaki-App rendszerben a munka először az adminhoz kerül
+        jóváhagyásra, csak ezután látják a szakik, látják a szabad nap állapotát, rangsorát, stb.
+    </div>
+</div>
+<!-- [2/3 - END] -->
+
+<!-- [3/3 - START] -->
+<script>
+    // Minimum karakterszám a leíráshoz
+    const MIN_LEN = 300;
+    const textarea = document.getElementById("reszletesLeiras");
+    const counter  = document.getElementById("charCounter");
+
+    textarea.addEventListener("input", () => {
+        const len = textarea.value.length;
+        counter.textContent = len + " / " + MIN_LEN;
+        if (len < MIN_LEN) {
+            counter.classList.add("too-short");
+        } else {
+            counter.classList.remove("too-short");
+        }
+    });
+
+    // Szakma chip-ek kapcsolgatása (multi select)
+    const chipsContainer = document.getElementById("szakmaChips");
+    chipsContainer.addEventListener("click", (e) => {
+        const chip = e.target.closest(".chip");
+        if (!chip) return;
+        chip.classList.toggle("selected");
+    });
+
+    function rogzitMunkaDemo() {
+        const leiras = textarea.value.trim();
+        if (leiras.length < MIN_LEN) {
+            alert("Kérlek írj legalább " + MIN_LEN +
+                  " karakteres leírást a munkáról. Minél részletesebb, annál pontosabb ajánlatot kapsz.");
+            return;
+        }
+
+        // Összegyűjtjük a kiválasztott szakmákat
+        const selectedChips = Array.from(
+            document.querySelectorAll(".chip.selected")
+        ).map(chip => chip.getAttribute("data-value"));
+
+        const teljes = document.getElementById("teljesFelujitas").checked;
+
+        let uzenet = "Munka rögzítve (DEMO).\n\n";
+        uzenet += "Leírás (első 300 karakter):\n" + leiras.substring(0, 300) + (leiras.length > 300 ? "..." : "") + "\n\n";
+
+        if (selectedChips.length > 0) {
+            uzenet += "Szükséges szakmák: " + selectedChips.join(", ") + "\n";
+        } else {
+            uzenet += "Szükséges szakmák: nincs külön megadva.\n";
+        }
+
+        if (teljes) {
+            uzenet += "Jelölted, hogy TELJES lakásfelújítást szeretnél.\n";
+        }
+
+        uzenet += "\nA végleges rendszerben itt fog történni a valódi mentés az adatbázisba, ";
+        uzenet += "és innen indul a szakik felé a munka kiküldése.";
+
+        alert(uzenet);
+    }
+
+    // (Később ide tudunk betenni LocalStorage / query param beolvasást,
+    //  hogy a felső sárga dobozban tényleg az 1. lépés adatai jelenjenek meg.)
+</script>
+
+</body>
+</html>
+<!-- [3/3 - END] -->
