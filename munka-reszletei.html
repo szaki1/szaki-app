@@ -103,30 +103,6 @@
             margin-top: 4px;
         }
 
-        .chip-lista {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-top: 6px;
-        }
-
-        .chip {
-            border-radius: 20px;
-            border: 1px solid #ccc;
-            padding: 6px 12px;
-            font-size: 13px;
-            background: #fafafa;
-            cursor: pointer;
-            user-select: none;
-        }
-
-        .chip.selected {
-            background: #f57c00;
-            border-color: #f57c00;
-            color: #fff;
-            font-weight: 600;
-        }
-
         .checkbox-sor {
             margin: 10px 0 16px;
             font-size: 14px;
@@ -234,18 +210,6 @@
         <!-- JS tölti ki a választott szakma alapján. -->
     </div>
 
-    <!-- 3. Több szakma egy munkához -->
-    <div class="szekcio-cim">3. Milyen szakemberek kellenek ehhez a munkához?</div>
-    <div class="mezo-csoport">
-        <label>Válassz akár több szakmát is (nem kötelező, de ajánlott):</label>
-        <div class="chip-lista" id="tobb-szakma-chipek">
-            <!-- JS generálja ugyanazokból a szakmákból, amiket már használsz -->
-        </div>
-        <div class="info-szoveg">
-            Ha pl. fürdőfelújítást szeretnél, jelöld a burkolót, vízszerelőt és villanyszerelőt is.
-        </div>
-    </div>
-
     <!-- Teljes lakásfelújítás jelölő -->
     <div class="checkbox-sor">
         <input type="checkbox" id="teljes-felujitas">
@@ -254,8 +218,8 @@
         </label>
     </div>
 
-    <!-- 4. Fizetés és számlázás -->
-    <div class="szekcio-cim">4. Fizetés és számlázás</div>
+    <!-- 3. Fizetés és számlázás -->
+    <div class="szekcio-cim">3. Fizetés és számlázás</div>
     <div class="mezo-csoport">
         <div class="checkbox-sor">
             <input type="checkbox" id="szamla-kerek">
@@ -267,8 +231,8 @@
         </p>
     </div>
 
-    <!-- 5. Képfeltöltés -->
-    <div class="szekcio-cim">5. Képek a jelenlegi állapotról</div>
+    <!-- 4. Képfeltöltés -->
+    <div class="szekcio-cim">4. Képek a jelenlegi állapotról</div>
     <div class="mezo-csoport">
         <label for="munka-kepek">Képek feltöltése (nem kötelező, de erősen ajánlott)</label>
         <input type="file" id="munka-kepek" accept="image/*" multiple />
@@ -405,36 +369,7 @@
         anyag.addEventListener("change", () => localStorage.setItem("mr2_anyag", anyag.value));
     }
 
-    // ----- 3) Több szakma chip gombok -----
-    function epitsChipLista() {
-        const lista = document.getElementById("tobb-szakma-chipek");
-        lista.innerHTML = "";
-
-        let mentett = [];
-        try {
-            mentett = JSON.parse(localStorage.getItem("mr2_tobbSzakma") || "[]");
-        } catch (e) {
-            mentett = [];
-        }
-
-        SZAKMAK.forEach(szakma => {
-            const btn = document.createElement("button");
-            btn.type = "button";
-            btn.className = "chip" + (mentett.includes(szakma) ? " selected" : "");
-            btn.textContent = szakma;
-            btn.setAttribute("data-szakma", szakma);
-            btn.addEventListener("click", () => {
-                btn.classList.toggle("selected");
-                const kijeloltek = Array.from(
-                    document.querySelectorAll("#tobb-szakma-chipek .chip.selected")
-                ).map(el => el.getAttribute("data-szakma"));
-                localStorage.setItem("mr2_tobbSzakma", JSON.stringify(kijeloltek));
-            });
-            lista.appendChild(btn);
-        });
-    }
-
-    // ----- 4) Karakterszámláló + gomb engedélyezése -----
+    // ----- Karakterszámláló + gomb engedélyezése -----
     function initKarakterszam() {
         const textarea = document.getElementById("reszletes-leiras");
         const counter = document.getElementById("char-counter");
@@ -465,7 +400,7 @@
         frissit();
     }
 
-    // ----- 5) Fájlok kijelzése -----
+    // ----- Fájlok kijelzése -----
     function initFileInfo() {
         const input = document.getElementById("munka-kepek");
         const info = document.getElementById("file-info");
@@ -484,7 +419,7 @@
         });
     }
 
-    // ----- 6) Teljes lakásfelújítás checkbox mentése -----
+    // ----- Teljes lakásfelújítás checkbox mentése -----
     function initTeljesFelujitas() {
         const chk = document.getElementById("teljes-felujitas");
         const mentett = localStorage.getItem("mr2_teljesFelujitas");
@@ -496,7 +431,7 @@
         });
     }
 
-    // ----- 7) „Munkadíjról számlát kérek” mentése -----
+    // ----- „Munkadíjról számlát kérek” mentése -----
     function initSzamlaKerek() {
         const chk = document.getElementById("szamla-kerek");
         if (!chk) return;
@@ -509,14 +444,13 @@
         });
     }
 
-    // ----- 8) Vissza link (1. lépés) -----
+    // ----- Vissza link (1. lépés) -----
     function initVisszaLink() {
         const link = document.getElementById("vissza-1-lepes");
         if (!link) return;
 
         link.addEventListener("click", (e) => {
             e.preventDefault();
-            // ha van előzmény, akkor vissza, különben direktben megnyitjuk az 1. lépést
             if (window.history.length > 1) {
                 window.history.back();
             } else {
@@ -525,7 +459,7 @@
         });
     }
 
-    // ----- 9) Végleges "elküldés" – csak összefoglaló alert (demo) -----
+    // ----- Végleges "elküldés" – csak összefoglaló alert (demo) -----
     function veglegesKuldes() {
         const nev = localStorage.getItem("mr_nev") || "ismeretlen név";
         const varos = localStorage.getItem("mr_varos") || "ismeretlen helyszín";
@@ -561,14 +495,6 @@
             if (anyag) extra += "- Anyagot veszi: " + anyag + "\n";
         }
 
-        // Több szakma – chipek
-        const chipElemek = document.querySelectorAll(".chip.selected");
-        const valasztottSzakmak = Array.from(chipElemek).map(el => el.getAttribute("data-szakma"));
-        let szakmaSzoveg = szakma;
-        if (valasztottSzakmak.length > 0) {
-            szakmaSzoveg += " (plusz: " + valasztottSzakmak.join(", ") + ")";
-        }
-
         // Teljes felújítás jelölő
         const teljes = document.getElementById("teljes-felujitas").checked;
 
@@ -582,7 +508,7 @@
         uzenet += "Elérhetőség: " + elerhetoseg + "\n\n";
 
         uzenet += "[Munka alapadatok]\n";
-        uzenet += "Szakma(k): " + szakmaSzoveg + "\n";
+        uzenet += "Szakma: " + szakma + "\n";
         uzenet += "Leghamarabb indulhat: " + kezdesMin + "\n";
         uzenet += "Legkésőbb indulhat: " + kezdesMax + "\n";
         uzenet += "Határidő: " + hatarido + "\n";
@@ -613,13 +539,11 @@
     document.addEventListener("DOMContentLoaded", () => {
         betoltOsszegzes();
         epitsSzakmaSpecifikus(localStorage.getItem("mr_szakma") || "");
-        epitsChipLista();
         initKarakterszam();
         initFileInfo();
         initTeljesFelujitas();
         initSzamlaKerek();
         initVisszaLink();
-        // gomb esemény már az onclick attribútumon keresztül rajta van
         window.veglegesKuldes = veglegesKuldes;
     });
 </script>
