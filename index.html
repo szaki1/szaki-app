@@ -131,7 +131,7 @@
         }
 
         .stat-szam {
-            font-size: 22px;
+            font-size: 18px; /* KISEBB LETT */
             font-weight: 700;
             margin-bottom: 4px;
         }
@@ -223,9 +223,6 @@
     </style>
 </head>
 
-<body>
-<div class="page-wrap">
-
     <!-- [2] FEJLÉC + FŐ GOMBOK -->
     <div class="card">
         <h1>Szaki-App</h1>
@@ -278,7 +275,7 @@
         </p>
     </div>
 
-    <!-- [4] KIEMELT VILLANYSZERELŐ – VASKÓ ZSOLT -->
+     <!-- [4] KIEMELT VILLANYSZERELŐ – VASKÓ ZSOLT -->
     <div class="card szaki-blokk">
         <h2>Kiemelt villanyszerelő – Zsolt</h2>
         <div class="szaki-kartya">
@@ -290,8 +287,22 @@
                         <div class="szaki-rang">⚡ Igazolt villanyszerelő • kiemelt partner</div>
                     </div>
                 </div>
-                <div class="szaki-adat">📧 E-mail: <a href="mailto:vaskozsolttamas@gmail.com">vaskozsolttamas@gmail.com</a></div>
-                <div class="szaki-adat">📞 Telefon: <a href="tel:+36306566793">+36 30 656 6793</a></div>
+                <div class="szaki-adat">
+                    📧 E-mail:
+                    <span
+                        id="zsolt-email"
+                        data-full="vaskozsolttamas@gmail.com"
+                        data-masked="vaskozs*****@gmail.com"
+                    >vaskozs*****@gmail.com</span>
+                </div>
+                <div class="szaki-adat">
+                    📞 Telefon:
+                    <span
+                        id="zsolt-tel"
+                        data-full="+36 30 656 6793"
+                        data-masked="+36 30 *** ** 793"
+                    >+36 30 *** ** 793</span>
+                </div>
                 <div class="szaki-adat">🏅 Rang: <strong>Igazolt szakember</strong></div>
                 <p class="szaki-kiemelt">
                     Minden beérkező <strong>villanyszerelő</strong> munkát elsőként Zsolt kap meg a rendszerben.
@@ -370,18 +381,51 @@
                 elem.textContent = osszes.toString();
             }
         } catch (e) {
-            // ha valami gond van a localStorage-sal, marad az alap 321
             console.warn("Látogatószámláló hiba (demó):", e);
         }
 
-        // a másik két érték egyelőre fix induló szám, csak kiírjuk őket
         const mElem = document.getElementById("stat-megrendelo");
         const sElem = document.getElementById("stat-szaki");
         if (mElem) mElem.textContent = STAT_BASE.megrendelo.toString();
         if (sElem) sElem.textContent = STAT_BASE.szaki.toString();
     }
 
-    // [7.3] Megosztás – mindig az egész oldalt ossza meg
+    // [7.3] Elérhetőség – teljes vagy maszkolt?
+    function frissitKapcsolatLathatosag() {
+        const emailSpan = document.getElementById("zsolt-email");
+        const telSpan = document.getElementById("zsolt-tel");
+        if (!emailSpan || !telSpan) return;
+
+        // ADMIN gyorshack: ha az URL-ben admin=1, akkor mindig teljesen látszik
+        const params = new URLSearchParams(window.location.search);
+        const isAdmin = params.get("admin") === "1";
+
+        let contactVisible = localStorage.getItem("szakiapp_contactVisible") === "true";
+        if (isAdmin) {
+            contactVisible = true;
+            localStorage.setItem("szakiapp_contactVisible", "true");
+        }
+
+        const fullEmail = emailSpan.getAttribute("data-full");
+        const maskedEmail = emailSpan.getAttribute("data-masked") || "";
+        const fullTel = telSpan.getAttribute("data-full");
+        const maskedTel = telSpan.getAttribute("data-masked") || "";
+
+        if (contactVisible) {
+            emailSpan.textContent = fullEmail;
+            telSpan.textContent = fullTel;
+        } else {
+            emailSpan.textContent = maskedEmail;
+            telSpan.textContent = maskedTel;
+        }
+    }
+
+    function jeloldMegosztasSikeresnek() {
+        localStorage.setItem("szakiapp_contactVisible", "true");
+        frissitKapcsolatLathatosag();
+    }
+
+    // [7.4] Megosztás – mindig az egész oldalt ossza meg
     function megosztasOldal() {
         const url = "https://szaki1.github.io/szaki-app/";
         const szoveg = "Nézd meg a Szaki-App oldalt, itt tudsz szakikat találni és munkát kiírni:";
@@ -391,17 +435,22 @@
                 title: "Szaki-App",
                 text: szoveg,
                 url: url
-            }).catch(() => {});
+            })
+            .then(() => jeloldMegosztasSikeresnek())
+            .catch(() => {});
         } else if (navigator.clipboard) {
             navigator.clipboard.writeText(url)
-                .then(() => alert("A hivatkozás a vágólapra került:\n" + url))
+                .then(() => {
+                    alert("A hivatkozás a vágólapra került:\n" + url);
+                    jeloldMegosztasSikeresnek();
+                })
                 .catch(() => alert("Másold ki ezt a linket: " + url));
         } else {
             alert("Másold ki ezt a linket: " + url);
         }
     }
 
-    // [7.4] Navigációs segédfüggvények
+    // [7.5] Navigációs segédfüggvények
     function nyitMegrendeloRegisztracio() {
         window.location.href = "megrendelo-regisztracio.html";
     }
@@ -410,7 +459,7 @@
         window.location.href = "munka-reszletei.html";
     }
 
-    // [7.5] AI demó – később Firebase AI Logic (Gemini) kerül ide
+    // [7.6] AI demó – később Firebase AI Logic (Gemini) kerül ide
     function aiSegitDemo() {
         const uzenet =
             "Demó üzemmód:\n\n" +
@@ -421,13 +470,9 @@
         alert(uzenet);
     }
 
-    // [7.6] INIT
+    // [7.7] INIT
     document.addEventListener("DOMContentLoaded", () => {
         initLatogatoSzamlalo();
-        // megosztasOldal, aiSegitDemo, nyitMegrendeloRegisztracio, nyitMunkaReszletei
-        // globálisan elérhetőek maradnak.
+        frissitKapcsolatLathatosag();
     });
 </script>
-
-</body>
-</html>
