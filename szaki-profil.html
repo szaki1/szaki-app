@@ -136,7 +136,36 @@
         .szaki-note {
             font-size: 12px;
             color: #777;
-            margin-bottom: 12px;
+            margin-bottom: 14px;
+        }
+
+        /* Zöld villogó státuszjelző */
+        .online-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 14px;
+        }
+
+        .online-dot {
+            width: 10px;
+            height: 10px;
+            background: #00cc00;
+            border-radius: 50%;
+            animation: blinking 1s infinite;
+            box-shadow: 0 0 6px #00ff00;
+        }
+
+        @keyframes blinking {
+            0% { opacity: 1; }
+            50% { opacity: 0.2; }
+            100% { opacity: 1; }
+        }
+
+        .online-text {
+            font-size: 13px;
+            font-weight: 600;
+            color: #00a000;
         }
 
         .szaki-actions {
@@ -158,6 +187,7 @@
             align-items: center;
             justify-content: center;
             transition: background 0.15s ease, transform 0.05s ease;
+            width: 100%;
         }
 
         .btn-chat:hover {
@@ -174,17 +204,6 @@
             color: #888;
             padding: 18px 10px 26px;
         }
-
-        @media (max-width: 600px) {
-            header {
-                flex-direction: row;
-                gap: 8px;
-            }
-            h1 {
-                font-size: 20px;
-                text-align: left;
-            }
-        }
     </style>
 </head>
 <body>
@@ -200,4 +219,91 @@
     <div class="card-grid">
 
         <!-- ZSOLT KÁRTYÁJA -->
-        <div class="szaki-card" id="szak
+        <div class="szaki-card">
+            <div class="szaki-header">
+                <div class="szaki-avatar">VZ</div>
+                <div>
+                    <div class="szaki-title">Kiemelt villanyszerelő – Zsolt</div>
+                    <div class="szaki-name">Vaskó Zsolt Tamás</div>
+                    <div class="szaki-badges">
+                        <span class="badge badge-verified">Igazolt villanyszerelő</span>
+                        <span class="badge badge-featured">Kiemelt partner</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="szaki-contact">
+                <p class="szaki-phone">
+                    <strong>Telefon:</strong>
+                    <a href="tel:+36306566793">+36 30 656 6793</a>
+                </p>
+            </div>
+
+            <p class="szaki-note">
+                A szó elszáll, az ÍRÁS MEGMARAD! Ha itt írtok le mindent, akkor az nem lesz elfelejtve!
+            </p>
+
+            <div class="online-indicator">
+                <div class="online-dot"></div>
+                <div class="online-text">Most elérhető itt!</div>
+            </div>
+
+            <div class="szaki-actions">
+                <button class="btn-chat" onclick="nyitChat('Zsolt')">
+                    Azonnal írok Zsoltnak itt! Chat-en
+                </button>
+            </div>
+        </div>
+
+        <!-- CSABI KÁRTYÁJA -->
+        <div class="szaki-card">
+            <div class="szaki-header">
+                <div class="szaki-avatar">CS</div>
+                <div>
+                    <div class="szaki-title">Kiemelt kőműves mester – Csabi</div>
+                    <div class="szaki-name">Csabi</div>
+                    <div class="szaki-badges">
+                        <span class="badge badge-verified">Igazolt kőműves mester</span>
+                        <span class="badge badge-featured">Kiemelt partner</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="szaki-contact">
+                <p class="szaki-phone">
+                    <strong>Telefon:</strong>
+                    <a href="tel:+36305902316">+36 30 590 2316</a>
+                </p>
+            </div>
+
+            <p class="szaki-note">
+                Teljes lakásfelújítást is vállalok!
+            </p>
+
+            <div class="online-indicator">
+                <div class="online-dot"></div>
+                <div class="online-text">Most elérhető itt!</div>
+            </div>
+
+            <div class="szaki-actions">
+                <button class="btn-chat" onclick="nyitChat('Csabi')">
+                    Azonnal írok Csabinak itt! Chat-en
+                </button>
+            </div>
+        </div>
+
+    </div>
+</main>
+
+<footer>
+    © 2025 Szaki-App – Kiemelt szakemberek profiloldal
+</footer>
+
+<script>
+function nyitChat(ki) {
+    window.location.href = "chat.html?szaki=" + encodeURIComponent(ki);
+}
+</script>
+
+</body>
+</html>
