@@ -4,9 +4,212 @@
     <meta charset="UTF-8" />
     <title>Kiemelt szakemberek – Szaki-App</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    ...
-    <!-- IDE NEM KELL HOZZÁNYÚLNI, A KÓD UGYANAZ MINT NÁLAD -->
-    ...
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+        }
+
+        header {
+            background: #ff8c00;
+            color: #ffffff;
+            padding: 14px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        header .logo {
+            font-weight: 700;
+            font-size: 18px;
+        }
+
+        header a.back-link {
+            color: #ffffff;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        main {
+            max-width: 1100px;
+            margin: 20px auto 40px;
+            padding: 0 16px;
+        }
+
+        h1 {
+            font-size: 24px;
+            margin: 10px 0 20px;
+            text-align: left;
+        }
+
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 20px;
+        }
+
+        .szaki-card {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 20px 18px 22px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+        }
+
+        .szaki-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .szaki-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: #ff8c00;
+            color: #ffffff;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        .szaki-title {
+            font-size: 15px;
+            font-weight: 700;
+            margin-bottom: 2px;
+        }
+
+        .szaki-name {
+            font-size: 14px;
+            color: #555;
+            margin-bottom: 4px;
+        }
+
+        .szaki-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 4px;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 3px 8px;
+            border-radius: 999px;
+            font-size: 11px;
+            line-height: 1.2;
+            border: 1px solid rgba(0,0,0,0.1);
+            background: #f7f7f7;
+        }
+
+        .badge-verified {
+            border-color: #2e7d32;
+            background: #e7f5ea;
+            color: #2e7d32;
+        }
+
+        .badge-featured {
+            border-color: #ff8c00;
+            background: #fff3e0;
+            color: #e65100;
+        }
+
+        .szaki-contact {
+            margin: 8px 0 10px;
+            font-size: 14px;
+        }
+
+        .szaki-phone a {
+            color: #333;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .szaki-note {
+            font-size: 12px;
+            color: #777;
+            margin-bottom: 8px;
+        }
+
+        .szaki-holiday {
+            font-size: 12px;
+            color: #444;
+            font-weight: 600;
+        }
+
+        .online-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin: 10px 0 14px;
+        }
+
+        .online-dot {
+            width: 10px;
+            height: 10px;
+            background: #00cc00;
+            border-radius: 50%;
+            animation: blinking 1s infinite;
+            box-shadow: 0 0 6px #00ff00;
+        }
+
+        @keyframes blinking {
+            0% { opacity: 1; }
+            50% { opacity: 0.2; }
+            100% { opacity: 1; }
+        }
+
+        .online-text {
+            font-size: 13px;
+            font-weight: 600;
+            color: #00a000;
+        }
+
+        .szaki-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .btn-chat {
+            border: none;
+            border-radius: 999px;
+            padding: 9px 16px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            background: #ff8c00;
+            color: #ffffff;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.15s ease, transform 0.05s ease;
+            width: 100%;
+        }
+
+        .btn-chat:hover {
+            background: #ff9e26;
+        }
+
+        .btn-chat:active {
+            transform: translateY(1px);
+        }
+
+        footer {
+            text-align: center;
+            font-size: 12px;
+            color: #888;
+            padding: 18px 10px 26px;
+        }
+    </style>
 </head>
 <body>
 
@@ -16,20 +219,122 @@
 </header>
 
 <main>
-    ... a két szaki kártya, ahogy most jól működik nálad ...
+    <h1>Kiemelt szakemberek</h1>
+
+    <div class="card-grid">
+
+        <!-- ZSOLT KÁRTYÁJA -->
+        <div class="szaki-card">
+            <div class="szaki-header">
+                <div class="szaki-avatar">VZ</div>
+                <div>
+                    <div class="szaki-title">Kiemelt villanyszerelő – Zsolt</div>
+                    <div class="szaki-name">Vaskó Zsolt Tamás</div>
+                    <div class="szaki-badges">
+                        <span class="badge badge-verified">Igazolt villanyszerelő</span>
+                        <span class="badge badge-featured">Kiemelt partner</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="szaki-contact">
+                <p class="szaki-phone">
+                    <strong>Telefon:</strong>
+                    <a href="tel:+36306566793">+36 30 656 6793</a>
+                </p>
+            </div>
+
+            <p class="szaki-note">
+                A szó elszáll, az ÍRÁS MEGMARAD! Ha itt írtok le mindent, akkor az nem lesz elfelejtve!
+            </p>
+
+            <p class="szaki-note szaki-holiday" id="holiday-zsolt"></p>
+
+            <div class="online-indicator">
+                <div class="online-dot"></div>
+                <div class="online-text">Most elérhető itt!</div>
+            </div>
+
+            <div class="szaki-actions">
+                <button class="btn-chat" onclick="nyitChat('Zsolt')">
+                    Azonnal írok Zsoltnak itt! Chat-en
+                </button>
+            </div>
+        </div>
+
+        <!-- CSABI KÁRTYÁJA -->
+        <div class="szaki-card">
+            <div class="szaki-header">
+                <div class="szaki-avatar">CS</div>
+                <div>
+                    <div class="szaki-title">Kiemelt kőműves mester – Csabi</div>
+                    <div class="szaki-name">Csabi</div>
+                    <div class="szaki-badges">
+                        <span class="badge badge-verified">Igazolt kőműves mester</span>
+                        <span class="badge badge-featured">Kiemelt partner</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="szaki-contact">
+                <p class="szaki-phone">
+                    <strong>Telefon:</strong>
+                    <a href="tel:+36305902316">+36 30 590 2316</a>
+                </p>
+            </div>
+
+            <p class="szaki-note">
+                A szó elszáll, az ÍRÁS MEGMARAD! Ha itt írtok le mindent, akkor az nem lesz elfelejtve!
+            </p>
+
+            <p class="szaki-note">Teljes lakásfelújítást is vállalok!</p>
+
+            <p class="szaki-note szaki-holiday" id="holiday-csabi"></p>
+
+            <div class="online-indicator">
+                <div class="online-dot"></div>
+                <div class="online-text">Most elérhető itt!</div>
+            </div>
+
+            <div class="szaki-actions">
+                <button class="btn-chat" onclick="nyitChat('Csabi')">
+                    Azonnal írok Csabinak itt! Chat-en
+                </button>
+            </div>
+        </div>
+
+    </div>
 </main>
 
 <footer>
     © 2025 Szaki-App – Kiemelt szakemberek profiloldal
 </footer>
 
-<!-- *** EZT ADTAM HOZZÁ *** -->
 <script src="szaki-adatok.js"></script>
-
 <script>
-function nyitChat(ki) {
-    window.location.href = "chat.html?szaki=" + encodeURIComponent(ki);
-}
+    (function () {
+        if (!window.SzakiAdatok) return;
+        const data = window.SzakiAdatok.getAllSzakik();
+        const getHolidayLabel = window.SzakiAdatok.getHolidayLabel;
+
+        const findById = (id) => data.find((s) => s.id === id);
+
+        const zsolt = findById("zsolt");
+        const csabi = findById("csabi");
+
+        if (zsolt) {
+            const el = document.getElementById("holiday-zsolt");
+            if (el) el.textContent = getHolidayLabel(zsolt);
+        }
+        if (csabi) {
+            const el = document.getElementById("holiday-csabi");
+            if (el) el.textContent = getHolidayLabel(csabi);
+        }
+    })();
+
+    function nyitChat(ki) {
+        window.location.href = "chat.html?szaki=" + encodeURIComponent(ki);
+    }
 </script>
 
 </body>
