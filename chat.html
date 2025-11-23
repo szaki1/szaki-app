@@ -9,71 +9,98 @@
         body {
             margin: 0;
             padding: 0;
-            background: #f5f5f5;
-            font-family: Arial, sans-serif;
+            background: #f1f1f1;
+            font-family: system-ui, Arial, sans-serif;
         }
 
         header {
             background: #ff8c00;
-            padding: 12px 18px;
+            padding: 14px 20px;
             color: white;
             font-weight: bold;
             font-size: 18px;
         }
 
-        #chat-box {
-            margin: 20px;
-            padding: 15px;
+        #chat-header {
             background: white;
-            border-radius: 10px;
-            height: 50vh;
+            padding: 14px 20px;
+            border-bottom: 1px solid #ddd;
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        #chat-box {
+            margin: 12px;
+            padding: 16px;
+            background: white;
+            border-radius: 12px;
+            height: 52vh;
             overflow-y: auto;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        }
+
+        .msg {
+            padding: 8px 12px;
+            border-radius: 10px;
+            margin: 6px 0;
+            max-width: 80%;
+            font-size: 14px;
+            line-height: 1.3;
+        }
+
+        .me {
+            background: #ffe0b3;
+            margin-left: auto;
+            text-align: right;
+        }
+
+        .you {
+            background: #ececec;
+            margin-right: auto;
         }
 
         #message-input {
-            width: calc(100% - 40px);
-            margin: 10px 20px;
+            width: calc(100% - 36px);
+            margin: 6px 12px;
             padding: 12px;
-            border-radius: 8px;
+            border-radius: 10px;
             border: 1px solid #ccc;
+            font-size: 15px;
         }
 
         .send-btn {
-            margin: 0 20px 10px;
-            width: calc(100% - 40px);
+            margin: 0 12px 14px;
+            width: calc(100% - 24px);
             padding: 12px;
             border: none;
-            border-radius: 8px;
+            border-radius: 10px;
             background: #ff8c00;
             color: white;
             font-size: 16px;
+            font-weight: 600;
             cursor: pointer;
         }
 
-        .szabi-list {
-            margin: 10px 20px 20px;
-            padding: 10px 12px;
-            background: #ffffff;
-            border-radius: 10px;
-            box-shadow: 0 1px 6px rgba(0,0,0,0.06);
-            font-size: 12px;
-            color: #444;
-        }
-
-        .szabi-list h3 {
-            margin-top: 0;
+        .online-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
             font-size: 13px;
-            margin-bottom: 6px;
+            margin-top: 4px;
         }
 
-        .szabi-list ul {
-            padding-left: 18px;
-            margin: 0;
+        .online-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #00cc22;
+            animation: blink 1s infinite;
         }
 
-        .szabi-list li {
-            margin: 2px 0;
+        @keyframes blink {
+            0% {opacity:1;}
+            50% {opacity:0.3;}
+            100% {opacity:1;}
         }
     </style>
 </head>
@@ -82,6 +109,8 @@
 
 <header>Chat – Szaki-App</header>
 
+<div id="chat-header">Betöltés…</div>
+
 <div id="chat-box">
     <p><i>Csatlakoztál a beszélgetéshez…</i></p>
 </div>
@@ -89,43 +118,94 @@
 <input type="text" id="message-input" placeholder="Írj üzenetet…" />
 <button class="send-btn" onclick="sendMessage()">Küldés</button>
 
-<div id="szaki-szabadnapok" class="szabi-list"></div>
-
 <script src="szaki-adatok.js"></script>
-<script>
-function sendMessage() {
-    const box = document.getElementById("chat-box");
-    const input = document.getElementById("message-input");
 
-    if (!input.value.trim()) return;
+<!-- Firebase modul -->
+<script type="module">
+import { app, db } from "./firebase-config.js";
+import {
+    collection,
+    addDoc,
+    query,
+    onSnapshot,
+    orderBy,
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-    const msg = document.createElement("p");
-    msg.textContent = "Én: " + input.value;
-    box.appendChild(msg);
+// -------------------------------
+// Szaki azonosítása URL alapján
+// -------------------------------
+const params = new URLSearchParams(window.location.search);
+const szakiName = params.get("szaki") || "Ismeretlen";
 
-    input.value = "";
+const all = window.SzakiAdatok.getAllSzakik();
+const find = (id) => all.find((s) => s.name.toLowerCase() === id.toLowerCase() || s.id === id.toLowerCase());
+const aktSzakember = find(szakiName) || all.find((s) => s.id === "csabi");
+
+const maskedTel = window.SzakiAdatok.getDisplayPhone(aktSzakember);
+
+// -------------------------------
+// Chat header kitöltése
+// -------------------------------
+document.getElementById("chat-header").innerHTML = `
+    <b>${aktSzakember.name}</b> – ${aktSzakember.profession}<br>
+    <span class="online-indicator">
+        <span class="online-dot"></span> Most elérhető itt!
+    </span><br>
+    Tel: <b>${maskedTel}</b>
+`;
+
+// -------------------------------
+// Megrendelő azonosító (localStorage)
+// -------------------------------
+let userId = localStorage.getItem("megrendeloId");
+if (!userId) {
+    userId = "user_" + Math.random().toString(36).substring(2, 10);
+    localStorage.setItem("megrendeloId", userId);
 }
 
-// Szaki lista + szabadnapok demóban
-(function () {
-    if (!window.SzakiAdatok) return;
+// -------------------------------
+// Chat szoba ID: megrendelő + szaki
+// -------------------------------
+const roomId = `${userId}_${aktSzakember.id}`;
 
-    const container = document.getElementById("szaki-szabadnapok");
-    const all = window.SzakiAdatok.getAllSzakik();
-    const getHolidayLabel = window.SzakiAdatok.getHolidayLabel;
-    const getDisplayPhone = window.SzakiAdatok.getDisplayPhone;
+// -------------------------------
+// Firestore chat stream
+// -------------------------------
+const chatRef = collection(db, "chats", roomId, "messages");
+const q = query(chatRef, orderBy("timestamp", "asc"));
 
-    const maxShow = 10; // csak 10 db-ot mutatunk
-    const items = all.slice(0, maxShow);
+const chatBox = document.getElementById("chat-box");
 
-    let html = "<h3>Szaki szabadnapok (demó):</h3><ul>";
-    items.forEach((s) => {
-        html += `<li>${s.name} – ${s.profession} – ${getHolidayLabel(s)} – Tel: ${getDisplayPhone(s)}</li>`;
+onSnapshot(q, (snapshot) => {
+    chatBox.innerHTML = "";
+    snapshot.forEach((doc) => {
+        const d = doc.data();
+        const div = document.createElement("div");
+        div.className = "msg " + (d.sender === userId ? "me" : "you");
+        div.textContent = d.text;
+        chatBox.appendChild(div);
     });
-    html += "</ul>";
 
-    container.innerHTML = html;
-})();
+    chatBox.scrollTop = chatBox.scrollHeight;
+});
+
+// -------------------------------
+// Üzenet küldése
+// -------------------------------
+window.sendMessage = async function () {
+    const input = document.getElementById("message-input");
+    const text = input.value.trim();
+    if (!text) return;
+
+    await addDoc(chatRef, {
+        sender: userId,
+        text: text,
+        timestamp: Date.now(),
+    });
+
+    input.value = "";
+};
+
 </script>
 
 </body>
