@@ -6,17 +6,76 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
     <style>
-        body { font-family: Arial; background: #f5f5f5; margin: 0; padding: 20px; }
-        .container { max-width: 600px; margin: auto; background: white; padding: 20px;
-                     border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        label { font-weight: bold; display: block; margin-top: 15px; }
-        input, select {
-            width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ccc; margin-top: 5px;
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+            margin: 0;
+            padding: 20px;
         }
+
+        .container {
+            max-width: 600px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        h2 {
+            margin-top: 0;
+        }
+
+        label {
+            font-weight: bold;
+            display: block;
+            margin-top: 15px;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            margin-top: 5px;
+        }
+
         button {
-            margin-top: 20px; width: 100%; padding: 12px; border: none;
-            border-radius: 8px; background: #ff8c00; color: white;
-            font-size: 16px; cursor: pointer;
+            margin-top: 20px;
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            background: #ff8c00;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .szabi-list {
+            margin: 20px auto 0;
+            max-width: 600px;
+            padding: 10px 12px;
+            background: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+            font-size: 12px;
+            color: #444;
+        }
+
+        .szabi-list h3 {
+            margin-top: 0;
+            font-size: 13px;
+            margin-bottom: 6px;
+        }
+
+        .szabi-list ul {
+            padding-left: 18px;
+            margin: 0;
+        }
+
+        .szabi-list li {
+            margin: 2px 0;
         }
     </style>
 </head>
@@ -46,13 +105,34 @@
     <button onclick="regisztral()">Regisztráció</button>
 </div>
 
-<!-- *** EZT ADTAM HOZZÁ A VÉGÉRE *** -->
-<script src="szaki-adatok.js"></script>
+<div id="szaki-szabadnapok" class="szabi-list"></div>
 
+<script src="szaki-adatok.js"></script>
 <script>
 function regisztral() {
     alert("A regisztráció jelenleg DEMÓ módban működik. Később kerül mentésre az adatbázisba.");
 }
+
+// Demó: meglévő szakik szabadnapjai
+(function () {
+    if (!window.SzakiAdatok) return;
+
+    const container = document.getElementById("szaki-szabadnapok");
+    const all = window.SzakiAdatok.getAllSzakik();
+    const getHolidayLabel = window.SzakiAdatok.getHolidayLabel;
+    const getDisplayPhone = window.SzakiAdatok.getDisplayPhone;
+
+    const maxShow = 10;
+    const items = all.slice(0, maxShow);
+
+    let html = "<h3>Már regisztrált szakik (szabadnapok demó):</h3><ul>";
+    items.forEach((s) => {
+        html += `<li>${s.name} – ${s.profession} – ${getHolidayLabel(s)} – Tel: ${getDisplayPhone(s)}</li>`;
+    });
+    html += "</ul>";
+
+    container.innerHTML = html;
+})();
 </script>
 
 </body>
