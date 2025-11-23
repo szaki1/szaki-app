@@ -1,355 +1,82 @@
-<!-- [1] ALAP STRUKTÚRA + STÍLUS -->
 <!DOCTYPE html>
 <html lang="hu">
 <head>
     <meta charset="UTF-8" />
-    <title>Szaki-App | Chat</title>
+    <title>Chat – Szaki-App</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
     <style>
-        * {
-            box-sizing: border-box;
-        }
         body {
             margin: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
-            background: #f2f2f7;
+            padding: 0;
+            background: #f5f5f5;
+            font-family: Arial, sans-serif;
         }
-        .chat-shell {
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-        }
-        /* Felső sáv */
-        .chat-header {
-            background: #ff9500;
-            color: #fff;
-            padding: 10px 16px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-        .chat-header-title {
+        header {
+            background: #ff8c00;
+            padding: 12px 18px;
+            color: white;
+            font-weight: bold;
             font-size: 18px;
-            font-weight: 600;
         }
-        .chat-header-sub {
-            font-size: 13px;
-            opacity: 0.9;
-        }
-        .chat-header-right a {
-            color: #fff;
-            font-size: 13px;
-            text-decoration: underline;
-        }
-
-        /* Fő tartalom: bal lista + jobb beszélgetés */
-        .chat-main {
-            flex: 1;
-            display: flex;
-            min-height: 0;
-        }
-        .chat-sidebar {
-            width: 280px;
-            border-right: 1px solid #ddd;
-            background: #ffffff;
-            display: flex;
-            flex-direction: column;
-        }
-        .chat-sidebar-head {
-            padding: 10px 12px;
-            border-bottom: 1px solid #eee;
-            font-size: 14px;
-            font-weight: 600;
-        }
-        .chat-filter {
-            padding: 8px 12px;
-            border-bottom: 1px solid #eee;
-            font-size: 13px;
-            display: flex;
-            gap: 4px;
-            flex-wrap: wrap;
-        }
-        .chat-filter span {
-            background: #f2f2f7;
-            padding: 3px 8px;
-            border-radius: 999px;
-        }
-        .chat-list {
-            flex: 1;
+        #chat-box {
+            margin: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 10px;
+            height: 65vh;
             overflow-y: auto;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
-        .chat-item {
-            padding: 8px 10px;
-            border-bottom: 1px solid #f2f2f7;
-            cursor: pointer;
-        }
-        .chat-item.active {
-            background: #f2f6ff;
-        }
-        .chat-item-name {
-            font-size: 14px;
-            font-weight: 600;
-        }
-        .chat-item-meta {
-            display: flex;
-            justify-content: space-between;
-            font-size: 12px;
-            color: #777;
-            margin-top: 2px;
-        }
-        .online-dot {
-            display: inline-block;
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            margin-right: 4px;
-            background: #34c759; /* online zöld */
-        }
-        .offline-dot {
-            background: #c7c7cc;
-        }
-
-        /* Jobb oldal – beszélgetés */
-        .chat-conversation {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-        }
-        .chat-conv-header {
-            padding: 10px 14px;
-            border-bottom: 1px solid #ddd;
-            background: #ffffff;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 10px;
-        }
-        .conv-partner {
-            font-size: 14px;
-        }
-        .conv-partner strong {
-            font-weight: 600;
-        }
-        .conv-actions {
-            display: flex;
-            gap: 8px;
-        }
-        .btn-small {
-            border-radius: 20px;
-            border: none;
-            cursor: pointer;
-            font-size: 12px;
-            padding: 6px 10px;
-            white-space: nowrap;
-        }
-        .btn-choose {
-            background: #ff9500;
-            color: #fff;
-        }
-        .btn-reject {
-            background: #f2f2f7;
-            color: #333;
-        }
-
-        .chat-messages {
-            flex: 1;
-            padding: 12px 10px;
-            overflow-y: auto;
-            background: #e5e5ea; /* Viber-szürke háttér */
-        }
-        .msg-row {
-            display: flex;
-            margin-bottom: 6px;
-        }
-        .msg-row.me {
-            justify-content: flex-end;
-        }
-        .msg-bubble {
-            max-width: 70%;
-            padding: 8px 10px;
-            border-radius: 18px;
-            font-size: 14px;
-            line-height: 1.3;
-        }
-        /* Viber-szerű színek */
-        .msg-them .msg-bubble {
-            background: #ffffff;
-            border-bottom-left-radius: 4px;
-        }
-        .msg-me .msg-bubble {
-            background: #7d3cff;
-            color: #fff;
-            border-bottom-right-radius: 4px;
-        }
-        .msg-meta {
-            font-size: 10px;
-            color: #999;
-            margin-top: 2px;
-            text-align: right;
-        }
-
-        .chat-input-bar {
-            padding: 8px 10px;
-            border-top: 1px solid #ccc;
-            background: #f9f9fb;
-            display: flex;
-            gap: 8px;
-            align-items: center;
-        }
-        .chat-input-bar input {
-            flex: 1;
-            padding: 8px 10px;
-            border-radius: 18px;
+        #message-input {
+            width: calc(100% - 40px);
+            margin: 10px 20px;
+            padding: 12px;
+            border-radius: 8px;
             border: 1px solid #ccc;
-            font-size: 14px;
         }
-        .chat-input-bar button {
-            border-radius: 50%;
-            width: 34px;
-            height: 34px;
+        .send-btn {
+            margin: 0 20px 20px;
+            width: calc(100% - 40px);
+            padding: 12px;
             border: none;
-            background: #7d3cff;
-            color: #fff;
+            border-radius: 8px;
+            background: #ff8c00;
+            color: white;
             font-size: 16px;
             cursor: pointer;
         }
-
-        /* Mobil nézet */
-        @media (max-width: 800px) {
-            .chat-main {
-                flex-direction: column;
-            }
-            .chat-sidebar {
-                width: 100%;
-                height: 180px;
-            }
-        }
     </style>
 </head>
+
 <body>
-<div class="chat-shell">
-    <!-- [2] FELSŐ SÁV + OLDALSÁV / BESZÉLGETÉS -->
-    <header class="chat-header">
-        <div>
-            <div class="chat-header-title">Szaki-App Chat</div>
-            <div class="chat-header-sub">Online egyeztetés megrendelőknek és szakiknak</div>
-        </div>
-        <div class="chat-header-right">
-            <a href="index.html">← Vissza a főoldalra</a>
-        </div>
-    </header>
 
-    <div class="chat-main">
-        <!-- BAL: beszélgetés lista -->
-        <aside class="chat-sidebar">
-            <div class="chat-sidebar-head">Beszélgetéseim</div>
-            <div class="chat-filter">
-                <span>Összes</span>
-                <span>Festő</span>
-                <span>Burkoló</span>
-                <span>Villanyszerelő</span>
-            </div>
-            <div class="chat-list">
-                <!-- DEMÓ – később Firebase tölti -->
-                <div class="chat-item active">
-                    <div class="chat-item-name">
-                        <span class="online-dot"></span> Chisnyán Sándor (megrendelő)
-                    </div>
-                    <div class="chat-item-meta">
-                        <span>Szobafestő-tapétázó</span>
-                        <span>Ma 19:32</span>
-                    </div>
-                </div>
-                <div class="chat-item">
-                    <div class="chat-item-name">
-                        <span class="offline-dot online-dot"></span> Kiss János (megrendelő)
-                    </div>
-                    <div class="chat-item-meta">
-                        <span>Burkoló</span>
-                        <span>Tegnap</span>
-                    </div>
-                </div>
-            </div>
-        </aside>
+<header>Chat – Szaki-App</header>
 
-        <!-- JOBB: aktuális beszélgetés -->
-        <section class="chat-conversation">
-            <div class="chat-conv-header">
-                <div class="conv-partner">
-                    <strong>Partner:</strong> Chisnyán Sándor •
-                    <span>Szobafestő-tapétázó, burkoló</span>
-                </div>
-                <div class="conv-actions">
-                    <!-- Megrendelő nézetben ez a két gomb lesz aktív -->
-                    <button class="btn-small btn-choose">Ezt a szakit választom</button>
-                    <button class="btn-small btn-reject">Köszönöm, jobb ajánlatot kaptam</button>
-                </div>
-            </div>
-
-            <div class="chat-messages" id="chat-messages">
-                <!-- DEMÓ ÜZENETEK -->
-                <div class="msg-row msg-them">
-                    <div class="msg-bubble">
-                        Szia Csabi! A nappali 40 m², mennyezeti glett + festés érdekelne.
-                        Mikor tudnád megnézni?
-                        <div class="msg-meta">19:30</div>
-                    </div>
-                </div>
-                <div class="msg-row me msg-me">
-                    <div class="msg-bubble">
-                        Szia! Jövő hét elején rá tudok nézni, hétfő vagy kedd megfelelne?
-                        <div class="msg-meta">19:31</div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="chat-input-bar">
-                <input type="text" id="chat-input" placeholder="Írj üzenetet…" />
-                <button id="chat-send">➤</button>
-            </div>
-        </section>
-    </div>
+<div id="chat-box">
+    <p><i>Csatlakoztál a beszélgetéshez…</i></p>
 </div>
 
-<!-- [3] EGYSZERŰ FRONTEND LOGIKA (DEMÓ, KÉSŐBB FIREBASE) -->
+<input type="text" id="message-input" placeholder="Írj üzenetet…" />
+<button class="send-btn" onclick="sendMessage()">Küldés</button>
+
+<!-- *** EZT ADD HOZZÁ *** -->
+<script src="szaki-adatok.js"></script>
+
 <script>
-    // Demó: enter / gombnyomás → új saját üzenet
-    const input = document.getElementById('chat-input');
-    const sendBtn = document.getElementById('chat-send');
-    const msgBox = document.getElementById('chat-messages');
+function sendMessage() {
+    const box = document.getElementById("chat-box");
+    const input = document.getElementById("message-input");
 
-    function addMyMessage(text) {
-        if (!text.trim()) return;
-        const row = document.createElement('div');
-        row.className = 'msg-row me msg-me';
-        const bubble = document.createElement('div');
-        bubble.className = 'msg-bubble';
-        bubble.textContent = text.trim();
+    if (!input.value.trim()) return;
 
-        const meta = document.createElement('div');
-        meta.className = 'msg-meta';
-        const now = new Date();
-        meta.textContent = now.getHours().toString().padStart(2,'0') + ':' +
-                           now.getMinutes().toString().padStart(2,'0');
+    const msg = document.createElement("p");
+    msg.textContent = "Én: " + input.value;
+    box.appendChild(msg);
 
-        bubble.appendChild(meta);
-        row.appendChild(bubble);
-        msgBox.appendChild(row);
-        msgBox.scrollTop = msgBox.scrollHeight;
-    }
-
-    sendBtn.addEventListener('click', () => {
-        addMyMessage(input.value);
-        input.value = '';
-        input.focus();
-    });
-
-    input.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            addMyMessage(input.value);
-            input.value = '';
-        }
-    });
+    input.value = "";
+}
 </script>
+
 </body>
 </html>
