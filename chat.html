@@ -12,6 +12,7 @@
             background: #f5f5f5;
             font-family: Arial, sans-serif;
         }
+
         header {
             background: #ff8c00;
             padding: 12px 18px;
@@ -19,15 +20,17 @@
             font-weight: bold;
             font-size: 18px;
         }
+
         #chat-box {
             margin: 20px;
             padding: 15px;
             background: white;
             border-radius: 10px;
-            height: 65vh;
+            height: 50vh;
             overflow-y: auto;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
+
         #message-input {
             width: calc(100% - 40px);
             margin: 10px 20px;
@@ -35,8 +38,9 @@
             border-radius: 8px;
             border: 1px solid #ccc;
         }
+
         .send-btn {
-            margin: 0 20px 20px;
+            margin: 0 20px 10px;
             width: calc(100% - 40px);
             padding: 12px;
             border: none;
@@ -45,6 +49,31 @@
             color: white;
             font-size: 16px;
             cursor: pointer;
+        }
+
+        .szabi-list {
+            margin: 10px 20px 20px;
+            padding: 10px 12px;
+            background: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+            font-size: 12px;
+            color: #444;
+        }
+
+        .szabi-list h3 {
+            margin-top: 0;
+            font-size: 13px;
+            margin-bottom: 6px;
+        }
+
+        .szabi-list ul {
+            padding-left: 18px;
+            margin: 0;
+        }
+
+        .szabi-list li {
+            margin: 2px 0;
         }
     </style>
 </head>
@@ -60,9 +89,9 @@
 <input type="text" id="message-input" placeholder="Írj üzenetet…" />
 <button class="send-btn" onclick="sendMessage()">Küldés</button>
 
-<!-- *** EZT ADD HOZZÁ *** -->
-<script src="szaki-adatok.js"></script>
+<div id="szaki-szabadnapok" class="szabi-list"></div>
 
+<script src="szaki-adatok.js"></script>
 <script>
 function sendMessage() {
     const box = document.getElementById("chat-box");
@@ -76,6 +105,27 @@ function sendMessage() {
 
     input.value = "";
 }
+
+// Szaki lista + szabadnapok demóban
+(function () {
+    if (!window.SzakiAdatok) return;
+
+    const container = document.getElementById("szaki-szabadnapok");
+    const all = window.SzakiAdatok.getAllSzakik();
+    const getHolidayLabel = window.SzakiAdatok.getHolidayLabel;
+    const getDisplayPhone = window.SzakiAdatok.getDisplayPhone;
+
+    const maxShow = 10; // csak 10 db-ot mutatunk
+    const items = all.slice(0, maxShow);
+
+    let html = "<h3>Szaki szabadnapok (demó):</h3><ul>";
+    items.forEach((s) => {
+        html += `<li>${s.name} – ${s.profession} – ${getHolidayLabel(s)} – Tel: ${getDisplayPhone(s)}</li>`;
+    });
+    html += "</ul>";
+
+    container.innerHTML = html;
+})();
 </script>
 
 </body>
