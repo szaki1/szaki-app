@@ -85,11 +85,10 @@
     // --- Szoba és név beállítása URL + localStorage alapján ---
     const params = new URLSearchParams(window.location.search);
 
-    // Szoba ID (pl. ?room=csabi_zsolt), alapértelmezés: ALAPERTELMEZETT
+    // Szoba ID (pl. ?room=csabi_zsolt)
     const ROOM_ID = params.get("room") || "ALAPERTELMEZETT";
 
-    // Felhasználónév: először URL-ből (sender=Csabi/Zsolti),
-    // ha nincs, akkor localStorage, ha ott sincs, akkor prompt.
+    // Felhasználónév
     let USER_NAME =
         params.get("sender") ||
         localStorage.getItem("szakiName");
@@ -98,13 +97,12 @@
         USER_NAME = prompt("Add meg a neved (pl. Csabi, Zsolti):") || "Ismeretlen";
     }
 
-    // Nevet elmentjük, hogy legközelebb ne kérdezze meg
     localStorage.setItem("szakiName", USER_NAME);
 
-    // --- Firestore hivatkozás: Beszélgetések / ROOM_ID / Üzenetek ---
-    const messagesRef = collection(db, "Beszélgetések", ROOM_ID, "Üzenetek");
+    // --- Firestore útvonal: /chats/{roomId}/uzenetek/ ---
+    const messagesRef = collection(db, "chats", ROOM_ID, "uzenetek");
 
-    // 🔥 1. Élő üzenetfigyelés (folyamatos frissítés)
+    // 🔥 Üzenetek valós idejű figyelése
     const q = query(messagesRef, orderBy("timestamp"));
 
     onSnapshot(q, (snapshot) => {
@@ -118,11 +116,10 @@
             chatBox.appendChild(p);
         });
 
-        // mindig legörgetjük az aljára
         chatBox.scrollTop = chatBox.scrollHeight;
     });
 
-    // 🔥 2. Üzenetküldés Firestore-ba
+    // 🔥 Üzenet küldése Firestore-ba
     async function internalSendMessage() {
         const input = document.getElementById("message-input");
         const text = input.value.trim();
@@ -141,12 +138,10 @@
         }
     }
 
-    // Globális függvény a gomb onclick-hez
     window.sendMessage = internalSendMessage;
 
-    // Enter lenyomásakor is küldjön
-    const inputField = document.getElementById("message-input");
-    inputField.addEventListener("keydown", (e) => {
+    // Enter = Küldés
+    document.getElementById("message-input").addEventListener("keydown", (e) => {
         if (e.key === "Enter") {
             e.preventDefault();
             internalSendMessage();
