@@ -41,29 +41,33 @@
     <h2>Új megrendelő</h2>
 
     <input id="name" type="text" placeholder="Neved" />
-    <input id="phone" type="text" placeholder="Telefonszám" />
-
-    <select id="szaki">
-        <option value="">Válassz szakembert</option>
-        <option value="Csabi">Csabi (Kőműves)</option>
-        <option value="Zsolti">Zsolti (Festő)</option>
+    <select id="szakma">
+        <option value="">Válassz szakmát</option>
+        <option value="Kőműves">Kőműves</option>
+        <option value="Festő">Festő</option>
+        <option value="Burkoló">Burkoló</option>
+        <option value="Gipszkartonos">Gipszkartonos</option>
+        <option value="Villanyszerelő">Villanyszerelő</option>
+        <option value="Vízszerelő">Vízszerelő</option>
+        <option value="Gázszerelő">Gázszerelő</option>
     </select>
 
-    <button onclick="openChat()">Indíts chatet</button>
+    <button onclick="step2()">Tovább</button>
 </div>
 
 <script>
-function openChat() {
-    const n = document.getElementById("name").value.trim();
-    const s = document.getElementById("szaki").value;
+function step2() {
+    const name = document.getElementById("name").value.trim();
+    const szakma = document.getElementById("szakma").value;
 
-    if (!n || !s) {
-        alert("Töltsd ki az adatokat!");
+    if (!name || !szakma) {
+        alert("Töltsd ki az összes adatot!");
         return;
     }
 
-    const link = `chat.html?sender=${n}&partner=${s}`;
-    window.location.href = link;
+    // Átirányítjuk a megrendelőt a szakiválasztó oldalra:
+    window.location.href =
+        `valassz-szakit.html?name=${encodeURIComponent(name)}&szakma=${encodeURIComponent(szakma)}`;
 }
 </script>
 
