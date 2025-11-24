@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8" />
+    <title>Válassz szakembert</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <style>
+        body {
+            background: #f5f5f5;
+            font-family: Arial;
+            padding: 20px;
+        }
+        .box {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .szaki-btn {
+            display: block;
+            width: 100%;
+            padding: 14px;
+            margin: 12px 0;
+            background: #ff8c00;
+            color: white;
+            font-size: 17px;
+            border-radius: 8px;
+            text-decoration: none;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<div class="box">
+    <h2>Válassz szakembert</h2>
+
+    <div id="szaki-lista"></div>
+</div>
+
+<script src="szaki-adatok.js"></script>
+
+<script>
+    const url = new URLSearchParams(window.location.search);
+    const userName = url.get("name") || "Ismeretlen";
+
+    const szakma = url.get("szakma");
+    const container = document.getElementById("szaki-lista");
+
+    if (!szakma) {
+        container.innerHTML = "<p>Nincs kiválasztott szakma!</p>";
+    } else {
+        const szakik = SzakiAdatok.getAllSzakik().filter(s => s.profession === szakma);
+
+        if (szakik.length === 0) {
+            container.innerHTML = "<p>Nincs szaki ebben a szakmában.</p>";
+        } else {
+            szakik.forEach(s => {
+                const link = `chat.html?sender=${userName}&partner=${s.name}`;
+                container.innerHTML += `
+                    <a class="szaki-btn" href="${link}">
+                        ${s.name} – ${s.profession}
+                    </a>
+                `;
+            });
+        }
+    }
+</script>
+
+</body>
+</html>
