@@ -60,27 +60,34 @@
 <input type="text" id="message-input" placeholder="Írj üzenetet…" />
 <button class="send-btn" onclick="sendMessage()">Küldés</button>
 
-<!-- Firestore + chat logika -->
-<script type="module">
-import { db } from "./firebase-config.js";
-import {
-    collection,
-    addDoc,
-    query,
-    orderBy,
-    onSnapshot,
-    serverTimestamp
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+<!-- Firebase SDK-k (compat mód, hogy egyszerűen működjön) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 
-// --- Beállítások ---
-const ROOM_ID = "DEFAULT"; // alap chat szoba
-const messagesRef = collection(db, "chats", ROOM_ID, "messages");
+<script>
+// UGYANAZ a config, mint a firebase-config.js-ben
+const firebaseConfig = {
+  apiKey: "AIzaSyAKhHvi3yObUurBKhT1r_feg4g0A5w766Q",
+  authDomain: "szaki-app.firebaseapp.com",
+  projectId: "szaki-app",
+  storageBucket: "szaki-app.firebasestorage.app",
+  messagingSenderId: "418149364598",
+  appId: "1:418149364598:web:2ae4450dc8fadfbac30057"
+};
+
+// Firebase inicializálás
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+// CHAT szoba
+const ROOM_ID = "DEFAULT";
+const messagesRef = db.collection("chats").doc(ROOM_ID).collection("messages");
 
 // DOM elemek
 const chatBox = document.getElementById("chat-box");
 const input = document.getElementById("message-input");
 
-// ENTER = küldés
+// ENTER = Küldés
 input.addEventListener("keydown", (e) => {
     if (e.key === "Enter") {
         e.preventDefault();
@@ -88,7 +95,7 @@ input.addEventListener("keydown", (e) => {
     }
 });
 
-// Üzenet megjelenítése a dobozban
+// Üzenet hozzáadása a DOM-hoz
 function appendMessage(sender, text) {
     const p = document.createElement("p");
     p.textContent = sender + ": " + text;
@@ -96,37 +103,38 @@ function appendMessage(sender, text) {
     chatBox.scrollTop = chatBox.scrollHeight;
 }
 
-// 1. Élő üzenetfigyelés Firestore-ból
-const q = query(messagesRef, orderBy("timestamp"));
-
-onSnapshot(q, (snapshot) => {
-    chatBox.innerHTML = ""; // ürítjük, majd újraépítjük
-
-    snapshot.forEach((doc) => {
-        const msg = doc.data();
-        const sender = msg.sender || "Ismeretlen";
-        const text = msg.text || "";
-        appendMessage(sender, text);
-    });
-});
-
-// 2. Üzenetküldés Firestore-ba
+// Üzenet küldése Firestore-ba
 async function sendMessage() {
     const text = input.value.trim();
     if (!text) return;
 
-    // Firestore-ba mentés
-    await addDoc(messagesRef, {
-        sender: "Csabi",
-        text: text,
-        timestamp: serverTimestamp()
-    });
+    try {
+        // saját üzenet azonnal a képernyőre
+        appendMessage("Csabi", text);
 
-    input.value = "";
+        // mentés Firestore-ba
+        await messagesRef.add({
+            sender: "Csabi",
+            text: text,
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        input.value = "";
+    } catch (err) {
+        console.error("Hiba üzenet küldésnél:", err);
+        alert("Nem sikerült elküldeni az üzenetet.");
+    }
 }
 
-// hogy az onclick működjön a HTML-ben
-window.sendMessage = sendMessage;
+// Üzenetek élő figyelése (real-time)
+messagesRef.orderBy("timestamp").onSnapshot((snapshot) => {
+    chatBox.innerHTML = "<p><i>Csatlakoztál a beszélgetéshez…</i></p>";
+
+    snapshot.forEach((doc) => {
+        const data = doc.data();
+        appendMessage(data.sender || "Ismeretlen", data.text || "");
+    });
+});
 </script>
 
 </body>
