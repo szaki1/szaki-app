@@ -60,9 +60,9 @@
 <input type="text" id="message-input" placeholder="Írj üzenetet…" />
 <button class="send-btn" onclick="sendMessage()">Küldés</button>
 
-<!-- Firestore config -->
+<!-- Firestore + chat logika -->
 <script type="module">
-import { app, db } from "./firebase-config.js";
+import { db } from "./firebase-config.js";
 import {
     collection,
     addDoc,
@@ -72,22 +72,62 @@ import {
     serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-const ROOM_ID = "DEFAULT";
+// --- Beállítások ---
+const ROOM_ID = "DEFAULT"; // alap chat szoba
 const messagesRef = collection(db, "chats", ROOM_ID, "messages");
 
-// 🔥 1. Élő üzenetfigyelés
+// DOM elemek
+const chatBox = document.getElementById("chat-box");
+const input = document.getElementById("message-input");
+
+// ENTER = küldés
+input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+        e.preventDefault();
+        sendMessage();
+    }
+});
+
+// Üzenet megjelenítése a dobozban
+function appendMessage(sender, text) {
+    const p = document.createElement("p");
+    p.textContent = sender + ": " + text;
+    chatBox.appendChild(p);
+    chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+// 1. Élő üzenetfigyelés Firestore-ból
 const q = query(messagesRef, orderBy("timestamp"));
+
 onSnapshot(q, (snapshot) => {
-    const chatBox = document.getElementById("chat-box");
-    chatBox.innerHTML = ""; // töröljük és újra betöltjük
+    chatBox.innerHTML = ""; // ürítjük, majd újraépítjük
 
     snapshot.forEach((doc) => {
         const msg = doc.data();
-        const p = document.createElement("p");
-        p.textContent = msg.sender + ": " + msg.text;
-        chatBox.appendChild(p);
+        const sender = msg.sender || "Ismeretlen";
+        const text = msg.text || "";
+        appendMessage(sender, text);
     });
 });
 
-// 🔥 2. Üzenetküldés Firestore-ba
-window.sendMessage = async
+// 2. Üzenetküldés Firestore-ba
+async function sendMessage() {
+    const text = input.value.trim();
+    if (!text) return;
+
+    // Firestore-ba mentés
+    await addDoc(messagesRef, {
+        sender: "Csabi",
+        text: text,
+        timestamp: serverTimestamp()
+    });
+
+    input.value = "";
+}
+
+// hogy az onclick működjön a HTML-ben
+window.sendMessage = sendMessage;
+</script>
+
+</body>
+</html>
