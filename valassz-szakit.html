@@ -51,13 +51,19 @@
     if (!szakma) {
         container.innerHTML = "<p>Nincs kiválasztott szakma!</p>";
     } else {
+        // SZAKI ADATOKBETÖLTÉSE
         const szakik = SzakiAdatok.getAllSzakik().filter(s => s.profession === szakma);
 
         if (szakik.length === 0) {
             container.innerHTML = "<p>Nincs szaki ebben a szakmában.</p>";
         } else {
             szakik.forEach(s => {
-                const link = `chat.html?sender=${userName}&partner=${s.name}`;
+                // 🔥 FONTOS!
+                // mindig a CHATBEN HASZNÁLT RÖVID NEVET adjuk át partnernek:
+                const chatName = s.chatName || s.name;  
+
+                const link = `chat.html?sender=${encodeURIComponent(userName)}&partner=${encodeURIComponent(chatName)}`;
+                
                 container.innerHTML += `
                     <a class="szaki-btn" href="${link}">
                         ${s.name} – ${s.profession}
