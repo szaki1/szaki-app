@@ -82,29 +82,37 @@
         serverTimestamp
     } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-    // --- Szoba és név beállítása URL + localStorage alapján ---
+    // --- PARAMÉTEREK BETÖLTÉSE ---
     const params = new URLSearchParams(window.location.search);
 
-    // Szoba ID (pl. ?room=csabi_zsolt)
-    const ROOM_ID = params.get("room") || "ALAPERTELMEZETT";
-
-    // Felhasználónév
     let USER_NAME =
         params.get("sender") ||
-        localStorage.getItem("szakiName");
-
-    if (!USER_NAME) {
-        USER_NAME = prompt("Add meg a neved (pl. Csabi, Zsolti):") || "Ismeretlen";
-    }
+        localStorage.getItem("szakiName") ||
+        prompt("Add meg a neved (pl. Csabi, Zsolti):") ||
+        "Ismeretlen";
 
     localStorage.setItem("szakiName", USER_NAME);
 
-    // --- Firestore útvonal: /chats/{roomId}/uzenetek/ ---
+    // --- PARTNER ---
+    let PARTNER = params.get("partner") || null;
+
+    // --- Automatikus szoba generálás ---
+    let ROOM_ID;
+
+    if (PARTNER) {
+        // két fél nevéből ABC sorrendben egy fix szoba neve
+        const s1 = USER_NAME.toLowerCase();
+        const s2 = PARTNER.toLowerCase();
+        ROOM_ID = [s1, s2].sort().join("_");
+    } else {
+        ROOM_ID = params.get("room") || "ALAPERTELMEZETT";
+    }
+
+    // --- Firestore útvonal: /chats/{roomId}/uzenetek ---
     const messagesRef = collection(db, "chats", ROOM_ID, "uzenetek");
 
     // 🔥 Üzenetek valós idejű figyelése
     const q = query(messagesRef, orderBy("timestamp"));
-
     onSnapshot(q, (snapshot) => {
         const chatBox = document.getElementById("chat-box");
         chatBox.innerHTML = "";
@@ -138,9 +146,10 @@
         }
     }
 
+    // --- Küldés gombra ---
     window.sendMessage = internalSendMessage;
 
-    // Enter = Küldés
+    // --- ENTER = KÜLDÉS ---
     document.getElementById("message-input").addEventListener("keydown", (e) => {
         if (e.key === "Enter") {
             e.preventDefault();
