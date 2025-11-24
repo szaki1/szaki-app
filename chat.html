@@ -79,46 +79,91 @@
         query,
         orderBy,
         onSnapshot,
-        serverTimestamp
+        serverTimestamp,
+        doc,
+        getDoc,
+        setDoc,
+        where,
+        getDocs
     } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-    // --- PARAMÉTEREK BETÖLTÉSE ---
+    // --- Szoba és név beállítása URL + localStorage alapján ---
     const params = new URLSearchParams(window.location.search);
 
+    // Szoba ID (pl. ?room=csabi_zsolt)
+    const ROOM_ID = params.get("room") || "ALAPERTELMEZETT";
+
+    // Szaki-e a felhasználó? (isSzaki=1 paraméterrel jelöljük)
+    const IS_SZAKI = params.get("isSzaki") === "1";
+
+    // Felhasználónév
     let USER_NAME =
         params.get("sender") ||
-        localStorage.getItem("szakiName") ||
-        prompt("Add meg a neved (pl. Csabi, Zsolti):") ||
-        "Ismeretlen";
+        localStorage.getItem("szakiName");
+
+    if (!USER_NAME) {
+        USER_NAME = prompt("Add meg a neved (pl. Csabi, Zsolti):") || "Ismeretlen";
+    }
 
     localStorage.setItem("szakiName", USER_NAME);
 
-    // --- PARTNER ---
-    let PARTNER = params.get("partner") || null;
-
-    // --- Automatikus szoba generálás ---
-    let ROOM_ID;
-
-    if (PARTNER) {
-        // két fél nevéből ABC sorrendben egy fix szoba neve
-        const s1 = USER_NAME.toLowerCase();
-        const s2 = PARTNER.toLowerCase();
-        ROOM_ID = [s1, s2].sort().join("_");
-    } else {
-        ROOM_ID = params.get("room") || "ALAPERTELMEZETT";
-    }
-
-    // --- Firestore útvonal: /chats/{roomId}/uzenetek ---
+    // --- Firestore útvonal: /chats/{roomId}/uzenetek/ ---
     const messagesRef = collection(db, "chats", ROOM_ID, "uzenetek");
 
+    // --- Meta adatok a szobához: /chatRooms/{roomId} ---
+    const roomDocRef = doc(db, "chatRooms", ROOM_ID);
+
+    // Ezt a Promise-t várjuk meg minden üzenetküldés előtt
+    let roomInitPromise = initializeChatRoom();
+
+    async function initializeChatRoom() {
+        // Csabi és Zsolti korlátlan
+        const isUnlimited =
+            USER_NAME.toLowerCase() === "csabi" ||
+            USER_NAME.toLowerCase() === "zsolti";
+
+        const existing = await getDoc(roomDocRef);
+
+        // Ha már létezik a szoba meta, csak kilépünk
+        if (!existing.exists()) {
+            // Ha szaki és NEM Csabi/Zsolti → ellenőrizzük a 3 szobás limitet
+            if (IS_SZAKI && !isUnlimited) {
+                const roomsCol = collection(db, "chatRooms");
+                const qRooms = query(roomsCol, where("szakiName", "==", USER_NAME));
+                const snap = await getDocs(qRooms);
+
+                if (snap.size >= 3) {
+                    alert(
+                        "Már 3 megrendelővel beszélsz egyszerre.\n" +
+                        "Új beszélgetést most nem tudsz indítani."
+                    );
+                    // Dobunk egy hibát, hogy a küldés se menjen tovább
+                    throw new Error("SZAKI_LIMIT_ELERTE");
+                }
+            }
+
+            // Létrehozzuk / frissítjük a szoba meta dokumentumot
+            await setDoc(
+                roomDocRef,
+                {
+                    roomId: ROOM_ID,
+                    szakiName: IS_SZAKI ? USER_NAME : (params.get("szaki") || "ismeretlen_szaki"),
+                    createdAt: serverTimestamp()
+                },
+                { merge: true }
+            );
+        }
+    }
+
     // 🔥 Üzenetek valós idejű figyelése
-    const q = query(messagesRef, orderBy("timestamp"));
-    onSnapshot(q, (snapshot) => {
+    const qMsgs = query(messagesRef, orderBy("timestamp"));
+
+    onSnapshot(qMsgs, (snapshot) => {
         const chatBox = document.getElementById("chat-box");
         chatBox.innerHTML = "";
 
-        snapshot.forEach((doc) => {
-            const msg = doc.data();
+        snapshot.forEach((docSnap) => {
+            const msg = docSnap.data();
             const p = document.createElement("p");
             p.textContent = (msg.sender || "Ismeretlen") + ": " + (msg.text || "");
             chatBox.appendChild(p);
@@ -134,6 +179,9 @@
         if (!text) return;
 
         try {
+            // Először megvárjuk, hogy a szobát inicializáljuk (és ellenőrizzük a limitet)
+            await roomInitPromise;
+
             await addDoc(messagesRef, {
                 sender: USER_NAME,
                 text: text,
@@ -141,15 +189,21 @@
             });
             input.value = "";
         } catch (err) {
+            if (err && err.message === "SZAKI_LIMIT_ELERTE") {
+                // Itt már kiírtuk az alertet, csak logolunk
+                console.warn("Szaki limit elérve, nem küldünk új üzenetet.");
+                return;
+            }
+
             console.error("Hiba az üzenet mentésekor:", err);
             alert("Hiba történt az üzenet küldése közben.");
         }
     }
 
-    // --- Küldés gombra ---
+    // Globális függvény, hogy a gomb onclick tudja hívni
     window.sendMessage = internalSendMessage;
 
-    // --- ENTER = KÜLDÉS ---
+    // Enter = Küldés
     document.getElementById("message-input").addEventListener("keydown", (e) => {
         if (e.key === "Enter") {
             e.preventDefault();
