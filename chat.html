@@ -112,9 +112,7 @@
 <body>
   <header>Chat – Szaki-App</header>
 
-  <div class="top-bar" id="top-bar">
-    <!-- ide írjuk ki: Megrendelő, Szakember, Te most -->
-  </div>
+  <div class="top-bar" id="top-bar"></div>
 
   <div id="chat-box">
     <p><i>Csatlakoztál a beszélgetéshez…</i></p>
@@ -141,100 +139,104 @@
 
     const params = new URLSearchParams(window.location.search);
 
-    // Ki vagy most te?
-    let USER_NAME = params.get("sender") || localStorage.getItem("szakiName");
-    if (!USER_NAME) {
-      USER_NAME = prompt("Add meg a neved:") || "Ismeretlen";
-    }
+    // Megrendelő neve (ELŐSZÖR ezt nézzük)
+    const MEGRENDELO_NEV =
+      params.get("megrendelonev") ||
+      params.get("sender") ||
+      params.get("name") ||
+      "";
+
+    // Partner (szaki neve)
+    const PARTNER_NAME =
+      params.get("partner") ||
+      params.get("szaki") ||
+      "Ismeretlen szakember";
+
+    // Ki vagy te? (sender)
+    let USER_NAME =
+      params.get("sender") ||
+      localStorage.getItem("szakiName") ||
+      MEGRENDELO_NEV ||
+      "Ismeretlen";
+
     localStorage.setItem("szakiName", USER_NAME);
 
-    // Partner (szakember neve az URL-ben)
-    const PARTNER_NAME = params.get("partner") || "Ismeretlen szakember";
-
-    // Megrendelő neve (külön paraméter)
-    const MEGRENDELO_NEV = params.get("megrendelonev") || "";
-
-    // Szakma (ha átjön az URL-ben)
     const SZAKMA = params.get("szakma") || "";
 
-    // Szoba azonosító:
-    // ha van megrendelő + szakember, akkor ezekből számoljuk,
-    // különben marad a sender/partner alapú kulcs.
-    const ROOM_ID = (() => {
-      if (MEGRENDELO_NEV && PARTNER_NAME) {
-        return canonicalRoom(MEGRENDELO_NEV, PARTNER_NAME);
-      }
-      return canonicalRoom(USER_NAME, PARTNER_NAME);
-    })();
+    // Szobakulcs – canonical
+    function canonicalRoom(a, b) {
+      const x = (a || "").trim().toLowerCase();
+      const y = (b || "").trim().toLowerCase();
+      return [x, y].sort().join("__");
+    }
 
-    // Fejléc szövegek
+    const ROOM_ID = canonicalRoom(MEGRENDELO_NEV || USER_NAME, PARTNER_NAME);
+
+    // Fejléc felépítés
     const topBar = document.getElementById("top-bar");
-    const megrText = MEGRENDELO_NEV || "Ismeretlen megrendelő";
-    const szakemberText = PARTNER_NAME;
-    const youText = USER_NAME;
-
-    const backBase = "valassz-szakit.html";
-    let backHref = backBase;
-    const qs = [];
-    if (SZAKMA) qs.push("szakma=" + encodeURIComponent(SZAKMA));
-    if (MEGRENDELO_NEV) qs.push("megrendelonev=" + encodeURIComponent(MEGRENDELO_NEV));
-    if (qs.length) backHref += "?" + qs.join("&");
-
     topBar.innerHTML = `
       <div class="top-row">
-        <div><b>Megrendelő:</b> ${escapeHtml(megrText)}</div>
-        <div><b>Szakember:</b> ${escapeHtml(szakemberText)}</div>
-        <div><b>Te most:</b> ${escapeHtml(youText)}</div>
+        <div><b>Megrendelő:</b> ${escapeHtml(MEGRENDELO_NEV || "Nincs megadva")}</div>
+        <div><b>Szakember:</b> ${escapeHtml(PARTNER_NAME)}</div>
+        <div><b>Te most:</b> ${escapeHtml(USER_NAME)}</div>
       </div>
-      <a class="back-link" href="${backHref}">
+      <a class="back-link" href="valassz-szakit.html?szakma=${encodeURIComponent(SZAKMA)}&megrendelonev=${encodeURIComponent(MEGRENDELO_NEV)}">
         <span>◀</span>Vissza a kereséshez
       </a>
     `;
 
-    // státusz sor
     document.getElementById("room-status").textContent =
       `Szoba: ${ROOM_ID}`;
 
-    // Firestore referenciák
+    // Referenciák
     const chatRef = doc(db, "chats", ROOM_ID);
     const messagesRef = collection(db, "chats", ROOM_ID, "uzenetek");
 
-    // próbáljuk a chat dokumentumot életben tartani
-    try {
-      await updateDoc(chatRef, {
-        members: {
-          roomId: ROOM_ID,
-          megrendelo: MEGRENDELO_NEV || null,
-          szakember: PARTNER_NAME || null
-        },
-        status: "active",
-        lastMessageAt: serverTimestamp()
-      });
-    } catch (_) {
-      // ha még nincs dokumentum, majd az első üzenet hozza létre
+    // Inicializálás async-ben
+    async function initChat() {
+      try {
+        await updateDoc(chatRef, {
+          members: {
+            roomId: ROOM_ID,
+            megrendelo: MEGRENDELO_NEV || null,
+            szakember: PARTNER_NAME || null
+          },
+          status: "active",
+          lastMessageAt: serverTimestamp()
+        });
+      } catch (_) {
+        // ha nincs dokumentum, majd az első üzenet létrehozza
+      }
     }
+    initChat();
 
-    // Üzenetek figyelése
-    let lastSeen = Date.now();
+    // Üzenetlista figyelése
     const chatBox = document.getElementById("chat-box");
-    const q = query(messagesRef, orderBy("timestamp"));
+    let lastSeen = Date.now();
 
+    const q = query(messagesRef, orderBy("timestamp"));
     onSnapshot(q, (snapshot) => {
       chatBox.innerHTML = "";
+
       snapshot.forEach((docSnap) => {
         const msg = docSnap.data();
+
         if (Array.isArray(msg.deletedBy) && msg.deletedBy.includes(USER_NAME)) {
           return;
         }
+
         const p = document.createElement("p");
         p.className = "msg";
+
         const own = msg.senderName === USER_NAME ? "own" : "";
         const time = formatTs(msg.timestamp);
+
         p.innerHTML =
           `<span class="${own}">${escapeHtml(msg.senderName)}:</span> ` +
           `${escapeHtml(msg.text || "")}` +
           ` <span class="meta">(${time})</span>`;
 
+        // Törlés gomb csak saját üzenetre
         if (msg.senderName === USER_NAME) {
           const del = document.createElement("span");
           del.className = "del";
@@ -266,17 +268,18 @@
     const sendBtn = document.getElementById("send-btn");
     const inputField = document.getElementById("message-input");
 
-    sendBtn.addEventListener("click", () => internalSendMessage());
+    sendBtn.addEventListener("click", sendMsg);
     inputField.addEventListener("keydown", (e) => {
       if (e.key === "Enter") {
         e.preventDefault();
-        internalSendMessage();
+        sendMsg();
       }
     });
 
-    async function internalSendMessage() {
+    async function sendMsg() {
       const text = inputField.value.trim();
       if (!text) return;
+
       try {
         await addDoc(messagesRef, {
           senderName: USER_NAME,
@@ -285,7 +288,9 @@
           deletedBy: [],
           readBy: [USER_NAME]
         });
+
         await updateDoc(chatRef, { lastMessageAt: serverTimestamp() });
+
         inputField.value = "";
         hideNotify();
       } catch (err) {
@@ -295,19 +300,13 @@
     }
 
     // Segédek
-    function canonicalRoom(a, b) {
-      const x = (a || "").trim().toLowerCase();
-      const y = (b || "").trim().toLowerCase();
-      return [x, y].sort().join("__");
-    }
-
     function formatTs(ts) {
       try {
         const d = ts?.toDate ? ts.toDate() : new Date();
-        return `${pad(d.getHours())}:${pad(d.getMinutes())} ` +
-               `${d.getFullYear()}.${pad(d.getMonth()+1)}.${pad(d.getDate())}`;
+        return `${pad(d.getHours())}:${pad(d.getMinutes())} ${d.getFullYear()}.${pad(d.getMonth()+1)}.${pad(d.getDate())}`;
       } catch { return "időbélyeg"; }
     }
+
     function pad(n) { return n < 10 ? "0"+n : ""+n; }
 
     function escapeHtml(s) {
@@ -321,9 +320,9 @@
       el.style.display = "inline";
       document.title = "🔔 Új üzenet – Szaki-App";
     }
+
     function hideNotify() {
-      const el = document.getElementById("notify-indicator");
-      el.style.display = "none";
+      document.getElementById("notify-indicator").style.display = "none";
       document.title = "Chat – Szaki-App";
     }
   </script>
