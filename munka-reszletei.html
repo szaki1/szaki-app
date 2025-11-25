@@ -12,172 +12,111 @@
             margin: 0;
             padding: 20px;
         }
-        .wrap {
-            max-width: 950px;
-            margin: auto;
-            background: #fff;
-            padding: 25px;
+
+        .wrapper {
+            max-width: 900px;
+            margin: 0 auto 40px;
+            background: #ffffff;
             border-radius: 12px;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+            padding: 30px 25px 35px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.06);
         }
-        h1 { margin-top: 0; }
-        textarea, input, select {
+
+        h1 {
+            text-align: center;
+            margin-top: 0;
+        }
+
+        label {
+            font-weight: bold;
+            margin-top: 12px;
+            display: block;
+        }
+
+        textarea, input {
             width: 100%;
+            box-sizing: border-box;
+            margin-top: 6px;
             padding: 12px;
-            margin: 8px 0 15px;
+            border-radius: 10px;
             border: 1px solid #ccc;
-            border-radius: 8px;
             font-size: 15px;
         }
-        .btn {
+
+        textarea {
+            height: 120px;
+            resize: vertical;
+        }
+
+        button {
+            margin-top: 20px;
             width: 100%;
             padding: 14px;
-            background: #ff8c00;
-            color: #fff;
             border: none;
             border-radius: 10px;
-            font-size: 17px;
-            cursor: pointer;
+            background: #ff8c00;
+            color: #fff;
+            font-size: 16px;
             font-weight: bold;
+            cursor: pointer;
         }
-        .btn:active {
+
+        button:active {
             transform: translateY(1px);
-            filter: brightness(0.95);
-        }
-        .char {
-            text-align: right;
-            font-size: 13px;
-        }
-        .szakma-box {
-            background: #fff8e1;
-            padding: 14px;
-            border-left: 4px solid #ff8800;
-            border-radius: 8px;
-            margin-bottom: 15px;
+            filter: brightness(0.93);
         }
     </style>
 </head>
 
 <body>
 
-<div class="wrap">
+<div class="wrapper">
+    <h1>Munka részletei</h1>
 
-    <h1>2. lépés – A munka részletes leírása</h1>
+    <label>Munka leírása (max 310 karakter)</label>
+    <textarea id="leiras" maxlength="310" placeholder="Pl.: 20 m² padlóburkolás, anyag megvan…"></textarea>
 
-    <div class="szakma-box">
-        <b>Választott fő szakma:</b>
-        <span id="ossz-szakma"></span><br>
-        <b>Helyszín:</b> <span id="ossz-varos"></span><br>
-        <b>Munka nagysága:</b> <span id="ossz-meret"></span>
-    </div>
+    <label>Időpont (nem kötelező)</label>
+    <input id="idopont" type="text" placeholder="Pl.: holnap délelőtt, péntek 14:00…">
 
-    <label><b>Részletes leírás (min. 300 karakter):</b></label>
-    <textarea id="leiras" rows="6" placeholder="Pl.: 20 m² padló burkolás bontással, anyagot ki veszi, emelet, lift, parkolás, falak állapota…"></textarea>
-    <div class="char"><span id="charcount">0</span> / 300</div>
-
-    <label><b>Legkorábbi kezdés</b></label>
-    <input type="date" id="kezdesMin" />
-
-    <label><b>Legkésőbbi kezdés</b></label>
-    <input type="date" id="kezdesMax" />
-
-    <label><b>Vállalt határidő</b></label>
-    <input type="date" id="hatarido" />
-
-    <label><b>További szakmák (opcionális):</b></label>
-    <select id="extraSzakmak" multiple size="6">
-        <option value="Kőműves">Kőműves</option>
-        <option value="Festő">Festő</option>
-        <option value="Burkoló">Burkoló</option>
-        <option value="Gipszkartonos">Gipszkartonos</option>
-        <option value="Villanyszerelő">Villanyszerelő</option>
-        <option value="Vízszerelő">Vízszerelő</option>
-        <option value="Gázszerelő">Gázszerelő</option>
-        <option value="Fűtésszerelő">Fűtésszerelő</option>
-        <option value="Klímaszerelő">Klímaszerelő</option>
-    </select>
-
-    <button class="btn" onclick="mentes()">Megrendelés elküldése</button>
-
+    <button onclick="sendJob()">Tovább → Szaki keresés</button>
 </div>
 
+<!-- Firebase + munka küldés -->
 <script type="module">
+    import { kuldMunka } from "./munka-kuldes.js";
 
-    import { db } from "./firebase-config.js";
-    import { collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    const params = new URLSearchParams(window.location.search);
+    const nev = params.get("name") || "";
+    const szakma = params.get("szakma") || "";
 
-    // --- 1) Alapadatok betöltése az 1. lépésből ---
-    const nev = localStorage.getItem("mr_nev") || "";
-    const varos = localStorage.getItem("mr_varos") || "";
-    const szakma = localStorage.getItem("mr_szakma") || "";
-    const meret = localStorage.getItem("mr_meret") || "";
+    async function sendJob() {
+        const leiras = document.getElementById("leiras").value.trim();
+        const idopont = document.getElementById("idopont").value.trim();
 
-    document.getElementById("ossz-szakma").textContent = szakma;
-    document.getElementById("ossz-varos").textContent = varos;
-    document.getElementById("ossz-meret").textContent = meret;
-
-    // --- 2) Karakterszámláló ---
-    const textarea = document.getElementById("leiras");
-    const countEl = document.getElementById("charcount");
-
-    textarea.addEventListener("input", () => {
-        const hossz = textarea.value.trim().length;
-        countEl.textContent = hossz;
-    });
-
-    // --- 3) Megrendelés mentése Firestore-ba ---
-    async function mentes() {
-
-        const leiras = textarea.value.trim();
-        const kezdesMin = document.getElementById("kezdesMin").value;
-        const kezdesMax = document.getElementById("kezdesMax").value;
-        const hatarido = document.getElementById("hatarido").value;
-
-        const extraSzakmak = Array.from(
-            document.getElementById("extraSzakmak").selectedOptions
-        ).map(o => o.value);
-
-        if (leiras.length < 300) {
-            alert("A leírásnak minimum 300 karakter hosszúnak kell lennie!");
-            return;
-        }
-        if (!kezdesMin || !kezdesMax || !hatarido) {
-            alert("Kérlek töltsd ki az időpontokat!");
+        if (!leiras) {
+            alert("Írd le a munkát!");
             return;
         }
 
         try {
-            const docRef = await addDoc(collection(db, "munkak"), {
-                nev,
-                varos,
-                szakmaFo: szakma,
-                szakmakLista: [szakma, ...extraSzakmak],
-                meret,
-                leiras,
-                kezdesMin,
-                kezdesMax,
-                hatarido,
-                createdAt: serverTimestamp(),
-                status: "uj"
+            const valasz = await kuldMunka({
+                megrendeloNev: nev,
+                szakma: szakma,
+                leiras: leiras,
+                idopont: idopont
             });
 
-            alert("A megrendelés sikeresen rögzítve! A rendszer most összekapcsol a szakikkal.");
-
-            // 🔥 Tovább a szakikereső oldalra:
-            window.location.href =
-                "valassz-szakit.html?szakma=" +
-                encodeURIComponent(szakma) +
-                "&megrendelonev=" +
-                encodeURIComponent(nev);
-
-        } catch (err) {
-            console.error("Firestore hiba:", err);
-            alert("Hiba történt a mentés közben!");
+            if (valasz && valasz.redirectUrl) {
+                window.location.href = valasz.redirectUrl;
+            } else {
+                alert("Hiba: nincs redirect URL.");
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Hiba a munkaküldésnél.");
         }
     }
-
-    window.mentes = mentes;
-
 </script>
 
 </body>
