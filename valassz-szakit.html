@@ -188,7 +188,7 @@
 
 <div class="container">
 
-    <div class="info-box" id="info-text">
+    <div class="info-box" id="info-text" aria-live="polite">
         <!-- ide írjuk ki a megrendelő nevét + keresett szakmát -->
     </div>
 
@@ -201,7 +201,7 @@
     // ékezet-normalizálás (villanyszerelő ↔ villanyszerelo, stb.)
     function normalizeProfession(str) {
         if (!str) return "";
-        const lower = str.toLowerCase();
+        const lower = String(str).trim().toLowerCase();
         const map = {
             "á": "a", "é": "e", "í": "i",
             "ó": "o", "ö": "o", "ő": "o",
@@ -220,9 +220,14 @@
         };
         if (navigator.share) {
             navigator.share(shareData).catch(() => {});
+        } else if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(url).then(function() {
+                alert("A link vágólapra másolva. Küldd el ismerőseidnek!");
+            }).catch(function() {
+                alert("Nem sikerült a vágólapra másolás — másold ki kézzel a címsorból.");
+            });
         } else {
-            navigator.clipboard && navigator.clipboard.writeText(url);
-            alert("A link vágólapra másolva. Küldd el ismerőseidnek!");
+            alert("Másold ki a linket a címsorból és küldd el az ismerőseidnek: " + url);
         }
     }
 
@@ -246,32 +251,69 @@
         }
 
         const params = new URLSearchParams(window.location.search);
-        const filterRaw = params.get("szakma") || "";
-        const megrendelonev = params.get("megrendelonev") || "";
+        const filterRaw = (params.get("szakma") || "").trim();
+        const megrendelonev = (params.get("megrendelonev") || "").trim();
         const filterNorm = filterRaw ? normalizeProfession(filterRaw) : null;
 
-        // infó doboz
+        // infó doboz — biztonságos DOM építés (NEM innerHTML a felhasználói értékekkel)
         const info = document.getElementById("info-text");
+        info.innerHTML = ""; // törlés
         if (filterRaw) {
-            info.innerHTML =
-                "<b>Megrendelő neve:</b> " + (megrendelonev || "Nincs megadva") +
-                "<br><b>Keresett szakma:</b> " + filterRaw +
-                "<br>Válassz a lent látható szakemberek közül, és indíts chatet velük!" +
-                '<button class="share-main-btn" onclick="sharePage()">MEGOSZTÁS</button>';
+            const line1 = document.createElement("div");
+            const label1 = document.createElement("b");
+            label1.textContent = "Megrendelő neve:";
+            line1.appendChild(label1);
+            line1.appendChild(document.createTextNode(" " + (megrendelonev || "Nincs megadva")));
+
+            const line2 = document.createElement("div");
+            const label2 = document.createElement("b");
+            label2.textContent = "Keresett szakma:";
+            line2.appendChild(label2);
+            line2.appendChild(document.createTextNode(" " + filterRaw));
+
+            const help = document.createElement("div");
+            help.textContent = "Válassz a lent látható szakemberek közül, és indíts chatet velük!";
+
+            const shareBtn = document.createElement("button");
+            shareBtn.className = "share-main-btn";
+            shareBtn.onclick = sharePage;
+            shareBtn.type = "button";
+            shareBtn.setAttribute("aria-label", "Oldal megosztása");
+            shareBtn.textContent = "MEGOSZTÁS";
+
+            info.appendChild(line1);
+            info.appendChild(line2);
+            info.appendChild(help);
+            info.appendChild(shareBtn);
         } else {
-            info.innerHTML =
-                "<b>Válassz szakembert!</b><br>Az URL-ben add meg a szakmát: ?szakma=Festő stb." +
-                '<button class="share-main-btn" onclick="sharePage()">MEGOSZTÁS</button>';
+            const title = document.createElement("div");
+            const bold = document.createElement("b");
+            bold.textContent = "Válassz szakembert!";
+            title.appendChild(bold);
+
+            const hint = document.createElement("div");
+            hint.textContent = "Az URL-ben add meg a szakmát: ?szakma=Festő stb.";
+
+            const shareBtn = document.createElement("button");
+            shareBtn.className = "share-main-btn";
+            shareBtn.onclick = sharePage;
+            shareBtn.type = "button";
+            shareBtn.setAttribute("aria-label", "Oldal megosztása");
+            shareBtn.textContent = "MEGOSZTÁS";
+
+            info.appendChild(title);
+            info.appendChild(hint);
+            info.appendChild(shareBtn);
         }
 
         const all = window.SzakiAdatok.getAllSzakik();
         const getPhone = window.SzakiAdatok.getDisplayPhone;
         const getHoliday = window.SzakiAdatok.getHolidayLabel;
 
-        // **ELŐSZŰRÉS**: csak a választott szakma marad
+        // **ELŐSZŰRÉS**: csak a választott szakma marad (biztonságos normalizálás)
         const filtered = all.filter(s => {
             if (!filterNorm) return true;
-            return normalizeProfession(s.profession) === filterNorm;
+            return normalizeProfession(s.profession || "") === filterNorm;
         });
 
         const container = document.getElementById("szaki-lista");
@@ -286,11 +328,13 @@
         // csoportosítás a SZŰRT listából
         const byProf = {};
         filtered.forEach(s => {
-            if (!byProf[s.profession]) byProf[s.profession] = [];
-            byProf[s.profession].push(s);
+            const key = s.profession || "Ismeretlen";
+            if (!byProf[key]) byProf[key] = [];
+            byProf[key].push(s);
         });
 
-        Object.keys(byProf).sort().forEach(prof => {
+        // magyar helyes rendezés
+        Object.keys(byProf).sort((a,b) => a.localeCompare(b, 'hu')).forEach(prof => {
             const section = document.createElement("div");
             const title = document.createElement("div");
             title.className = "profession-title";
@@ -306,7 +350,7 @@
 
                 const nameEl = document.createElement("div");
                 nameEl.className = "szaki-name";
-                nameEl.textContent = szaki.name;
+                nameEl.textContent = szaki.name || "Név nincs megadva";
 
                 const badge = document.createElement("div");
                 badge.className = "szaki-badge";
@@ -328,7 +372,7 @@
 
                 const profEl = document.createElement("div");
                 profEl.className = "szaki-profession";
-                profEl.textContent = szaki.profession;
+                profEl.textContent = szaki.profession || "";
                 card.appendChild(profEl);
 
                 if (szaki.note) {
@@ -344,12 +388,25 @@
 
                 const phoneEl = document.createElement("div");
                 phoneEl.className = "szaki-phone";
-                phoneEl.innerHTML = "<b>Telefonszám:</b> " + getPhone(szaki);
+                const phoneLabel = document.createElement("b");
+                phoneLabel.textContent = "Telefonszám:";
+                phoneEl.appendChild(phoneLabel);
+                // getPhone feltételezett biztonságos string; ne használjunk innerHTML
+                try {
+                    const phoneText = getPhone(szaki) || "";
+                    phoneEl.appendChild(document.createTextNode(" " + phoneText));
+                } catch (e) {
+                    phoneEl.appendChild(document.createTextNode(" ismeretlen"));
+                }
                 card.appendChild(phoneEl);
 
                 const holidayEl = document.createElement("div");
                 holidayEl.className = "szaki-holiday";
-                holidayEl.textContent = getHoliday(szaki);
+                try {
+                    holidayEl.textContent = getHoliday(szaki);
+                } catch (e) {
+                    holidayEl.textContent = "";
+                }
                 card.appendChild(holidayEl);
 
                 const statusEl = document.createElement("div");
@@ -366,27 +423,42 @@
 
                 const chatBtn = document.createElement("button");
                 chatBtn.className = "btn-chat";
+                chatBtn.type = "button";
                 chatBtn.textContent = "Chat indítása";
+                chatBtn.setAttribute("aria-label", "Chat indítása " + (szaki.name || ""));
 
                 if (szaki.isReal) {
                     chatBtn.onclick = function () {
                         openChatWith(szaki.name, megrendelonev);
                     };
                 } else {
+                    // valóban letiltjuk, de megjelenítünk magyarázó tooltipet / címkét
+                    chatBtn.disabled = true;
                     chatBtn.classList.add("demo-disabled");
-                    chatBtn.onclick = function () {
-                        const msg = `Bocsánat, nem fogadok több munkát! Csak majd a jelzett időben: ${szaki.holidays.from} – ${szaki.holidays.to}`;
-                        alert(msg);
-                    };
+                    const from = (szaki.holidays && szaki.holidays.from) ? szaki.holidays.from : null;
+                    const to = (szaki.holidays && szaki.holidays.to) ? szaki.holidays.to : null;
+                    const titleText = from && to
+                        ? `Nem elérhető: ${from} – ${to}`
+                        : 'Jelenleg nem fogad új munkát';
+                    chatBtn.title = titleText;
                 }
 
                 const shareBtn = document.createElement("button");
                 shareBtn.className = "btn-share";
+                shareBtn.type = "button";
                 shareBtn.textContent = "Megosztás";
+                shareBtn.setAttribute("aria-label", "Szakember megosztása " + (szaki.name || ""));
                 shareBtn.onclick = function () {
-                    const url = window.location.href;
-                    navigator.clipboard && navigator.clipboard.writeText(url);
-                    alert("A szakember oldalának linkje vágólapra másolva. Küldd el ismerőseidnek!");
+                    const currentUrl = window.location.href;
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        navigator.clipboard.writeText(currentUrl).then(function() {
+                            alert("A szakember oldalának linkje vágólapra másolva. Küldd el ismerőseidnek!");
+                        }).catch(function() {
+                            alert("A link másolása nem sikerült — másold ki kézzel a címsorból: " + currentUrl);
+                        });
+                    } else {
+                        alert("Másold ki a linket a címsorból: " + currentUrl);
+                    }
                 };
 
                 actions.appendChild(chatBtn);
