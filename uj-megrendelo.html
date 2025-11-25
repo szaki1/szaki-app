@@ -2,28 +2,40 @@
 <html lang="hu">
 <head>
     <meta charset="UTF-8" />
-    <title>Új megrendelő</title>
+    <title>Új megrendelő – Szaki-App</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
     <style>
         body {
             background: #f5f5f5;
-            font-family: Arial;
+            font-family: Arial, sans-serif;
             padding: 20px;
+            margin: 0;
         }
+
         .box {
+            max-width: 600px;
+            margin: auto;
             background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 22px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.12);
         }
+
+        h2 {
+            margin-top: 0;
+            text-align: center;
+        }
+
         input, select {
             width: 100%;
             padding: 12px;
-            margin: 10px 0;
+            margin: 12px 0;
             border-radius: 8px;
             border: 1px solid #ccc;
+            font-size: 15px;
         }
+
         button {
             width: 100%;
             padding: 14px;
@@ -32,42 +44,69 @@
             color: white;
             border: none;
             border-radius: 8px;
+            cursor: pointer;
+        }
+
+        button:active {
+            transform: translateY(1px);
+            filter: brightness(0.95);
+        }
+
+        .info {
+            font-size: 13px;
+            color: #666;
+            margin-top: 8px;
+            line-height: 1.4;
+            text-align: center;
         }
     </style>
 </head>
+
 <body>
 
 <div class="box">
     <h2>Új megrendelő</h2>
 
     <input id="name" type="text" placeholder="Neved" />
+
     <select id="szakma">
-        <option value="">Válassz szakmát</option>
-        <option value="Kőműves">Kőműves</option>
-        <option value="Festő">Festő</option>
-        <option value="Burkoló">Burkoló</option>
-        <option value="Gipszkartonos">Gipszkartonos</option>
-        <option value="Villanyszerelő">Villanyszerelő</option>
-        <option value="Vízszerelő">Vízszerelő</option>
-        <option value="Gázszerelő">Gázszerelő</option>
+        <option value="">Válassz szakmát (fő szakma)</option>
+        <option>Festő</option>
+        <option>Burkoló</option>
+        <option>Kőműves</option>
+        <option>Gipszkartonos</option>
+        <option>Villanyszerelő</option>
+        <option>Vízszerelő</option>
+        <option>Gázszerelő</option>
+        <option>Fűtésszerelő</option>
+        <option>Klímaszerelő</option>
+        <option>Teljes felújítás</option>
     </select>
 
-    <button onclick="step2()">Tovább</button>
+    <button onclick="nextStep()">Tovább</button>
+
+    <div class="info">
+        A következő oldalon részletes adatokat adhatsz meg,<br>
+        majd a rendszer összeköti veled a megfelelő szakit.
+    </div>
 </div>
 
 <script>
-function step2() {
-    const name = document.getElementById("name").value.trim();
+function nextStep() {
+    const nev = document.getElementById("name").value.trim();
     const szakma = document.getElementById("szakma").value;
 
-    if (!name || !szakma) {
-        alert("Töltsd ki az összes adatot!");
+    if (!nev || !szakma) {
+        alert("Kérlek töltsd ki a nevet és válassz szakmát!");
         return;
     }
 
-    // Átirányítjuk a megrendelőt a szakiválasztó oldalra:
-    window.location.href =
-        `valassz-szakit.html?name=${encodeURIComponent(name)}&szakma=${encodeURIComponent(szakma)}`;
+    // Adatok mentése localStorage-be
+    localStorage.setItem("mr_nev", nev);
+    localStorage.setItem("mr_szakma", szakma);
+
+    // Tovább a hivatalos 1. lépésre
+    window.location.href = "megrendelo-regisztracio.html";
 }
 </script>
 
