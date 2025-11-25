@@ -46,7 +46,7 @@
   // Modular Firebase v10 importok (CDN)
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import {
-    getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, getDocs
+    getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp
   } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
   function getParam(name) {
@@ -88,19 +88,19 @@
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
 
-  // Segédfüggvény: egyedi, rendezett chat kulcs (mindkét fél ugyanarra a gyűjteményre ír)
+  // Egyedi chat ID (rendezve, hogy mindkét fél ugyanarra a gyűjteményre írjon)
   function chatId(a,b){
     const names = [String(a).trim().toLowerCase(), String(b).trim().toLowerCase()].sort();
-    return names.join('_'); // pl. bela_zsolti
+    return names.join('_');
   }
 
   const cid = chatId(sender, partner);
-  const messagesCol = collection(db, 'chats', cid, 'messages');
+  // <-- Változtatás: 'uzenetek' gyűjteményt használjuk, hogy illeszkedjen a Firestore szabályaidhoz
+  const messagesCol = collection(db, 'chats', cid, 'uzenetek');
   const q = query(messagesCol, orderBy('when', 'asc'));
 
   // Valós idő figyelés
   onSnapshot(q, snapshot => {
-    // clear and render all (kisebb forgalomnál ez egyszerű)
     const wnd = document.getElementById('chatWindow');
     wnd.innerHTML = '';
     snapshot.forEach(doc => {
@@ -111,9 +111,6 @@
     console.error('Firestore onSnapshot error', err);
   });
 
-  // Ha vannak korábbi üzenetek egyszeri betöltése (a snapshot már teszi, de biztos)
-  // getDocs(q).then(snap => { snap.forEach(d => appendMessageToWindow(d.data())); });
-
   function appendMessageToWindow(m){
     const wnd = document.getElementById('chatWindow');
     const d = document.createElement('div');
@@ -122,7 +119,12 @@
     who.style.fontSize = '12px'; who.style.color = '#555'; who.textContent = m.from;
     const text = document.createElement('div'); text.style.marginTop = '4px'; text.textContent = m.text;
     const ts = document.createElement('div'); ts.style.fontSize = '11px'; ts.style.color = '#888'; ts.style.marginTop = '6px';
-    ts.textContent = m.when ? new Date(m.when.seconds ? m.when.toDate() : m.when).toLocaleString() : '';
+    try {
+      // kezeli a serverTimestamp objektumot is és a sima dátum stringet is
+      if (m.when && m.when.toDate) ts.textContent = m.when.toDate().toLocaleString();
+      else if (m.when) ts.textContent = new Date(m.when).toLocaleString();
+      else ts.textContent = '';
+    } catch (e) { ts.textContent = ''; }
     d.appendChild(who); d.appendChild(text); d.appendChild(ts);
     wnd.appendChild(d);
     wnd.scrollTop = wnd.scrollHeight;
