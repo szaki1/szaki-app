@@ -1,12 +1,12 @@
-/* szaki-adatok.js – DEMÓ + VALÓDI SZAKIK, RANDOM SZABAD IDŐKKEL */
+/* szaki-adatok.js – VALÓDI + DEMÓ SZAKIK, RANDOM SZABAD IDŐKKEL */
 
 window.SzakiAdatok = (function () {
     // --- random szabad kapacitás 2026.01.15 – 2026.02.27 között, 2–4 hét ---
     function randomHoliday() {
         const startBase = new Date("2026-01-15");
-        const maxStartOffsetDays = 20; // 15–(15+20) = 15–35 → bőven február eleje
-        const minLen = 14;             // 2 hét
-        const maxLen = 28;             // 4 hét
+        const maxStartOffsetDays = 20;
+        const minLen = 14; // 2 hét
+        const maxLen = 28; // 4 hét
 
         const startOffset = Math.floor(Math.random() * maxStartOffsetDays);
         const len = Math.floor(Math.random() * (maxLen - minLen + 1)) + minLen;
@@ -39,101 +39,108 @@ window.SzakiAdatok = (function () {
         };
     }
 
-    // --- névlisták szakmánként (demó szakik) ---
+    // --- névlisták szakmánként (IGAZI hangzású nevek, darabszám: 10 / 15 / 18 / 20 / 4 / 9 / 11) ---
     const namesByProfession = {
         "Kőműves": [
-            "Demó Kőműves 1",
-            "Demó Kőműves 2",
-            "Demó Kőműves 3",
-            "Demó Kőműves 4",
-            "Demó Kőműves 5",
-            "Demó Kőműves 6",
-            "Demó Kőműves 7",
-            "Demó Kőműves 8",
-            "Demó Kőműves 9"
+            "Kiss József",
+            "Nagy Péter",
+            "Tóth László",
+            "Szabó András",
+            "Farkas Zoltán",
+            "Varga Gábor",
+            "Balogh Imre",
+            "Molnár Attila",
+            "Horváth Béla",
+            "Kovács Sándor"
         ],
         "Festő": [
-            "Demó Festő 1",
-            "Demó Festő 2",
-            "Demó Festő 3",
-            "Demó Festő 4",
-            "Demó Festő 5",
-            "Demó Festő 6",
-            "Demó Festő 7",
-            "Demó Festő 8",
-            "Demó Festő 9",
-            "Demó Festő 10",
-            "Demó Festő 11",
-            "Demó Festő 12",
-            "Demó Festő 13",
-            "Demó Festő 14"
+            "Kovács István",
+            "Szűcs Tamás",
+            "Simon Gergely",
+            "Vass Balázs",
+            "Török Máté",
+            "Oláh Róbert",
+            "Kelemen Dávid",
+            "Takács Norbert",
+            "Veres György",
+            "Papp Lajos",
+            "Bíró Richárd",
+            "Hegyi Csaba",
+            "Major Attila",
+            "Balla Zsolt",
+            "Csizmadia József"
         ],
         "Burkoló": [
-            "Demó Burkoló 1",
-            "Demó Burkoló 2",
-            "Demó Burkoló 3",
-            "Demó Burkoló 4",
-            "Demó Burkoló 5",
-            "Demó Burkoló 6",
-            "Demó Burkoló 7",
-            "Demó Burkoló 8",
-            "Demó Burkoló 9",
-            "Demó Burkoló 10",
-            "Demó Burkoló 11",
-            "Demó Burkoló 12",
-            "Demó Burkoló 13",
-            "Demó Burkoló 14",
-            "Demó Burkoló 15",
-            "Demó Burkoló 16",
-            "Demó Burkoló 17"
+            "Fekete Zoltán",
+            "Szalai Tamás",
+            "Lukács Gábor",
+            "Fehér László",
+            "Gulyás Péter",
+            "Németh Attila",
+            "Somogyi Krisztián",
+            "Kocsis József",
+            "Jakab Dániel",
+            "Orbán László",
+            "Gelencsér Zsolt",
+            "Sándor Róbert",
+            "Vincze András",
+            "Hajdu Gergely",
+            "Illés Márk",
+            "Lengyel Zoltán",
+            "Bognár Bence",
+            "Pintér Ádám"
         ],
         "Gipszkartonszerelő": [
-            "Demó Gipszkartonos 1",
-            "Demó Gipszkartonos 2",
-            "Demó Gipszkartonos 3",
-            "Demó Gipszkartonos 4",
-            "Demó Gipszkartonos 5",
-            "Demó Gipszkartonos 6",
-            "Demó Gipszkartonos 7",
-            "Demó Gipszkartonos 8",
-            "Demó Gipszkartonos 9",
-            "Demó Gipszkartonos 10",
-            "Demó Gipszkartonos 11",
-            "Demó Gipszkartonos 12",
-            "Demó Gipszkartonos 13",
-            "Demó Gipszkartonos 14",
-            "Demó Gipszkartonos 15",
-            "Demó Gipszkartonos 16",
-            "Demó Gipszkartonos 17",
-            "Demó Gipszkartonos 18",
-            "Demó Gipszkartonos 19"
+            "Szilágyi Zsolt",
+            "Fodor Máté",
+            "Barta Gábor",
+            "Csabai Tamás",
+            "Pataki Imre",
+            "Berki Zoltán",
+            "Sárai Gergely",
+            "Király László",
+            "Oláh Ádám",
+            "Kalmár Norbert",
+            "Balla Krisztián",
+            "Márton Róbert",
+            "Győrfi László",
+            "Nyári Dániel",
+            "Süli Péter",
+            "Vígh Csaba",
+            "Lesti Bence",
+            "Nagy Máté",
+            "Oláh Dániel",
+            "Simon Péter"
         ],
         "Vízszerelő": [
-            "Demó Vízszerelő 1",
-            "Demó Vízszerelő 2",
-            "Demó Vízszerelő 3"
+            "Kozma József",
+            "Fekete Gergő",
+            "Pál László",
+            "Szerencsi Norbert"
         ],
         "Gázszerelő": [
-            "Demó Gázszerelő 1",
-            "Demó Gázszerelő 2",
-            "Demó Gázszerelő 3",
-            "Demó Gázszerelő 4",
-            "Demó Gázszerelő 5",
-            "Demó Gázszerelő 6",
-            "Demó Gázszerelő 7",
-            "Demó Gázszerelő 8"
+            "Dudás István",
+            "Révész Gábor",
+            "Kereki Zsolt",
+            "Kiss Norbert",
+            "Bognár Tamás",
+            "Makai László",
+            "Kovács Róbert",
+            "Farkas Attila",
+            "Szabó Gergely"
         ],
         "Villanyszerelő": [
-            "Demó Villanyszerelő 1",
-            "Demó Villanyszerelő 2",
-            "Demó Villanyszerelő 3",
-            "Demó Villanyszerelő 4",
-            "Demó Villanyszerelő 5",
-            "Demó Villanyszerelő 6",
-            "Demó Villanyszerelő 7",
-            "Demó Villanyszerelő 8",
-            "Demó Villanyszerelő 9",
-            "Demó Villanyszerelő 10"
+            "Kálmán Bence",
+            "László Tamás",
+            "Vincze Zoltán",
+            "Füredi Gábor",
+            "Böhm Norbert",
+            "Török Sándor",
+            "Dani István",
+            "Kerekes Balázs",
+            "Nádasdi Péter",
+            "Major László",
+            "Fülöp Márton"
         ]
     };
 
@@ -173,17 +180,17 @@ window.SzakiAdatok = (function () {
         note: "Minőségi villanyszerelés, gyors határidővel."
     });
 
-    // --- DEMÓ SZAKIK FELTÖLTÉSE (nem elérhetők) ---
+    // --- DEMÓ SZAKIK FELTÖLTÉSE (nem elérhetők – lezárt naptárral) ---
     Object.keys(namesByProfession).forEach(prof => {
-        namesByProfession[prof].forEach(demoName => {
+        namesByProfession[prof].forEach(fullName => {
             szakik.push({
-                name: demoName,
+                name: fullName,
                 profession: prof,
-                phone: "06-30-***-****",
+                phone: "Nem publikus",
                 isReal: false,
                 isDemo: true,
                 holidays: randomHoliday(),
-                note: "Demó profil – csak minta, jelenleg nem elérhető."
+                note: "Jelenleg be van táblázva, nem fogad új munkát."
             });
         });
     });
@@ -192,14 +199,24 @@ window.SzakiAdatok = (function () {
     return {
         getAllSzakik: () => szakik,
 
+        // Tel.szám megjelenítése
         getDisplayPhone: (szaki) => {
             if (szaki.isReal) {
                 return szaki.phone; // Csabi, Zsolti: mindig látható
             }
-            return "Nem publikus – regisztrálj szakinak!";
+            // demó szakik: nem publikus
+            return "Nem publikus – regisztrálj szakinak a Szaki-Appon!";
         },
 
+        // Naptár / elérhetőség szöveg
         getHolidayLabel: (szaki) => {
+            if (szaki.name === "Csabi") {
+                return "Elérhető - Vedd fel vele a kapcsolatot telefonon: +36305902316 vagy itt a chat-en!";
+            }
+            if (szaki.name === "Zsolti") {
+                return "Elérhető - Vedd fel vele a kapcsolatot telefonon: +36306566793 vagy itt a chat-en!";
+            }
+            // mindenki másnál dátum intervallum
             return `Mikor tud új munkát vállalni: ${szaki.holidays.from} – ${szaki.holidays.to}`;
         }
     };
