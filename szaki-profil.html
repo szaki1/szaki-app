@@ -160,6 +160,12 @@
             font-weight: bold;
         }
 
+        .btn-chat.demo-disabled {
+            background: #cccccc;
+            color: #666666;
+            cursor: not-allowed;
+        }
+
         .btn-share {
             background: #007bff;
             color: #fff;
@@ -226,7 +232,7 @@
         }
     }
 
-    // Chat indítása – partner = szaki neve, sender-t a chat.html majd kéri (prompt)
+    // Chat indítása – partner = szaki neve, sender-t a chat.html majd kéri (prompt vagy URL-ből)
     function openChatWith(szakiName) {
         const link = "chat.html?partner=" + encodeURIComponent(szakiName);
         window.location.href = link;
@@ -276,16 +282,16 @@
                 const badge = document.createElement("div");
                 badge.className = "szaki-badge";
                 if (szaki.isReal) {
-                    // Csabi vagy Zsolti
                     if (szaki.name === "Csabi") {
-                        badge.textContent = "Igazolt mester – Teljes lakásfelújítás";
+                        badge.textContent = "KIEMELT SZAKEMBER";
                     } else if (szaki.name === "Zsolti") {
-                        badge.textContent = "Igazolt villanyszerelő – Kiemelt partner";
+                        badge.textContent = "KIEMELT IGAZOLT SZAKEMBER";
                     } else {
                         badge.textContent = "Igazolt szakember";
                     }
                 } else {
-                    badge.textContent = "Demó profil – foglalt időpontok";
+                    // demó szaki – nem írjuk ki, hogy demó, csak hogy foglalt
+                    badge.textContent = "Naptára betáblázva";
                 }
 
                 headerLine.appendChild(nameEl);
@@ -323,7 +329,7 @@
                 if (szaki.isReal) {
                     statusEl.textContent = "Elérhető – vedd fel vele a kapcsolatot telefonon vagy chat-en!";
                 } else {
-                    statusEl.textContent = "Most már be van táblázva – regisztrálj szakinak, hogy téged is lássanak!";
+                    statusEl.textContent = "Jelenleg nem fogad új munkát. Nézd meg a fenti időszakot, vagy válassz másik szakembert.";
                 }
                 card.appendChild(statusEl);
 
@@ -333,9 +339,20 @@
                 const chatBtn = document.createElement("button");
                 chatBtn.className = "btn-chat";
                 chatBtn.textContent = "Chat indítása";
-                chatBtn.onclick = function () {
-                    openChatWith(szaki.name);
-                };
+
+                if (szaki.isReal) {
+                    // Csabi, Zsolti (és később további valós szakik) – chat mehet
+                    chatBtn.onclick = function () {
+                        openChatWith(szaki.name);
+                    };
+                } else {
+                    // DEMÓ: chat tilos, csak figyelmeztet
+                    chatBtn.classList.add("demo-disabled");
+                    chatBtn.onclick = function () {
+                        const msg = `Bocsánat, nem fogadok több munkát! Csak majd a jelzett időben: ${szaki.holidays.from} – ${szaki.holidays.to}`;
+                        alert(msg);
+                    };
+                }
 
                 const shareBtn = document.createElement("button");
                 shareBtn.className = "btn-share";
