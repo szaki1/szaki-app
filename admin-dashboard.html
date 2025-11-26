@@ -1,240 +1,239 @@
 <!DOCTYPE html>
 <html lang="hu">
 <head>
-    <meta charset="UTF-8">
-    <title>Admin Dashboard – Szaki-App</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <title>Admin – Szaki-App Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
     <style>
         body {
-            margin:0;
-            padding:0;
-            background:#f4f4f4;
-            font-family:Arial, sans-serif;
+            background: #f5f5f5;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
         }
 
-        header {
-            background:#ff8c00;
-            color:white;
-            padding:16px;
-            text-align:center;
-            font-size:22px;
-            font-weight:bold;
-        }
-
-        .logout-btn {
-            position:fixed;
-            top:12px;
-            right:12px;
-            background:#c00;
-            color:white;
-            border:none;
-            padding:10px 16px;
-            border-radius:8px;
-            font-weight:bold;
-            cursor:pointer;
-        }
-
-        .container {
-            max-width:1100px;
-            margin:20px auto;
-            padding:10px;
+        h1 {
+            text-align: center;
+            margin-bottom: 26px;
+            color: #333;
         }
 
         .panel {
-            background:white;
-            padding:18px;
-            border-radius:10px;
-            box-shadow:0 2px 10px rgba(0,0,0,0.08);
-            margin-bottom:22px;
+            max-width: 1000px;
+            margin: 0 auto 22px;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
         }
 
         .panel h2 {
-            margin:0 0 12px;
-            font-size:18px;
-            color:#333;
+            margin-top: 0;
+            color: #ff8c00;
+            font-size: 20px;
         }
 
         table {
-            width:100%;
-            border-collapse:collapse;
-            margin-top:10px;
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 14px;
         }
 
         th, td {
-            border-bottom:1px solid #ddd;
-            padding:10px;
-            font-size:14px;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            text-align: left;
         }
 
         th {
-            background:#fafafa;
-            text-align:left;
+            background: #fafafa;
+            font-weight: bold;
         }
 
-        .online {
-            color:#2e8b57;
-            font-weight:bold;
+        .status-online {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .status-offline {
+            color: #b30000;
+            font-weight: bold;
         }
 
-        .offline {
-            color:#b30000;
-            font-weight:bold;
+        .star {
+            color: #ffbb00;
+            font-size: 17px;
         }
-
     </style>
 </head>
 
 <body>
 
-<header>Admin Dashboard – Szaki-App</header>
+<h1>Szaki-App – Admin Dashboard</h1>
 
-<button class="logout-btn" id="logout-btn">Kijelentkezés</button>
-
-<div class="container">
-
-    <!-- PANEL 1 – SZAKIK ONLINE STÁTUSZAI -->
-    <div class="panel">
-        <h2>Szakik online állapota (élő frissítés)</h2>
-        <table id="szakik-table">
+<!-- =====================================================
+     1) ONLINE SZAKIK PANEL
+===================================================== -->
+<div class="panel" id="online-panel">
+    <h2>1) Szaki Online Státusz</h2>
+    <table id="online-table">
+        <thead>
             <tr>
                 <th>Név</th>
-                <th>Szakma</th>
-                <th>Utoljára aktív</th>
+                <th>Utolsó online</th>
                 <th>Státusz</th>
             </tr>
-        </table>
-    </div>
-
-    <!-- PANEL 2 – AKTÍV CHAT SZOBÁK -->
-    <div class="panel">
-        <h2>Aktív chatek</h2>
-        <table id="chats-table">
-            <tr>
-                <th>Szoba ID</th>
-                <th>Megrendelő</th>
-                <th>Szaki</th>
-                <th>Utoljára üzenet</th>
-            </tr>
-        </table>
-    </div>
-
+        </thead>
+        <tbody></tbody>
+    </table>
 </div>
 
-<!-- FIREBASE + ADMIN SCRIPT -->
+<!-- =====================================================
+     2) AKTÍV CHAT SZOBÁK PANEL
+===================================================== -->
+<div class="panel" id="chat-panel">
+    <h2>2) Aktív Chat Szobák</h2>
+    <table id="chat-table">
+        <thead>
+            <tr>
+                <th>Room ID</th>
+                <th>Szakember</th>
+                <th>Megrendelő</th>
+                <th>Utolsó üzenet</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+</div>
+
+<!-- =====================================================
+     3) RATING PANEL – ÚJ
+===================================================== -->
+<div class="panel" id="rating-panel">
+    <h2>3) Szakik Értékelései</h2>
+
+    <table id="rating-table">
+        <thead>
+            <tr>
+                <th>Szakember</th>
+                <th>Értékelő</th>
+                <th>⭐ Csillag</th>
+                <th>Szöveges értékelés</th>
+                <th>Dátum</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+</div>
+
+<!-- =====================================================
+     4) JAVASCRIPT – FIRESTORE
+===================================================== -->
 <script type="module">
-
     import { app, db } from "./firebase-config.js";
-
-    import {
-        getAuth,
-        onAuthStateChanged,
-        signOut
-    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-
     import {
         collection,
         query,
+        orderBy,
         onSnapshot,
-        orderBy
     } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-    // AUTH ellenőrzés
-    const auth = getAuth(app);
+    /* ===========================================
+       1) ONLINE SZAKIK MONITOROZÁSA
+    ============================================ */
+    const onlineTable = document
+        .querySelector("#online-table tbody");
 
-    onAuthStateChanged(auth, (user) => {
-        if (!user) {
-            window.location.href = "admin-login.html";
-        }
-    });
+    onSnapshot(collection(db, "users-status"), (snap) => {
+        onlineTable.innerHTML = "";
 
-    // KIJELENTKEZÉS
-    document.getElementById("logout-btn").onclick = async () => {
-        await signOut(auth);
-        window.location.href = "admin-login.html";
-    };
-
-    // ---------------------------------------------------------
-    // PANEL 1: SZAKIK ONLINE STÁTUSZAI
-    // ---------------------------------------------------------
-
-    const szakikTable = document.getElementById("szakik-table");
-
-    const q1 = query(collection(db, "szakik"), orderBy("lastSeen", "desc"));
-
-    onSnapshot(q1, (snapshot) => {
-        szakikTable.innerHTML = `
-            <tr>
-                <th>Név</th>
-                <th>Szakma</th>
-                <th>Utoljára aktív</th>
-                <th>Státusz</th>
-            </tr>`;
-
-        snapshot.forEach((doc) => {
-            const d = doc.data();
-            const last = d.lastSeen?.toDate ? d.lastSeen.toDate() : null;
-
+        snap.forEach(docSnap => {
+            const d = docSnap.data();
             const tr = document.createElement("tr");
+
+            const name = d.name || "Ismeretlen";
+            const last = d.lastOnline
+                ? new Date(d.lastOnline.seconds * 1000).toLocaleString()
+                : "-";
+
+            const status =
+                d.isOnline
+                    ? `<span class="status-online">Online</span>`
+                    : `<span class="status-offline">Offline</span>`;
+
             tr.innerHTML = `
-                <td>${d.name}</td>
-                <td>${Array.isArray(d.profession) ? d.profession.join(", ") : d.profession || ""}</td>
-                <td>${last ? formatDate(last) : "-"}</td>
-                <td class="${d.isOnline ? "online" : "offline"}">
-                    ${d.isOnline ? "Online" : "Offline"}
-                </td>
+                <td>${name}</td>
+                <td>${last}</td>
+                <td>${status}</td>
             `;
-            szakikTable.appendChild(tr);
+            onlineTable.appendChild(tr);
         });
     });
 
-    // ---------------------------------------------------------
-    // PANEL 2: AKTÍV CHAT SZOBÁK
-    // ---------------------------------------------------------
+    /* ===========================================
+       2) CHAT SZOBÁK LISTÁZÁSA
+    ============================================ */
+    const chatTable = document
+        .querySelector("#chat-table tbody");
 
-    const chatsTable = document.getElementById("chats-table");
+    onSnapshot(collection(db, "chats"), (snap) => {
+        chatTable.innerHTML = "";
 
-    const q2 = query(collection(db, "chats"), orderBy("lastMessageAt", "desc"));
-
-    onSnapshot(q2, (snapshot) => {
-        chatsTable.innerHTML = `
-            <tr>
-                <th>Szoba ID</th>
-                <th>Megrendelő</th>
-                <th>Szaki</th>
-                <th>Utoljára üzenet</th>
-            </tr>`;
-
-        snapshot.forEach((doc) => {
-            const c = doc.data();
-            const date = c.lastMessageAt?.toDate ? c.lastMessageAt.toDate() : null;
-
+        snap.forEach(docSnap => {
+            const d = docSnap.data();
             const tr = document.createElement("tr");
 
-            tr.innerHTML = `
-                <td>${c.roomId || doc.id}</td>
-                <td>${c.members?.megrendelo || "-"}</td>
-                <td>${c.members?.szakember || "-"}</td>
-                <td>${date ? formatDate(date) : "-"}</td>
-            `;
+            const room = docSnap.id;
+            const szakember = d.members?.szakember || "-";
+            const megr = d.members?.megrendelo || "-";
+            const last = d.lastMessageAt
+                ? new Date(d.lastMessageAt.seconds * 1000).toLocaleString()
+                : "-";
 
-            chatsTable.appendChild(tr);
+            tr.innerHTML = `
+                <td>${room}</td>
+                <td>${szakember}</td>
+                <td>${megr}</td>
+                <td>${last}</td>
+            `;
+            chatTable.appendChild(tr);
         });
     });
 
-    // ---------------------------------------------------------
-    // Segédfüggvény
-    // ---------------------------------------------------------
+    /* ===========================================
+       3) RATING PANEL
+    ============================================ */
+    const ratingTable = document
+        .querySelector("#rating-table tbody");
 
-    function formatDate(d) {
-        const y = d.getFullYear();
-        const m = String(d.getMonth()+1).padStart(2,"0");
-        const day = String(d.getDate()).padStart(2,"0");
-        const h = String(d.getHours()).padStart(2,"0");
-        const min = String(d.getMinutes()).padStart(2,"0");
+    const ratingQuery = query(
+        collection(db, "ratings"),
+        orderBy("createdAt", "desc")
+    );
 
-        return `${y}.${m}.${day} ${h}:${min}`;
-    }
+    onSnapshot(ratingQuery, (snap) => {
+        ratingTable.innerHTML = "";
+
+        snap.forEach(docSnap => {
+            const d = docSnap.data();
+            const tr = document.createElement("tr");
+
+            const stars = "★".repeat(d.stars || 0);
+
+            const date = d.createdAt
+                ? new Date(d.createdAt.seconds * 1000).toLocaleString()
+                : "-";
+
+            tr.innerHTML = `
+                <td>${d.szakiName || "-"}</td>
+                <td>${d.fromUser || "-"}</td>
+                <td class="star">${stars}</td>
+                <td>${d.text || ""}</td>
+                <td>${date}</td>
+            `;
+            ratingTable.appendChild(tr);
+        });
+    });
 
 </script>
 
