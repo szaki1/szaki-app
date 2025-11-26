@@ -50,6 +50,28 @@
       border-radius:8px; color:white; font-weight:bold;
       cursor:pointer;
     }
+
+    /* --- DÖNTŐ GOMBOK --- */
+    #decision-buttons{
+      max-width:900px;
+      margin:10px auto;
+      padding:0 14px;
+      display:flex;
+      gap:10px;
+    }
+
+    #decision-buttons button{
+      flex:1;
+      padding:12px;
+      border:none;
+      border-radius:10px;
+      font-weight:bold;
+      cursor:pointer;
+      font-size:15px;
+    }
+
+    #btn-choose{ background:#28a745; color:white; }
+    #btn-reject{ background:#c00; color:white; }
   </style>
 </head>
 
@@ -63,10 +85,17 @@
   <p><i>Csatlakoztál a beszélgetéshez…</i></p>
 </div>
 
+<!-- DÖNTŐ GOMBOK – CSAK A MEGRENDELŐ LÁTJA -->
+<div id="decision-buttons" style="display:none;">
+  <button id="btn-choose">Ezt a szakit választom</button>
+  <button id="btn-reject">Másik szakit választottam</button>
+</div>
+
 <div class="input-row">
   <input type="text" id="message-input" placeholder="Írj üzenetet…" />
   <button class="send-btn" id="send-btn">Küldés</button>
 </div>
+
 
 <script type="module">
 
@@ -81,39 +110,36 @@
   // -------------------------------------------------------------
   const params = new URLSearchParams(window.location.search);
 
-  let USER_NAME = params.get("sender") || localStorage.getItem("szakiName");
-  if (!USER_NAME) {
-      USER_NAME = prompt("Add meg a neved:") || "Ismeretlen";
-  }
+  const USER_NAME = params.get("sender") || prompt("Neved:") || "Ismeretlen";
+  const PARTNER_NAME = params.get("partner") || "Ismeretlen";
+  const MEGRENDELO_NEV = params.get("megrendelonev") || "";
+
   localStorage.setItem("szakiName", USER_NAME);
 
-  const PARTNER_NAME = params.get("partner") || "Ismeretlen";
   const ROOM_ID = createRoomId(USER_NAME, PARTNER_NAME);
 
   // -------------------------------------------------------------
-  // MEGOSZTÁS SZÁMLÁLÓ (helyi tároló)
-  // -------------------------------------------------------------
-  let sharedCount = Number(localStorage.getItem(USER_NAME + "_share") || 0);
-
-  function addShare() {
-      sharedCount++;
-      localStorage.setItem(USER_NAME + "_share", sharedCount);
-      alert("Köszönjük a megosztást! (" + sharedCount + "/5)");
-  }
-
-  window.addShare = addShare;
-
-  // -------------------------------------------------------------
-  // FELÜLET – FEJLÉC
+  // FŐ FEJLÉC
   // -------------------------------------------------------------
   document.getElementById("top-bar").innerHTML = `
     <div class="top-row">
       <div><b>Te:</b> ${USER_NAME}</div>
       <div><b>Partner:</b> ${PARTNER_NAME}</div>
-      <div><b>Szoba azonosító:</b> ${ROOM_ID}</div>
-      <button onclick="addShare()">Megosztottam az oldalt</button>
+      <div><b>Szoba:</b> ${ROOM_ID}</div>
     </div>
   `;
+
+  // -------------------------------------------------------------
+  // MEGOSZTÁS SZÁMLÁLÓ
+  // -------------------------------------------------------------
+  let sharedCount = Number(localStorage.getItem(USER_NAME + "_share") || 0);
+
+  function addShare(){
+      sharedCount++;
+      localStorage.setItem(USER_NAME + "_share", sharedCount);
+      alert("Köszönjük a megosztást! (" + sharedCount + "/5)");
+  }
+  window.addShare = addShare;
 
   // -------------------------------------------------------------
   // FIRESTORE HIVATKOZÁSOK
@@ -121,17 +147,17 @@
   const chatRef = doc(db, "chats", ROOM_ID);
   const messagesRef = collection(db, "chats", ROOM_ID, "uzenetek");
 
-  // Szoba életben tartása
-  try {
-      await updateDoc(chatRef, {
-          roomId: ROOM_ID,
-          status: "active",
-          lastMessageAt: serverTimestamp()
-      });
-  } catch (e) {}
+  try { await updateDoc(chatRef, { lastMessageAt: serverTimestamp() }); } catch(e){}
 
   // -------------------------------------------------------------
-  // ÜZENET FIGYELÉS
+  // MEGRENDELŐ → LÁTJA A DÖNTŐ GOMBOKAT
+  // -------------------------------------------------------------
+  if (MEGRENDELO_NEV && USER_NAME === MEGRENDELO_NEV) {
+      document.getElementById("decision-buttons").style.display = "flex";
+  }
+
+  // -------------------------------------------------------------
+  // FIRESTORE KÜLDÉS
   // -------------------------------------------------------------
   const chatBox = document.getElementById("chat-box");
   const q = query(messagesRef, orderBy("timestamp"));
@@ -158,110 +184,111 @@
   });
 
   // -------------------------------------------------------------
-  // KÜLDÉS GOMB + ENTER
+  // TILTOTT TARTALMAK
   // -------------------------------------------------------------
-  document.getElementById("send-btn").onclick = () => userSendMessage();
-  document.getElementById("message-input").onkeydown = (e) => {
-      if (e.key === "Enter") userSendMessage();
-  };
+  function isContactInfo(text){
+      const phone = /(06\d{1,}|(\+36)\d{1,})/g;
+      const email = /\S+@\S+\.\S+/g;
+      const link = /(facebook|instagram|wa\.me|viber|t\.me|mailto|tel:)/g;
 
-  // -------------------------------------------------------------
-  // TILTOTT TARTALMAK ELLENŐRZÉSE
-  // -------------------------------------------------------------
-  function isContactInfo(text) {
-      const phoneRegex = /(06\d{1,}|(\+36)\d{1,})/g;
-      const emailRegex = /\S+@\S+\.\S+/g;
-      const linkRegex = /(facebook\.com|instagram\.com|wa\.me|viber|t\.me|tel:)/g;
-
-      return phoneRegex.test(text) ||
-             emailRegex.test(text) ||
-             linkRegex.test(text);
+      return phone.test(text) || email.test(text) || link.test(text);
   }
 
-  // -------------------------------------------------------------
-  // FELTÉTEL: 5 MEGOSZTÁS UTÁN SZABAD
-  // -------------------------------------------------------------
-  function canSendContact() {
-      return sharedCount >= 5;
-  }
+  function canSendContact(){ return sharedCount >= 5; }
 
   // -------------------------------------------------------------
-  // CHAT ÜZENET KÜLDÉS
+  // ÜZENET KÜLDÉS
   // -------------------------------------------------------------
-  async function userSendMessage() {
+  document.getElementById("send-btn").onclick = sendMsg;
+  document.getElementById("message-input").onkeydown = e => { if (e.key === "Enter") sendMsg(); };
+
+  async function sendMsg(){
       const input = document.getElementById("message-input");
       const text = input.value.trim();
-
       if (!text) return;
 
-      // 1. tiltott tartalom felismerése
-      if (isContactInfo(text)) {
-
-          if (!canSendContact()) {
-              showWarning();
-
-              input.value = "";
-              return;
-          }
+      if (isContactInfo(text) && !canSendContact()) {
+          showWarning();
+          input.value = "";
+          return;
       }
 
-      // 2. rendes üzenet mentése Firestore-ba
-      try {
-          await addDoc(messagesRef, {
-              senderName: USER_NAME,
-              text,
-              timestamp: serverTimestamp()
-          });
-
-          await updateDoc(chatRef, {
-              lastMessageAt: serverTimestamp()
-          });
-
-      } catch (err) {
-          alert("Hiba történt az üzenet küldésekor!");
+      try{
+        await addDoc(messagesRef,{
+            senderName: USER_NAME,
+            text,
+            timestamp: serverTimestamp()
+        });
+      }catch(e){
+        alert("Hiba üzenet küldésekor!");
       }
 
       input.value = "";
   }
 
-  // -------------------------------------------------------------
-  // FIGYELMEZTETÉS (NEM MENTJÜK FIRESTORE-BA)
-  // -------------------------------------------------------------
-  function showWarning() {
-      const warn = document.createElement("div");
-      warn.className = "warning-msg";
-      warn.innerHTML = `
-          Kedves szaki/megrendelő!<br><br>
-          Azért használhatod ingyen az oldalt, mert itt a <b>CHAT-en</b>
-          beszéltek meg minden fontos részletet.<br><br>
-          <b>5 MEGOSZTÁS után engedjük az elérhetőségek küldését!</b><br><br>
-          Köszönjük! 🙏
+  function showWarning(){
+      const w = document.createElement("div");
+      w.className = "warning-msg";
+      w.innerHTML = `
+        Kedves szaki/megrendelő!<br><br>
+        Azért használhatod ingyen az oldalt, mert itt a <b>CHAT-en</b> beszéltek meg mindent.<br><br>
+        <b>5 MEGOSZTÁS után</b> engedjük az elérhetőségeket.<br><br>
+        Köszönjük! 🙏
       `;
+      chatBox.appendChild(w);
+      chatBox.scrollTop = chatBox.scrollHeig
+  }
 
-      chatBox.appendChild(warn);
-      chatBox.scrollTop = chatBox.scrollHeight;
+  // -------------------------------------------------------------
+  // SZAKI KIVÁLASZTÁSA / ELUTASÍTÁSA
+  // -------------------------------------------------------------
+  document.getElementById("btn-choose").onclick = chooseWorker;
+  document.getElementById("btn-reject").onclick = rejectWorker;
+
+  async function chooseWorker() {
+      try{
+          await addDoc(messagesRef,{
+              senderName:"Rendszer",
+              text:"A megrendelő téged választott!",
+              timestamp:serverTimestamp()
+          });
+
+          document.getElementById("decision-buttons").style.display = "none";
+          alert("Kiválasztva.");
+      }catch(e){ alert("Hiba."); }
+  }
+
+  async function rejectWorker() {
+      try{
+          await addDoc(messagesRef,{
+              senderName:"Rendszer",
+              text:"Sajnáljuk, a megrendelő nem téged választott.",
+              timestamp:serverTimestamp()
+          });
+
+          document.getElementById("decision-buttons").style.display = "none";
+          alert("Elutasítva.");
+      }catch(e){ alert("Hiba."); }
   }
 
   // -------------------------------------------------------------
   // SEGÉDEK
   // -------------------------------------------------------------
-  function createRoomId(a, b) {
-      const x = (a || "").trim().toLowerCase();
-      const y = (b || "").trim().toLowerCase();
-      return [x, y].sort().join("__");
+  function createRoomId(a,b){
+      const x=(a||"").trim().toLowerCase();
+      const y=(b||"").trim().toLowerCase();
+      return [x,y].sort().join("__");
   }
 
-  function escapeHtml(s) {
-      const div = document.createElement("div");
-      div.innerText = s;
+  function escapeHtml(s){
+      const div=document.createElement("div");
+      div.innerText=s;
       return div.innerHTML;
   }
 
-  function formatTimestamp(ts) {
-      try {
-          const d = ts?.toDate ? ts.toDate() : new Date();
-          return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
-      } catch { return ""; }
+  function formatTimestamp(ts){
+      const d = ts?.toDate ? ts.toDate() : new Date();
+      return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
   }
 
   function pad(n){ return n<10 ? "0"+n : n; }
