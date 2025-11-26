@@ -1,286 +1,270 @@
 <!DOCTYPE html>
 <html lang="hu">
 <head>
-    <meta charset="UTF-8" />
-    <title>Chat – Szaki-App</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8" />
+  <title>Chat – Szaki-App</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-<style>
+  <style>
     body { margin:0; padding:0; background:#f5f5f5; font-family:Arial,sans-serif; }
 
     header {
-      background:#ff8c00;
-      padding:12px 16px;
-      color:#fff;
-      font-weight:bold;
-      font-size:18px;
-      display:flex;
-      align-items:center;
-      justify-content:center;
+      background:#ff8c00; padding:12px 16px; color:#fff;
+      font-weight:bold; font-size:18px; text-align:center;
     }
 
-    .top-bar {
-      max-width:900px;
-      margin:0 auto;
-      background:#fff;
-      padding:10px 14px;
-      font-size:13px;
-      border-bottom:1px solid #eee;
+    .top-bar{
+      max-width:900px; margin:0 auto; background:white;
+      padding:10px 14px; border-bottom:1px solid #eee; font-size:13px;
+    }
+    .top-row{ display:flex; flex-wrap:wrap; gap:16px; }
+
+    #chat-box{
+      max-width:900px; margin:12px auto; padding:12px 14px;
+      background:white; border-radius:10px;
+      height:55vh; overflow-y:auto; box-shadow:0 2px 10px rgba(0,0,0,0.08);
     }
 
-    .top-row { display:flex; gap:16px; flex-wrap:wrap; }
-    .top-row b { font-weight:bold; }
+    .msg{ margin:6px 0; font-size:14px; }
+    .own{ font-weight:bold; }
+    .meta{ font-size:11px; color:#777; margin-left:6px; }
 
-    #onlineStatus {
-        font-size:12px;
-        margin-top:4px;
-        font-weight:bold;
-    }
-    .online { color:#00aa00; }
-    .offline { color:#cc0000; }
-
-    #chat-box {
-      max-width:900px;
-      margin:12px auto;
-      padding:12px 14px;
-      background:white;
-      border-radius:10px;
-      height:55vh;
-      overflow-y:auto;
-      box-shadow:0 2px 10px rgba(0,0,0,0.08);
-      font-size:14px;
+    .warning-msg{
+      margin:6px 0; padding:10px; background:#fff7e1;
+      border-left:4px solid #ff8c00; border-radius:6px;
+      font-size:13px; color:#8a5a00;
     }
 
-    .msg { margin:6px 0; }
-    .own { font-weight:bold; }
-    .meta { color:#777; font-size:11px; margin-left:6px; }
-    .del { margin-left:10px; color:#c00; cursor:pointer; font-size:11px; }
-
-    .notify {
-      color:#28a745;
-      font-size:11px;
-      margin-left:10px;
-      display:none;
+    .input-row{
+      max-width:900px; margin:0 auto 14px; padding:0 14px;
+      display:flex; gap:8px;
     }
 
-    .input-row {
-      max-width:900px;
-      margin:0 auto 14px;
-      display:flex;
-      gap:8px;
-      padding:0 14px;
+    #message-input{
+      flex:1; padding:10px; border-radius:8px;
+      border:1px solid #ccc; font-size:14px;
     }
 
-    #message-input {
-      flex:1;
-      padding:10px;
-      border-radius:8px;
-      border:1px solid #ccc;
-      font-size:14px;
-    }
-    .send-btn {
-      padding:10px 18px;
-      border:none;
-      border-radius:8px;
-      background:#ff8c00;
-      color:white;
-      font-size:14px;
-      font-weight:bold;
+    .send-btn{
+      padding:10px 18px; background:#ff8c00; border:none;
+      border-radius:8px; color:white; font-weight:bold;
       cursor:pointer;
     }
-</style>
+  </style>
 </head>
+
 <body>
 
 <header>Chat – Szaki-App</header>
 
 <div class="top-bar" id="top-bar"></div>
-<div id="chat-box"><i>Csatlakoztál a beszélgetéshez…</i></div>
+
+<div id="chat-box">
+  <p><i>Csatlakoztál a beszélgetéshez…</i></p>
+</div>
 
 <div class="input-row">
-    <input type="text" id="message-input" placeholder="Írj üzenetet…" />
-    <button id="send-btn" class="send-btn">Küldés</button>
+  <input type="text" id="message-input" placeholder="Írj üzenetet…" />
+  <button class="send-btn" id="send-btn">Küldés</button>
 </div>
 
 <script type="module">
 
-import { app, db } from "./firebase-config.js";
-import {
-    collection, doc, addDoc, query, orderBy, onSnapshot,
-    serverTimestamp, updateDoc, getDoc, setDoc
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { app, db } from "./firebase-config.js";
+  import {
+      collection, doc, addDoc, query, orderBy, onSnapshot,
+      serverTimestamp, updateDoc
+  } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
+  // -------------------------------------------------------------
+  // PARAMÉTEREK
+  // -------------------------------------------------------------
+  const params = new URLSearchParams(window.location.search);
 
-/* ---------------------------------------------------------
-    PARAMÉTEREK BEOLVASÁSA
----------------------------------------------------------*/
-const params = new URLSearchParams(window.location.search);
+  let USER_NAME = params.get("sender") || localStorage.getItem("szakiName");
+  if (!USER_NAME) {
+      USER_NAME = prompt("Add meg a neved:") || "Ismeretlen";
+  }
+  localStorage.setItem("szakiName", USER_NAME);
 
-let USER = params.get("sender") || localStorage.getItem("user") || "Megrendelő";
-let PARTNER = params.get("partner") || "Szakember";
-localStorage.setItem("user", USER);
+  const PARTNER_NAME = params.get("partner") || "Ismeretlen";
+  const ROOM_ID = createRoomId(USER_NAME, PARTNER_NAME);
 
-// Ha megrendelő választott másik szakit → jelezzük a szakiknak
-let valasztott = params.get("selected") || "";
+  // -------------------------------------------------------------
+  // MEGOSZTÁS SZÁMLÁLÓ (helyi tároló)
+  // -------------------------------------------------------------
+  let sharedCount = Number(localStorage.getItem(USER_NAME + "_share") || 0);
 
+  function addShare() {
+      sharedCount++;
+      localStorage.setItem(USER_NAME + "_share", sharedCount);
+      alert("Köszönjük a megosztást! (" + sharedCount + "/5)");
+  }
 
-/* ---------------------------------------------------------
-    TELEFONSZÁM + EMAIL MASZK VÉDELEM
----------------------------------------------------------*/
-function violatesPolicy(text) {
-    const phoneRegex = /\b(\+?\d[\d\s-]{7,})\b/;
-    const emailRegex = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i;
+  window.addShare = addShare;
 
-    return phoneRegex.test(text) || emailRegex.test(text);
-}
+  // -------------------------------------------------------------
+  // FELÜLET – FEJLÉC
+  // -------------------------------------------------------------
+  document.getElementById("top-bar").innerHTML = `
+    <div class="top-row">
+      <div><b>Te:</b> ${USER_NAME}</div>
+      <div><b>Partner:</b> ${PARTNER_NAME}</div>
+      <div><b>Szoba azonosító:</b> ${ROOM_ID}</div>
+      <button onclick="addShare()">Megosztottam az oldalt</button>
+    </div>
+  `;
 
-function warningMessage() {
-    return (
-"Kedves felhasználó!\n\n" +
-"Azért használhatod INGYEN a Szaki-Appot, mert a szakikkal itt a CHATEN beszéltek meg mindent!\n\n" +
-"📌 5 MEGOSZTÁSÉRT cserébe láthatóvá válik a telefonszám / email!\n\n" +
-"Köszönjük, hogy megosztod az oldalt másokkal!"
-    );
-}
+  // -------------------------------------------------------------
+  // FIRESTORE HIVATKOZÁSOK
+  // -------------------------------------------------------------
+  const chatRef = doc(db, "chats", ROOM_ID);
+  const messagesRef = collection(db, "chats", ROOM_ID, "uzenetek");
 
+  // Szoba életben tartása
+  try {
+      await updateDoc(chatRef, {
+          roomId: ROOM_ID,
+          status: "active",
+          lastMessageAt: serverTimestamp()
+      });
+  } catch (e) {}
 
-/* ---------------------------------------------------------
-    TOP BAR KIÍRÁSA
----------------------------------------------------------*/
-document.getElementById("top-bar").innerHTML = `
-  <div class="top-row">
-    <div><b>Te:</b> ${USER}</div>
-    <div><b>Partner:</b> ${PARTNER}</div>
-  </div>
-  <div id="onlineStatus">Ellenőrzés…</div>
-`;
+  // -------------------------------------------------------------
+  // ÜZENET FIGYELÉS
+  // -------------------------------------------------------------
+  const chatBox = document.getElementById("chat-box");
+  const q = query(messagesRef, orderBy("timestamp"));
 
+  onSnapshot(q, (snapshot) => {
+      chatBox.innerHTML = "";
+      snapshot.forEach((docSnap) => {
+          const msg = docSnap.data();
 
-/* ---------------------------------------------------------
-    ONLINE státusz jelzés FIRESTORE-ból
----------------------------------------------------------*/
-const partnerRef = doc(db, "users", PARTNER);
+          const line = document.createElement("p");
+          line.className = "msg";
 
-async function updateOwnOnlineStatus() {
-    await setDoc(doc(db, "users", USER), {
-        online: true,
-        lastSeen: Date.now()
-    }, { merge: true });
-}
+          const own = msg.senderName === USER_NAME ? "own" : "";
+          const time = formatTimestamp(msg.timestamp);
 
-setInterval(updateOwnOnlineStatus, 15000);
-updateOwnOnlineStatus();
+          line.innerHTML =
+            `<span class="${own}">${msg.senderName}:</span> ` +
+            `${escapeHtml(msg.text)} <span class="meta">(${time})</span>`;
 
-onSnapshot(partnerRef, (snap) => {
-    const d = snap.data();
-    const el = document.getElementById("onlineStatus");
+          chatBox.appendChild(line);
+      });
 
-    if (!d) {
-        el.textContent = "Partner offline";
-        el.className = "offline";
-        return;
-    }
+      chatBox.scrollTop = chatBox.scrollHeight;
+  });
 
-    el.textContent = d.online ? "Partner ONLINE" : "Partner OFFLINE";
-    el.className = d.online ? "online" : "offline";
-});
+  // -------------------------------------------------------------
+  // KÜLDÉS GOMB + ENTER
+  // -------------------------------------------------------------
+  document.getElementById("send-btn").onclick = () => userSendMessage();
+  document.getElementById("message-input").onkeydown = (e) => {
+      if (e.key === "Enter") userSendMessage();
+  };
 
-/* ---------------------------------------------------------
-    FIRESTORE CHAT SZOBÁK
----------------------------------------------------------*/
-function roomId(a,b){
-    return [a.toLowerCase(), b.toLowerCase()].sort().join("__");
-}
+  // -------------------------------------------------------------
+  // TILTOTT TARTALMAK ELLENŐRZÉSE
+  // -------------------------------------------------------------
+  function isContactInfo(text) {
+      const phoneRegex = /(06\d{1,}|(\+36)\d{1,})/g;
+      const emailRegex = /\S+@\S+\.\S+/g;
+      const linkRegex = /(facebook\.com|instagram\.com|wa\.me|viber|t\.me|tel:)/g;
 
-const ROOM = roomId(USER, PARTNER);
+      return phoneRegex.test(text) ||
+             emailRegex.test(text) ||
+             linkRegex.test(text);
+  }
 
-const chatRef = doc(db, "chats", ROOM);
-const msgRef  = collection(db, "chats", ROOM, "messages");
+  // -------------------------------------------------------------
+  // FELTÉTEL: 5 MEGOSZTÁS UTÁN SZABAD
+  // -------------------------------------------------------------
+  function canSendContact() {
+      return sharedCount >= 5;
+  }
 
-// Ha nem őt választották → automatikus értesítés szakiknak
-if (valasztott === "no" && USER !== PARTNER) {
-    await addDoc(msgRef, {
-        senderName: "Rendszer",
-        text: "Sajnáljuk, a megrendelő másik szakembert választott.",
-        timestamp: serverTimestamp()
-    });
-}
+  // -------------------------------------------------------------
+  // CHAT ÜZENET KÜLDÉS
+  // -------------------------------------------------------------
+  async function userSendMessage() {
+      const input = document.getElementById("message-input");
+      const text = input.value.trim();
 
+      if (!text) return;
 
-/* ---------------------------------------------------------
-    ÜZENET LISTENER
----------------------------------------------------------*/
-const chatBox = document.getElementById("chat-box");
+      // 1. tiltott tartalom felismerése
+      if (isContactInfo(text)) {
 
-onSnapshot(
-    query(msgRef, orderBy("timestamp")),
-    (snap) => {
-        chatBox.innerHTML = "";
-        snap.forEach(docSnap => {
-            const msg = docSnap.data();
-            const p = document.createElement("p");
-            const own = msg.senderName === USER ? "own" : "";
-            const time = formatTs(msg.timestamp);
+          if (!canSendContact()) {
+              showWarning();
 
-            p.innerHTML =
-                `<span class="${own}">${msg.senderName}:</span> ` +
-                `${escape(msg.text)} <span class="meta">(${time})</span>`;
+              input.value = "";
+              return;
+          }
+      }
 
-            chatBox.appendChild(p);
-        });
+      // 2. rendes üzenet mentése Firestore-ba
+      try {
+          await addDoc(messagesRef, {
+              senderName: USER_NAME,
+              text,
+              timestamp: serverTimestamp()
+          });
 
-        chatBox.scrollTop = chatBox.scrollHeight;
-    }
-);
+          await updateDoc(chatRef, {
+              lastMessageAt: serverTimestamp()
+          });
 
+      } catch (err) {
+          alert("Hiba történt az üzenet küldésekor!");
+      }
 
-/* ---------------------------------------------------------
-    ÜZENET KÜLDÉS
----------------------------------------------------------*/
-document.getElementById("send-btn").onclick = sendMsg;
-document.getElementById("message-input").onkeydown = (e)=>{
-    if (e.key === "Enter") sendMsg();
-};
+      input.value = "";
+  }
 
-async function sendMsg() {
-    const text = document.getElementById("message-input").value.trim();
-    if (!text) return;
+  // -------------------------------------------------------------
+  // FIGYELMEZTETÉS (NEM MENTJÜK FIRESTORE-BA)
+  // -------------------------------------------------------------
+  function showWarning() {
+      const warn = document.createElement("div");
+      warn.className = "warning-msg";
+      warn.innerHTML = `
+          Kedves szaki/megrendelő!<br><br>
+          Azért használhatod ingyen az oldalt, mert itt a <b>CHAT-en</b>
+          beszéltek meg minden fontos részletet.<br><br>
+          <b>5 MEGOSZTÁS után engedjük az elérhetőségek küldését!</b><br><br>
+          Köszönjük! 🙏
+      `;
 
-    let finalText = text;
+      chatBox.appendChild(warn);
+      chatBox.scrollTop = chatBox.scrollHeight;
+  }
 
-    if (violatesPolicy(text)) {
-        finalText = warningMessage();
-    }
+  // -------------------------------------------------------------
+  // SEGÉDEK
+  // -------------------------------------------------------------
+  function createRoomId(a, b) {
+      const x = (a || "").trim().toLowerCase();
+      const y = (b || "").trim().toLowerCase();
+      return [x, y].sort().join("__");
+  }
 
-    await addDoc(msgRef, {
-        senderName: USER,
-        text: finalText,
-        timestamp: serverTimestamp()
-    });
+  function escapeHtml(s) {
+      const div = document.createElement("div");
+      div.innerText = s;
+      return div.innerHTML;
+  }
 
-    document.getElementById("message-input").value = "";
-}
+  function formatTimestamp(ts) {
+      try {
+          const d = ts?.toDate ? ts.toDate() : new Date();
+          return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      } catch { return ""; }
+  }
 
-
-/* ---------------------------------------------------------
-    SEGÉDFÜGGVÉNYEK
----------------------------------------------------------*/
-function escape(str){
-    const div=document.createElement("div");
-    div.innerText=str;
-    return div.innerHTML;
-}
-
-function formatTs(ts){
-    try {
-        const d = ts.toDate();
-        return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
-    } catch {
-        return "";
-    }
-}
-
-function pad(n){ return n < 10 ? "0"+n : n; }
+  function pad(n){ return n<10 ? "0"+n : n; }
 
 </script>
 
