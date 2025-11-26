@@ -1,245 +1,240 @@
 <!DOCTYPE html>
 <html lang="hu">
 <head>
-<meta charset="UTF-8">
-<title>Admin Dashboard – Szaki-App</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="UTF-8">
+    <title>Admin Dashboard – Szaki-App</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<style>
-    body { margin:0; padding:0; font-family:Arial; background:#f4f4f4; }
+    <style>
+        body {
+            margin:0;
+            padding:0;
+            background:#f4f4f4;
+            font-family:Arial, sans-serif;
+        }
 
-    header {
-        background:#222; color:white; padding:14px;
-        font-size:22px; text-align:center; font-weight:bold;
-    }
+        header {
+            background:#ff8c00;
+            color:white;
+            padding:16px;
+            text-align:center;
+            font-size:22px;
+            font-weight:bold;
+        }
 
-    nav {
-        background:#333; padding:10px; display:flex; gap:10px;
-        justify-content:center; flex-wrap:wrap;
-    }
-    nav button {
-        padding:10px 14px; border:none; border-radius:8px;
-        background:#ff8c00; color:white; cursor:pointer; font-weight:bold;
-    }
+        .logout-btn {
+            position:fixed;
+            top:12px;
+            right:12px;
+            background:#c00;
+            color:white;
+            border:none;
+            padding:10px 16px;
+            border-radius:8px;
+            font-weight:bold;
+            cursor:pointer;
+        }
 
-    .section {
-        max-width:1200px; margin:20px auto; background:white;
-        padding:20px; border-radius:14px; box-shadow:0 2px 10px rgba(0,0,0,0.1);
-    }
+        .container {
+            max-width:1100px;
+            margin:20px auto;
+            padding:10px;
+        }
 
-    table { width:100%; border-collapse:collapse; margin-top:12px; }
-    th, td { padding:10px; border-bottom:1px solid #ddd; text-align:left; }
-    th { background:#222; color:white; }
+        .panel {
+            background:white;
+            padding:18px;
+            border-radius:10px;
+            box-shadow:0 2px 10px rgba(0,0,0,0.08);
+            margin-bottom:22px;
+        }
 
-    .status { padding:4px 8px; border-radius:6px; color:white; }
-    .online { background:#28a745; }
-    .offline { background:#c00; }
+        .panel h2 {
+            margin:0 0 12px;
+            font-size:18px;
+            color:#333;
+        }
 
-    .order-status { font-weight:bold; }
-    .active { color:#28a745; }
-    .selected { color:#007bff; }
-    .rejected { color:#c00; }
+        table {
+            width:100%;
+            border-collapse:collapse;
+            margin-top:10px;
+        }
 
-    .log-item {
-        background:#fff7e1; border-left:4px solid #ff8c00;
-        padding:10px; border-radius:6px; margin:6px 0;
-        font-size:14px;
-    }
-</style>
+        th, td {
+            border-bottom:1px solid #ddd;
+            padding:10px;
+            font-size:14px;
+        }
+
+        th {
+            background:#fafafa;
+            text-align:left;
+        }
+
+        .online {
+            color:#2e8b57;
+            font-weight:bold;
+        }
+
+        .offline {
+            color:#b30000;
+            font-weight:bold;
+        }
+
+    </style>
 </head>
 
 <body>
 
 <header>Admin Dashboard – Szaki-App</header>
 
-<nav>
-    <button onclick="showSection('chats')">Chat Monitor</button>
-    <button onclick="showSection('statuses')">Szakik Online Státusz</button>
-    <button onclick="showSection('orders')">Megrendelések</button>
-    <button onclick="showSection('logs')">Tiltott Tartalom Log</button>
-</nav>
+<button class="logout-btn" id="logout-btn">Kijelentkezés</button>
 
-<!-- ===================================================== -->
-<!-- 1) CHAT MONITOR PANEL -->
-<!-- ===================================================== -->
-<div id="section-chats" class="section" style="display:block;">
-    <h2>Chat Monitor</h2>
-    <p><i>Valós időben frissül</i></p>
+<div class="container">
 
-    <table>
-        <thead>
-            <tr>
-                <th>Szoba ID</th>
-                <th>Megrendelés ID</th>
-                <th>Felhasználók</th>
-                <th>Státusz</th>
-                <th>Utolsó üzenet</th>
-                <th>Megnyitás</th>
-            </tr>
-        </thead>
-        <tbody id="chat-list"></tbody>
-    </table>
-</div>
-
-<!-- ===================================================== -->
-<!-- 2) ONLINE STATUS PANEL -->
-<!-- ===================================================== -->
-<div id="section-statuses" class="section" style="display:none;">
-    <h2>Szakik online / offline</h2>
-
-    <table>
-        <thead>
+    <!-- PANEL 1 – SZAKIK ONLINE STÁTUSZAI -->
+    <div class="panel">
+        <h2>Szakik online állapota (élő frissítés)</h2>
+        <table id="szakik-table">
             <tr>
                 <th>Név</th>
                 <th>Szakma</th>
-                <th>Státusz</th>
                 <th>Utoljára aktív</th>
-            </tr>
-        </thead>
-        <tbody id="status-list"></tbody>
-    </table>
-</div>
-
-<!-- ===================================================== -->
-<!-- 3) MEGRENDELÉSEK PANEL -->
-<!-- ===================================================== -->
-<div id="section-orders" class="section" style="display:none;">
-    <h2>Összes megrendelés</h2>
-
-    <table>
-        <thead>
-            <tr>
-                <th>Order ID</th>
-                <th>Megrendelő</th>
-                <th>Szakma</th>
-                <th>Leírás</th>
                 <th>Státusz</th>
-                <th>Időpont</th>
             </tr>
-        </thead>
-        <tbody id="orders-list"></tbody>
-    </table>
+        </table>
+    </div>
+
+    <!-- PANEL 2 – AKTÍV CHAT SZOBÁK -->
+    <div class="panel">
+        <h2>Aktív chatek</h2>
+        <table id="chats-table">
+            <tr>
+                <th>Szoba ID</th>
+                <th>Megrendelő</th>
+                <th>Szaki</th>
+                <th>Utoljára üzenet</th>
+            </tr>
+        </table>
+    </div>
+
 </div>
 
-<!-- ===================================================== -->
-<!-- 4) TILTOTT TARTALOM LOG -->
-<!-- ===================================================== -->
-<div id="section-logs" class="section" style="display:none;">
-    <h2>Tiltott tartalom log</h2>
-    <p><i>Telefonszám / Email / Link próbálkozások listázása</i></p>
-
-    <div id="logs-container"></div>
-</div>
-
+<!-- FIREBASE + ADMIN SCRIPT -->
 <script type="module">
 
-import { app, db } from "./firebase-config.js";
-import {
-    collection, query, orderBy, onSnapshot
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    import { app, db } from "./firebase-config.js";
 
-function showSection(name){
-    document.querySelectorAll(".section").forEach(sec => sec.style.display="none");
-    document.getElementById("section-" + name).style.display="block";
-}
+    import {
+        getAuth,
+        onAuthStateChanged,
+        signOut
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
-/* ============================================================
-   1) CHAT MONITOR
-============================================================ */
-const chatListEl = document.getElementById("chat-list");
-const chatsRef = collection(db, "chats");
-onSnapshot(query(chatsRef, orderBy("lastMessageAt","desc")), (snap)=>{
-    chatListEl.innerHTML="";
-    snap.forEach(doc=>{
-        const d = doc.data();
-        const users = d.users?.join(", ") || "-";
-        const status = d.status || "active";
+    import {
+        collection,
+        query,
+        onSnapshot,
+        orderBy
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-        const last = d.lastMessageAt?.toDate().toLocaleString("hu-HU") || "-";
+    // AUTH ellenőrzés
+    const auth = getAuth(app);
 
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-            <td>${d.roomId}</td>
-            <td>${d.orderId || "-"}</td>
-            <td>${users}</td>
-            <td class="order-status ${status}">${status}</td>
-            <td>${last}</td>
-            <td><button onclick="window.open('chat.html?orderId=${d.orderId}&sender=${users.split(', ')[0]}&partner=${users.split(', ')[1]}','_blank')">Megnyitás</button></td>
-        `;
-        chatListEl.appendChild(tr);
+    onAuthStateChanged(auth, (user) => {
+        if (!user) {
+            window.location.href = "admin-login.html";
+        }
     });
-});
 
-/* ============================================================
-   2) SZAKIK ONLINE STATUS
-============================================================ */
-const statusListEl = document.getElementById("status-list");
-const statusRef = collection(db, "userStatus");
+    // KIJELENTKEZÉS
+    document.getElementById("logout-btn").onclick = async () => {
+        await signOut(auth);
+        window.location.href = "admin-login.html";
+    };
 
-onSnapshot(statusRef, (snap)=>{
-    statusListEl.innerHTML="";
-    snap.forEach(doc=>{
-        const d = doc.data();
-        const last = d.lastActive?.toDate().toLocaleString("hu-HU") || "-";
+    // ---------------------------------------------------------
+    // PANEL 1: SZAKIK ONLINE STÁTUSZAI
+    // ---------------------------------------------------------
 
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-            <td>${d.name}</td>
-            <td>${d.profession || "-"}</td>
-            <td><span class="status ${d.online ? "online" : "offline"}">${d.online ? "Online" : "Offline"}</span></td>
-            <td>${last}</td>
-        `;
-        statusListEl.appendChild(tr);
+    const szakikTable = document.getElementById("szakik-table");
+
+    const q1 = query(collection(db, "szakik"), orderBy("lastSeen", "desc"));
+
+    onSnapshot(q1, (snapshot) => {
+        szakikTable.innerHTML = `
+            <tr>
+                <th>Név</th>
+                <th>Szakma</th>
+                <th>Utoljára aktív</th>
+                <th>Státusz</th>
+            </tr>`;
+
+        snapshot.forEach((doc) => {
+            const d = doc.data();
+            const last = d.lastSeen?.toDate ? d.lastSeen.toDate() : null;
+
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td>${d.name}</td>
+                <td>${Array.isArray(d.profession) ? d.profession.join(", ") : d.profession || ""}</td>
+                <td>${last ? formatDate(last) : "-"}</td>
+                <td class="${d.isOnline ? "online" : "offline"}">
+                    ${d.isOnline ? "Online" : "Offline"}
+                </td>
+            `;
+            szakikTable.appendChild(tr);
+        });
     });
-});
 
-/* ============================================================
-   3) MEGRENDELÉSEK LISTÁJA
-============================================================ */
-const ordersListEl = document.getElementById("orders-list");
-const ordersRef = collection(db, "orders");
+    // ---------------------------------------------------------
+    // PANEL 2: AKTÍV CHAT SZOBÁK
+    // ---------------------------------------------------------
 
-onSnapshot(query(ordersRef, orderBy("timestamp","desc")), (snap)=>{
-    ordersListEl.innerHTML="";
-    snap.forEach(doc=>{
-        const d = doc.data();
-        const tr = document.createElement("tr");
+    const chatsTable = document.getElementById("chats-table");
 
-        tr.innerHTML = `
-            <td>${d.orderId}</td>
-            <td>${d.name}</td>
-            <td>${d.szakma}</td>
-            <td>${(d.leiras || "").substring(0,40)}...</td>
-            <td class="order-status ${d.status}">${d.status}</td>
-            <td>${d.timestamp?.toDate().toLocaleString("hu-HU")}</td>
-        `;
+    const q2 = query(collection(db, "chats"), orderBy("lastMessageAt", "desc"));
 
-        ordersListEl.appendChild(tr);
+    onSnapshot(q2, (snapshot) => {
+        chatsTable.innerHTML = `
+            <tr>
+                <th>Szoba ID</th>
+                <th>Megrendelő</th>
+                <th>Szaki</th>
+                <th>Utoljára üzenet</th>
+            </tr>`;
+
+        snapshot.forEach((doc) => {
+            const c = doc.data();
+            const date = c.lastMessageAt?.toDate ? c.lastMessageAt.toDate() : null;
+
+            const tr = document.createElement("tr");
+
+            tr.innerHTML = `
+                <td>${c.roomId || doc.id}</td>
+                <td>${c.members?.megrendelo || "-"}</td>
+                <td>${c.members?.szakember || "-"}</td>
+                <td>${date ? formatDate(date) : "-"}</td>
+            `;
+
+            chatsTable.appendChild(tr);
+        });
     });
-});
 
-/* ============================================================
-   4) TILTOTT TARTALOM LOG
-============================================================ */
-const logsContainer = document.getElementById("logs-container");
-const logsRef = collection(db, "blockedMessages");
+    // ---------------------------------------------------------
+    // Segédfüggvény
+    // ---------------------------------------------------------
 
-onSnapshot(query(logsRef, orderBy("timestamp","desc")), (snap)=>{
-    logsContainer.innerHTML="";
-    snap.forEach(doc=>{
-        const d = doc.data();
-        const div = document.createElement("div");
-        div.className = "log-item";
+    function formatDate(d) {
+        const y = d.getFullYear();
+        const m = String(d.getMonth()+1).padStart(2,"0");
+        const day = String(d.getDate()).padStart(2,"0");
+        const h = String(d.getHours()).padStart(2,"0");
+        const min = String(d.getMinutes()).padStart(2,"0");
 
-        div.innerHTML = `
-            <b>${d.sender}</b> próbált tiltott adatot küldeni:<br>
-            <b>Szöveg:</b> ${d.text}<br>
-            <b>Chat:</b> ${d.roomId} | <b>Idő:</b> ${d.timestamp?.toDate().toLocaleString("hu-HU")}
-        `;
-
-        logsContainer.appendChild(div);
-    });
-});
+        return `${y}.${m}.${day} ${h}:${min}`;
+    }
 
 </script>
 
