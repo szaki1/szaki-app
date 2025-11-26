@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8" />
+    <title>Admin belépés – Szaki-App</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <style>
+        body {
+            background: #f5f5f5;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 40px 20px;
+        }
+
+        .box {
+            max-width: 400px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 26px 22px;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+        }
+
+        h2 {
+            margin-top: 0;
+            text-align: center;
+            color: #333;
+        }
+
+        label {
+            font-weight: bold;
+            margin-top: 14px;
+            display: block;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #aaa;
+            margin-top: 6px;
+            font-size: 15px;
+            box-sizing: border-box;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            margin-top: 20px;
+            background: #ff8c00;
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        button:active {
+            transform: translateY(1px);
+        }
+
+        .hiba {
+            margin-top: 14px;
+            color: #b30000;
+            font-size: 14px;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="box">
+    <h2>Admin belépés</h2>
+
+    <label for="email">E-mail cím</label>
+    <input type="email" id="email" placeholder="pl.: admin@szaki-app.hu">
+
+    <label for="password">Jelszó</label>
+    <input type="password" id="password" placeholder="Jelszó…">
+
+    <button id="login-btn">Belépés</button>
+
+    <div class="hiba" id="hiba"></div>
+</div>
+
+<script type="module">
+    import { app } from "./firebase-config.js";
+    import {
+        getAuth,
+        signInWithEmailAndPassword
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+    const auth = getAuth(app);
+
+    const btn = document.getElementById("login-btn");
+    const hiba = document.getElementById("hiba");
+
+    btn.onclick = async () => {
+        hiba.textContent = "";
+
+        const email = document.getElementById("email").value.trim();
+        const pw = document.getElementById("password").value.trim();
+
+        if (!email || !pw) {
+            hiba.textContent = "Töltsd ki az összes mezőt!";
+            return;
+        }
+
+        try {
+            await signInWithEmailAndPassword(auth, email, pw);
+
+            // Siker – irány az admin főoldal
+            window.location.href = "admin-dashboard.html";
+
+        } catch (err) {
+            console.error(err);
+            hiba.textContent = "Hibás e-mail vagy jelszó!";
+        }
+    };
+</script>
+
+</body>
+</html>
