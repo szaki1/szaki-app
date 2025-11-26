@@ -4,206 +4,185 @@
     <meta charset="UTF-8" />
     <title>Válassz szakembert – Szaki-App</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
     <style>
-        body { margin:0; padding:0; font-family:Arial,sans-serif; background:#f5f5f5; }
+        body {
+            margin: 0; padding: 0;
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+        }
         header {
-            background:#ff8c00; color:#fff; padding:16px;
-            text-align:center; font-size:20px; font-weight:bold;
+            background: #ff8c00; color:#fff;
+            padding: 16px; text-align:center;
+            font-size:20px; font-weight:bold;
         }
-        .container { max-width:900px; margin:0 auto; padding:16px; }
-
-        .info-box{
-            background:#fff; padding:14px 16px; border-radius:10px;
-            box-shadow:0 2px 8px rgba(0,0,0,0.08); margin-bottom:16px;
-            font-size:14px; line-height:1.4;
+        .container {
+            max-width:900px; margin:0 auto; padding:16px;
         }
-        .share-main-btn{
-            display:block; width:100%; margin-top:10px; padding:12px;
-            border-radius:10px; border:none; cursor:pointer;
-            background:#ff8c00; color:#fff; font-size:16px; font-weight:bold;
+        .info-box {
+            background:white; padding:14px 16px;
+            border-radius:10px; box-shadow:0 2px 8px rgba(0,0,0,0.08);
+            margin-bottom:16px; font-size:14px; line-height:1.4;
         }
-
-        .profession-title{
-            font-size:18px; font-weight:bold; margin:18px 0 12px; color:#333;
+        .profession-title {
+            font-size:18px; font-weight:bold;
+            margin:18px 0 12px; color:#333;
         }
-
-        .szaki-card{
-            background:#fff; border-radius:12px; padding:14px 16px;
-            box-shadow:0 2px 10px rgba(0,0,0,0.08); margin-bottom:14px;
+        .szaki-card {
+            background:white; border-radius:12px;
+            padding:14px 16px;
+            box-shadow:0 2px 10px rgba(0,0,0,0.08);
+            margin-bottom:14px;
         }
-
-        .szaki-header-line{
-            display:flex; justify-content:space-between; gap:12px; align-items:baseline;
+        .szaki-header-line {
+            display:flex; justify-content:space-between;
+            gap:12px; align-items:baseline;
         }
-        .szaki-name{ font-size:17px; font-weight:bold; color:#222; }
-
-        .szaki-badge{
-            font-size:11px; padding:3px 8px; border-radius:999px;
-            background:#ffe6bf; color:#8a4b00; white-space:nowrap;
+        .szaki-name { font-size:17px; font-weight:bold; color:#222; }
+        .szaki-badge {
+            font-size:11px; padding:3px 8px;
+            border-radius:999px; background:#ffe6bf;
+            color:#8a4b00; white-space:nowrap;
         }
+        .szaki-profession { margin-top:4px; font-size:13px; color:#555; }
+        .szaki-phone { margin-top:6px; font-size:13px; }
+        .szaki-phone b { font-weight:bold; }
+        .szaki-status { margin-top:6px; font-size:12px; }
+        .szaki-status.real { color:#007700; }
+        .szaki-status.demo { color:#aa0000; }
 
-        .szaki-profession{ font-size:13px; color:#555; margin-top:4px; }
-        .szaki-note{ font-size:13px; color:#444; margin-top:6px; }
-
-        .szaki-phone{ font-size:13px; margin-top:6px; }
-        .szaki-phone b{ font-weight:bold; }
-
-        .szaki-email{ font-size:13px; margin-top:4px; color:#333; }
-        .szaki-email b{ font-weight:bold; }
-
-        .szaki-holiday{ font-size:12px; color:#555; margin-top:4px; }
-
-        .szaki-status{ font-size:12px; margin-top:4px; }
-        .szaki-status.real{ color:#007700; }
-        .szaki-status.demo{ color:#aa0000; }
-
-        .szaki-actions{
-            display:flex; flex-wrap:wrap; gap:8px; margin-top:10px;
+        .szaki-actions {
+            margin-top:12px; display:flex; gap:8px;
         }
-
-        .btn-chat, .btn-share{
-            flex:1 1 130px; padding:9px 8px; border-radius:999px; border:none;
-            cursor:pointer; font-size:13px;
+        .btn-chat, .btn-share {
+            flex:1; padding:9px 8px; border-radius:999px;
+            border:none; font-size:13px; cursor:pointer;
         }
-        .btn-chat{ background:#28a745; color:#fff; font-weight:bold; }
-        .btn-chat.demo-disabled{ background:#ccc; color:#666; cursor:not-allowed; }
-
-        .btn-share{ background:#007bff; color:#fff; }
-
-        .no-result{
-            margin-top:24px; font-size:18px; text-align:center; color:#333;
+        .btn-chat { background:#28a745; color:white; font-weight:bold; }
+        .btn-chat.disabled {
+            background:#ccc; color:#666; cursor:not-allowed;
         }
+        .btn-share { background:#007bff; color:white; }
     </style>
 </head>
-<body>
 
+<body>
 <header>Válassz szakembert</header>
 
 <div class="container">
 
-    <div class="info-box" id="info-text"></div>
+    <div class="info-box" id="info-box">
+        Betöltés…
+    </div>
 
     <div id="szaki-lista"></div>
 </div>
 
 <script src="szaki-adatok.js"></script>
+<script type="module">
+    import { getMaskedContact, canRevealRealData } from "./masking.js";
 
-<script>
-    function normalizeProfession(str) {
-        if (!str) return "";
-        const lower = str.toLowerCase();
-        const map = { "á":"a","é":"e","í":"i","ó":"o","ö":"o","ő":"o","ú":"u","ü":"u","ű":"u" };
-        return lower.replace(/[áéíóöőúüű]/g, c => map[c] || c);
-    }
+    // URL paraméterek
+    const params = new URLSearchParams(window.location.search);
+    const szakmaQuery = params.get("szakma") || "";
+    const megrendelonev = params.get("name") || "Megrendelő";
 
-    function sharePage() {
-        const url = window.location.href;
-        const shareData = {
-            title: "Szaki-App",
-            text: "Nézd meg a szakembereket!",
-            url: url
-        };
-        if (navigator.share) {
-            navigator.share(shareData).catch(()=>{});
-        } else if (navigator.clipboard) {
-            navigator.clipboard.writeText(url);
-            alert("Link vágólapra másolva!");
-        }
-    }
+    // Fejléc doboz
+    const infoBox = document.getElementById("info-box");
+    infoBox.innerHTML =
+        `<b>Megrendelő neve:</b> ${megrendelonev}<br>
+         <b>Keresett szakma:</b> ${szakmaQuery}<br><br>
+         Válassz a lenti szakemberek közül és indíts chatet!`;
 
-    function openChatWith(szakiName, megrendelonev) {
-        const sender = megrendelonev || "Megrendelő";
-        const link =
-            "chat.html?sender=" + encodeURIComponent(sender) +
-            "&partner=" + encodeURIComponent(szakiName);
-        window.location.href = link;
-    }
+    // SZAKI LISTA
+    const list = document.getElementById("szaki-lista");
 
-    (function renderSzakik(){
-        if (!window.SzakiAdatok) {
-            document.getElementById("szaki-lista").innerHTML =
-                "<p>Hiba: szaki-adatok.js hiányzik</p>";
-            return;
-        }
-
-        const params = new URLSearchParams(window.location.search);
-        const szakmaRaw = params.get("szakma") || "";
-        const megrendelonev = params.get("name") || "";
-
-        const info = document.getElementById("info-text");
-        info.innerHTML =
-            `<b>Megrendelő neve:</b> ${megrendelonev || "–"}<br>
-             <b>Keresett szakma:</b> ${szakmaRaw || "–"}<br>
-             Válassz egy szakembert!<br>
-             <button class="share-main-btn" onclick="sharePage()">MEGOSZTÁS</button>`;
-
-        const all = window.SzakiAdatok.findByProfession(szakmaRaw);
-        const getPhone = window.SzakiAdatok.getMaskedPhone;
-        const getEmail = window.SzakiAdatok.getMaskedEmail;
-        const getHoliday = window.SzakiAdatok.getHolidayLabel;
-
-        const lista = document.getElementById("szaki-lista");
-        lista.innerHTML = "";
-
-        if (all.length === 0) {
-            lista.innerHTML = `<div class="no-result">Ehhez a szakmához nincs szakember.</div>`;
-            return;
-        }
-
-        all.sort((a,b)=> (b.priority||0)-(a.priority||0));
-
-        all.forEach(szaki => {
-            const card = document.createElement("div");
-            card.className = "szaki-card";
-
-            card.innerHTML = `
-                <div class="szaki-header-line">
-                    <div class="szaki-name">${szaki.name}</div>
-                    <div class="szaki-badge">${szaki.isReal ? "Igazolt szakember" : "Naptára betáblázva"}</div>
-                </div>
-
-                <div class="szaki-profession">${Array.isArray(szaki.profession) ? szaki.profession.join(", ") : szaki.profession}</div>
-
-                <div class="szaki-note">${szaki.note || ""}</div>
-
-                <div class="szaki-phone"><b>Telefon:</b> ${getPhone(szaki)}</div>
-
-                <div class="szaki-email"><b>Email:</b> ${getEmail(szaki)}</div>
-
-                <div class="szaki-holiday">${getHoliday(szaki)}</div>
-
-                <div class="szaki-status ${szaki.isReal ? "real" : "demo"}">
-                    ${szaki.isReal ? "Elérhető – indíts chatet!" : "Nem fogad új munkát"}
-                </div>
-            `;
-
-            const actions = document.createElement("div");
-            actions.className = "szaki-actions";
-
-            const chat = document.createElement("button");
-            chat.className = "btn-chat";
-            chat.textContent = "Chat indítása";
-
-            if (szaki.isReal) {
-                chat.onclick = () => openChatWith(szaki.name, megrendelonev);
-            } else {
-                chat.disabled = true;
-                chat.classList.add("demo-disabled");
+    const szakik = window.SzakiAdatok.getAllSzakik()
+        .map(s => ({
+            ...s,
+            maskedPhone: getMaskedContact(megrendelonev, s.phone)
+        }))
+        .filter(s => {
+            if (!szakmaQuery) return true;
+            if (Array.isArray(s.profession)) {
+                return s.profession.includes(szakmaQuery);
             }
-
-            const share = document.createElement("button");
-            share.className = "btn-share";
-            share.textContent = "Megosztás";
-            share.onclick = sharePage;
-
-            actions.appendChild(chat);
-            actions.appendChild(share);
-            card.appendChild(actions);
-
-            lista.appendChild(card);
+            return s.profession === szakmaQuery;
         });
-    })();
+
+    if (szakik.length === 0) {
+        list.innerHTML =
+            `<p style="margin-top:20px; font-size:18px;">
+                Nincs szakember ehhez a szakmához.
+             </p>`;
+    }
+
+    szakik.forEach(szaki => {
+        const card = document.createElement("div");
+        card.className = "szaki-card";
+
+        const badgeText = szaki.isReal
+            ? (szaki.name === "Csabi"
+                ? "KIEMELT SZAKEMBER – Platina rang"
+                : "Igazolt szakember")
+            : "Naptára betáblázva";
+
+        card.innerHTML = `
+            <div class="szaki-header-line">
+                <div class="szaki-name">${szaki.name}</div>
+                <div class="szaki-badge">${badgeText}</div>
+            </div>
+
+            <div class="szaki-profession">
+                ${Array.isArray(szaki.profession) ? szaki.profession.join(", ") : szaki.profession}
+            </div>
+
+            <div class="szaki-phone">
+                <b>Telefon:</b> ${szaki.maskedPhone}
+                ${!canRevealRealData(megrendelonev) ? `
+                  <span style="color:#c00; font-size:11px;">
+                    (5 megosztás után látható)
+                  </span>` : ""}
+            </div>
+
+            <div class="szaki-status ${szaki.isReal ? "real" : "demo"}">
+                ${szaki.isReal ? "Elérhető – indíts chatet!" : "Jelenleg nem fogad munkát"}
+            </div>
+        `;
+
+        // Gombok
+        const actions = document.createElement("div");
+        actions.className = "szaki-actions";
+
+        const chatBtn = document.createElement("button");
+        chatBtn.className = "btn-chat";
+        chatBtn.textContent = "Chat indítása";
+
+        if (!szaki.isReal) {
+            chatBtn.classList.add("disabled");
+            chatBtn.onclick = () => alert("Ez a szaki most nem elérhető.");
+        } else {
+            chatBtn.onclick = () => {
+                window.location.href =
+                    `chat.html?sender=${encodeURIComponent(megrendelonev)}&partner=${encodeURIComponent(szaki.name)}`;
+            };
+        }
+
+        const shareBtn = document.createElement("button");
+        shareBtn.className = "btn-share";
+        shareBtn.textContent = "Megosztás";
+        shareBtn.onclick = () => {
+            const link = window.location.href;
+            navigator.clipboard.writeText(link);
+            alert("Link másolva! Oszd meg 5× a valós számért.");
+        };
+
+        actions.appendChild(chatBtn);
+        actions.appendChild(shareBtn);
+
+        card.appendChild(actions);
+        list.appendChild(card);
+    });
+
 </script>
 
 </body>
