@@ -29,12 +29,6 @@
     .own{ font-weight:bold; }
     .meta{ font-size:11px; color:#777; margin-left:6px; }
 
-    .status-line{
-      font-size:12px;
-      color:#666;
-      margin-top:4px;
-    }
-
     .warning-msg{
       margin:6px 0; padding:10px; background:#fff7e1;
       border-left:4px solid #ff8c00; border-radius:6px;
@@ -56,6 +50,22 @@
       border-radius:8px; color:white; font-weight:bold;
       cursor:pointer;
     }
+
+    /* Szaki választó gombok */
+    #select-buttons{
+      max-width:900px; margin:10px auto; display:flex;
+      gap:10px; padding:0 14px;
+    }
+
+    #select-worker{
+      flex:1; padding:12px; background:#28a745; color:white;
+      border:none; border-radius:8px; font-weight:bold; cursor:pointer;
+    }
+
+    #select-other{
+      flex:1; padding:12px; background:#c00; color:white;
+      border:none; border-radius:8px; font-weight:bold; cursor:pointer;
+    }
   </style>
 </head>
 
@@ -64,6 +74,12 @@
 <header>Chat – Szaki-App</header>
 
 <div class="top-bar" id="top-bar"></div>
+
+<!-- SZAKI VÁLASZTÁS GOMBOK -->
+<div id="select-buttons">
+  <button id="select-worker">Ezt a szakit választom</button>
+  <button id="select-other">Másik szakit választottam</button>
+</div>
 
 <div id="chat-box">
   <p><i>Csatlakoztál a beszélgetéshez…</i></p>
@@ -76,89 +92,69 @@
 
 <script type="module">
 
-  //-----------------------------------------------------
-  // IMPORTOK
-  //-----------------------------------------------------
   import { app, db } from "./firebase-config.js";
   import {
       collection, doc, addDoc, query, orderBy, onSnapshot,
-      serverTimestamp, updateDoc
+      serverTimestamp, updateDoc, setDoc
   } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-  // users-status.js integrálása
-  import {
-      initUserStatus,
-      watchUserStatus,
-      formatLastActive
-  } from "./users-status.js";
-
-  //-----------------------------------------------------
-  // PARAMÉTEREK
-  //-----------------------------------------------------
+  // -------------------------------------------------------------
+  // URL PARAMÉTEREK
+  // -------------------------------------------------------------
   const params = new URLSearchParams(window.location.search);
 
-  let USER_NAME = params.get("sender") || localStorage.getItem("szakiName");
-  if (!USER_NAME) USER_NAME = prompt("Neved:") || "Ismeretlen";
-  localStorage.setItem("szakiName", USER_NAME);
+  const USER_NAME = params.get("sender");
+  const PARTNER_NAME = params.get("partner");
+  const ORDER_ID = params.get("orderId");   // <<< ORDER ID BEÉPÍTVE !!! >>>
 
-  const PARTNER_NAME = params.get("partner") || "Ismeretlen";
+  if (!USER_NAME || !PARTNER_NAME || !ORDER_ID) {
+      alert("Hibás chat hivatkozás! (hiányzik: sender, partner vagy orderId)");
+  }
 
   const ROOM_ID = createRoomId(USER_NAME, PARTNER_NAME);
 
-  //-----------------------------------------------------
-  // ONLINE STÁTUSZ AKTIVÁLÁSA
-  //-----------------------------------------------------
-  initUserStatus({
-      userName: USER_NAME,
-      role: "user"
-  });
+  // -------------------------------------------------------------
+  // HELYI MEGOSZTÁS SZÁMLÁLÓ
+  // -------------------------------------------------------------
+  let sharedCount = Number(localStorage.getItem(USER_NAME + "_share") || 0);
 
-  //-----------------------------------------------------
-  // FEJLÉC KITÖLTÉSE
-  //-----------------------------------------------------
+  function addShare() {
+      sharedCount++;
+      localStorage.setItem(USER_NAME + "_share", sharedCount);
+      alert("Köszönjük a megosztást! (" + sharedCount + "/5)");
+  }
+  window.addShare = addShare;
+
+  // -------------------------------------------------------------
+  // FEJLÉC FELTÖLTÉSE
+  // -------------------------------------------------------------
   document.getElementById("top-bar").innerHTML = `
     <div class="top-row">
       <div><b>Te:</b> ${USER_NAME}</div>
       <div><b>Partner:</b> ${PARTNER_NAME}</div>
-      <div><b>Szoba:</b> ${ROOM_ID}</div>
+      <div><b>Megrendelés ID:</b> ${ORDER_ID}</div>
+      <button onclick="addShare()">Megosztottam az oldalt</button>
     </div>
-    <div id="partner-status" class="status-line"></div>
   `;
 
-  //-----------------------------------------------------
-  // PARTNER ONLINE STÁTUSZ REALTIME FIGYELÉSE
-  //-----------------------------------------------------
-  watchUserStatus(PARTNER_NAME, (data) => {
-      const el = document.getElementById("partner-status");
-      if (!data) {
-         el.textContent = "Nincs státusz adat.";
-         return;
-      }
-
-      if (data.isOnline) {
-         el.textContent = "🟢 Partner online";
-      } else {
-         el.textContent = "⚪ Utoljára aktív: " + formatLastActive(data.lastActive);
-      }
-  });
-
-  //-----------------------------------------------------
-  // FIRESTORE HIVATKOZÁSOK
-  //-----------------------------------------------------
+  // -------------------------------------------------------------
+  // FIRESTORE – CHAT REFERENCIA
+  // -------------------------------------------------------------
   const chatRef = doc(db, "chats", ROOM_ID);
   const messagesRef = collection(db, "chats", ROOM_ID, "uzenetek");
 
-  try {
-      await updateDoc(chatRef, {
-          roomId: ROOM_ID,
-          status: "active",
-          lastMessageAt: serverTimestamp()
-      });
-  } catch {}
+  // chat meta adatok frissítése
+  await setDoc(chatRef, {
+      roomId: ROOM_ID,
+      orderId: ORDER_ID,           // <<< ORDER_ID HOZZÁADVA !!!
+      users: [USER_NAME, PARTNER_NAME],
+      lastMessageAt: serverTimestamp(),
+      status: "active"
+  }, { merge: true });
 
-  //-----------------------------------------------------
-  // ÜZENET FIGYELÉS
-  //-----------------------------------------------------
+  // -------------------------------------------------------------
+  // ÜZENET FIGYELÉSE
+  // -------------------------------------------------------------
   const chatBox = document.getElementById("chat-box");
   const q = query(messagesRef, orderBy("timestamp"));
 
@@ -166,33 +162,42 @@
       chatBox.innerHTML = "";
       snapshot.forEach((docSnap) => {
           const msg = docSnap.data();
+
+          const line = document.createElement("p");
+          line.className = "msg";
+
           const own = msg.senderName === USER_NAME ? "own" : "";
-          const t = formatTimestamp(msg.timestamp);
+          const time = formatTimestamp(msg.timestamp);
 
-          const p = document.createElement("p");
-          p.className = "msg";
+          line.innerHTML =
+            `<span class="${own}">${msg.senderName}:</span> ` +
+            `${escapeHtml(msg.text)} <span class="meta">(${time})</span>`;
 
-          p.innerHTML =
-            `<span class="${own}">${msg.senderName}:</span> ${escapeHtml(msg.text)} <span class="meta">(${t})</span>`;
-
-          chatBox.appendChild(p);
+          chatBox.appendChild(line);
       });
 
       chatBox.scrollTop = chatBox.scrollHeight;
   });
 
-  //-----------------------------------------------------
-  // KÜLDÉS GOMB
-  //-----------------------------------------------------
-  document.getElementById("send-btn").onclick = () => sendMsg();
+  // -------------------------------------------------------------
+  // üzenet küldés
+  // -------------------------------------------------------------
+  document.getElementById("send-btn").onclick = () => userSendMessage();
   document.getElementById("message-input").onkeydown = (e) => {
-      if (e.key === "Enter") sendMsg();
+      if (e.key === "Enter") userSendMessage();
   };
 
-  async function sendMsg() {
+  async function userSendMessage() {
       const input = document.getElementById("message-input");
       const text = input.value.trim();
       if (!text) return;
+
+      // tiltott tartalom ellenőrzése
+      if (isContactInfo(text) && sharedCount < 5) {
+          showWarning();
+          input.value = "";
+          return;
+      }
 
       await addDoc(messagesRef, {
           senderName: USER_NAME,
@@ -200,33 +205,80 @@
           timestamp: serverTimestamp()
       });
 
-      await updateDoc(chatRef, {
-          lastMessageAt: serverTimestamp()
-      });
+      await updateDoc(chatRef, { lastMessageAt: serverTimestamp() });
 
       input.value = "";
   }
 
-  //-----------------------------------------------------
-  // SEGÉDEK
-  //-----------------------------------------------------
-  function escapeHtml(s){
-      const d = document.createElement("div");
-      d.innerText = s;
-      return d.innerHTML;
+  // -------------------------------------------------------------
+  // SZAKI KIVÁLASZTÁSA VAGY ELUTASÍTÁSA
+  // -------------------------------------------------------------
+  document.getElementById("select-worker").onclick = async () => {
+      await updateDoc(chatRef, {
+          status: "selected",
+          selectedBy: USER_NAME,
+          selectedAt: serverTimestamp()
+      });
+
+      alert("Kiválasztottad ezt a szakit! 👍");
+      document.getElementById("select-buttons").style.display = "none";
+  };
+
+  document.getElementById("select-other").onclick = async () => {
+
+      // szakinak üzenet küldése
+      await addDoc(messagesRef, {
+          senderName: "Rendszer",
+          text: "Sajnos nem téged választott a megrendelő.",
+          timestamp: serverTimestamp()
+      });
+
+      await updateDoc(chatRef, {
+          status: "rejected",
+          rejectedAt: serverTimestamp()
+      });
+
+      alert("Visszajelzés elküldve!");
+
+      document.getElementById("select-buttons").style.display = "none";
+  };
+
+  // -------------------------------------------------------------
+  // SEGÉDFÜGGVÉNYEK
+  // -------------------------------------------------------------
+  function isContactInfo(text) {
+      const phoneRegex = /(06\d{1,}|(\+36)\d{1,})/g;
+      const emailRegex = /\S+@\S+\.\S+/g;
+      return phoneRegex.test(text) || emailRegex.test(text);
   }
 
-  function createRoomId(a,b){
-      const x = (a||"").toLowerCase().trim();
-      const y = (b||"").toLowerCase().trim();
-      return [x,y].sort().join("__");
+  function showWarning() {
+      const warn = document.createElement("div");
+      warn.className = "warning-msg";
+      warn.innerHTML = `
+        Kedves szaki/megrendelő!<br><br>
+        <b>Elérhetőséget csak 5 megosztás után engedünk.</b><br><br>
+        Köszönjük a támogatást! 🙏
+      `;
+      chatBox.appendChild(warn);
+      chatBox.scrollTop = chatBox.scrollHeight;
   }
 
-  function formatTimestamp(ts){
-      try{
-          const d = ts.toDate();
+  function createRoomId(a, b) {
+      return [a.toLowerCase(), b.toLowerCase()].sort().join("__");
+  }
+
+  function escapeHtml(s) {
+      const div = document.createElement("div");
+      div.innerText = s;
+      return div.innerHTML;
+  }
+
+  function formatTimestamp(ts) {
+      try {
+          const d = ts?.toDate ? ts.toDate() : new Date();
           return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
-      } catch{ return ""; }
+      } catch { return ""; }
   }
 
   function pad(n){ return n<10 ? "0"+n : n; }
