@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <title>Szaki-App Admin Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <style>
+        body {
+            margin: 0;
+            background: #f4f4f4;
+            font-family: Arial, sans-serif;
+        }
+
+        header {
+            background: #ff8c00;
+            color: #fff;
+            padding: 16px;
+            font-size: 22px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 20px auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        h2 {
+            margin-top: 0;
+            margin-bottom: 12px;
+            font-size: 20px;
+            border-left: 4px solid #ff8c00;
+            padding-left: 10px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+        }
+
+        th, td {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+            font-size: 14px;
+        }
+
+        th {
+            background: #ffebcd;
+            text-align: left;
+        }
+
+        .btn {
+            padding: 6px 10px;
+            border: none;
+            background: #ff8c00;
+            color: #fff;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .btn-danger {
+            background: #d9534f;
+        }
+
+        .btn-sm {
+            padding: 4px 7px;
+            font-size: 12px;
+        }
+
+        .logout {
+            position: fixed;
+            top: 14px;
+            right: 14px;
+            padding: 8px 12px;
+            background: #d9534f;
+            color: #fff;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+    </style>
+</head>
+
+<body>
+
+<header>ADMIN – Szaki-App</header>
+
+<button class="logout" id="logout-btn">Kijelentkezés</button>
+
+<div class="container">
+    
+    <h2>Online státusz – Szakik</h2>
+    <table id="szaki-table">
+        <thead>
+            <tr>
+                <th>Név</th>
+                <th>Szakma</th>
+                <th>Telefonszám</th>
+                <th>Utoljára online</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <h2>Megrendelők</h2>
+    <table id="users-table">
+        <thead>
+            <tr>
+                <th>Név</th>
+                <th>Elérhetőség</th>
+                <th>Város</th>
+                <th>Utoljára online</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <h2>Beküldött munkák</h2>
+    <table id="jobs-table">
+        <thead>
+            <tr>
+                <th>Megrendelő</th>
+                <th>Szakma</th>
+                <th>Leírás (rövidítve)</th>
+                <th>Kezdés</th>
+                <th>Kiválasztott szaki</th>
+                <th>Művelet</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <h2>Chat szobák</h2>
+    <table id="rooms-table">
+        <thead>
+            <tr>
+                <th>Szoba ID</th>
+                <th>Megrendelő</th>
+                <th>Szakember</th>
+                <th>Utoljára üzenet</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+</div>
+
+<script type="module">
+import { app, db } from "./firebase-config.js";
+import {
+    getAuth,
+    onAuthStateChanged,
+    signOut
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+import {
+    collection,
+    getDocs,
+    orderBy,
+    query,
+    doc,
+    updateDoc
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const auth = getAuth(app);
+
+// ------------------------
+// ADMIN JOGOSULTSÁG ELLENŐRZÉS
+// ------------------------
+onAuthStateChanged(auth, (user) => {
+    if (!user) {
+        window.location.href = "admin-login.html";
+    }
+});
+
+// Kijelentkezés
+document.getElementById("logout-btn").onclick = () => {
+    signOut(auth);
+};
+
+// ------------------------
+// ADATOK BETÖLTÉSE
+// ------------------------
+
+async function loadSzakik() {
+    const tbody = document.querySelector("#szaki-table tbody");
+    tbody.innerHTML = "";
+
+    const snap = await getDocs(collection(db, "szakik"));
+    snap.forEach(docSnap => {
+        const d = docSnap.data();
+        const tr = document.createElement("tr");
+
+        tr.innerHTML = `
+            <td>${d.name || ""}</td>
+            <td>${d.profession || ""}</td>
+            <td>${d.phone || ""}</td>
+            <td>${formatOnline(d.lastOnline)}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+async function loadUsers() {
+    const tbody = document.querySelector("#users-table tbody");
+    tbody.innerHTML = "";
+
+    const snap = await getDocs(collection(db, "users"));
+    snap.forEach(docSnap => {
+        const d = docSnap.data();
+        const tr = document.createElement("tr");
+
+        tr.innerHTML = `
+            <td>${d.name || ""}</td>
+            <td>${d.contact || ""}</td>
+            <td>${d.city || ""}</td>
+            <td>${formatOnline(d.lastOnline)}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+async function loadJobs() {
+    const tbody = document.querySelector("#jobs-table tbody");
+    tbody.innerHTML = "";
+
+    const snap = await getDocs(collection(db, "jobs"));
+    snap.forEach(docSnap => {
+        const d = docSnap.data();
+        const tr = document.createElement("tr");
+
+        const short = (d.description || "").substring(0, 40) + "...";
+
+        tr.innerHTML = `
+            <td>${d.clientName || ""}</td>
+            <td>${d.profession || ""}</td>
+            <td>${short}</td>
+            <td>${d.startMin || "-"}</td>
+            <td>${d.assignedWorker || "-"}</td>
+            <td>
+                <button class="btn-sm btn-danger" data-id="${docSnap.id}">
+                    Szakinak küldés → „nem téged választott”
+                </button>
+            </td>
+        `;
+
+        tbody.appendChild(tr);
+    });
+
+    // kattintás kezelése
+    document.querySelectorAll(".btn-danger").forEach(btn => {
+        btn.onclick = async () => {
+            const jobId = btn.dataset.id;
+
+            await updateDoc(doc(db, "jobs", jobId), {
+                rejected: true
+            });
+
+            alert("A szaki értesítést fog kapni: „Sajnos nem téged választottak.”");
+        };
+    });
+}
+
+async function loadRooms() {
+    const tbody = document.querySelector("#rooms-table tbody");
+    tbody.innerHTML = "";
+
+    const snap = await getDocs(collection(db, "chats"));
+    snap.forEach(docSnap => {
+        const d = docSnap.data();
+        const tr = document.createElement("tr");
+
+        tr.innerHTML = `
+            <td>${docSnap.id}</td>
+            <td>${d.members?.megrendelo || ""}</td>
+            <td>${d.members?.szakember || ""}</td>
+            <td>${formatOnline(d.lastMessageAt)}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+// ------------------------
+// IDŐ FORMÁZÁS
+// ------------------------
+function formatOnline(ts) {
+    if (!ts) return "-";
+    try {
+        const d = ts.toDate();
+        return `${d.getFullYear()}.${d.getMonth()+1}.${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`;
+    } catch {
+        return "-";
+    }
+}
+
+// ------------------------
+// INDÍTÁS
+// ------------------------
+loadSzakik();
+loadUsers();
+loadJobs();
+loadRooms();
+
+</script>
+
+</body>
+</html>
