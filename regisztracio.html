@@ -57,25 +57,10 @@
             font-weight: bold;
         }
 
-        button:active {
-            transform: translateY(1px);
-        }
-
         .hiba {
             color: #b00000;
             margin-top: 14px;
             text-align: center;
-        }
-
-        .link {
-            margin-top: 18px;
-            text-align: center;
-        }
-
-        .link a {
-            color: #ff8c00;
-            text-decoration: none;
-            font-weight: bold;
         }
     </style>
 </head>
@@ -109,27 +94,49 @@
     </div>
 </div>
 
+<!-- ============================
+     FIREBASE CDN + REGISZTRÁCIÓ
+     ============================ -->
 <script type="module">
-    import { app, db } from "./firebase-config.js";
-    import {
-        getAuth,
-        createUserWithEmailAndPassword
+
+    import { initializeApp } 
+        from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+
+    import { 
+        getAuth, 
+        createUserWithEmailAndPassword 
     } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
-    import {
-        doc,
-        setDoc
+    import { 
+        getFirestore, 
+        doc, 
+        setDoc 
     } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
+
+    // 🔥 SAJÁT FIREBASE CONFIG
+    const firebaseConfig = {
+        apiKey: "AIzaSyAKhHvi3yObUurBKhT1r_feg4g0A5w766Q",
+        authDomain: "szaki-app.firebaseapp.com",
+        projectId: "szaki-app",
+        storageBucket: "szaki-app.appspot.com",
+        messagingSenderId: "418149364598",
+        appId: "1:418149364598:web:2ae4450dc8fadfbac30057"
+    };
+
+    const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
+    const db = getFirestore(app);
+
 
     document.getElementById("reg-btn").onclick = async () => {
+
         const name = document.getElementById("name").value.trim();
         const email = document.getElementById("email").value.trim();
         const pw = document.getElementById("password").value.trim();
         const role = document.getElementById("role").value;
-
         const hiba = document.getElementById("hiba");
+
         hiba.textContent = "";
 
         if (!name || !email || !pw) {
@@ -147,14 +154,17 @@
                 createdAt: new Date().toISOString()
             });
 
-            if (role === "szaki") window.location.href = "szaki-profil.html";
-            else window.location.href = "megrendelo-profil.html";
+            if (role === "szaki")
+                window.location.href = "szaki-profil.html";
+            else
+                window.location.href = "megrendelo-profil.html";
 
         } catch (err) {
             console.error(err);
             hiba.textContent = "Hiba történt a regisztráció során!";
         }
     };
+
 </script>
 
 </body>
