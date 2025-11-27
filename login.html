@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8" />
+    <title>Bejelentkezés – Szaki-App</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <style>
+        body {
+            background: #f5f5f5;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 40px 15px;
+        }
+
+        .box {
+            max-width: 430px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 26px 22px;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+        }
+
+        h2 {
+            text-align: center;
+            margin-top: 0;
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-top: 14px;
+            font-weight: bold;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            margin-top: 6px;
+            font-size: 15px;
+            border: 1px solid #aaa;
+            border-radius: 8px;
+            box-sizing: border-box;
+        }
+
+        button {
+            width: 100%;
+            margin-top: 25px;
+            padding: 15px;
+            background: #ff8c00;
+            border: none;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 16px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .hiba {
+            color: #b00000;
+            margin-top: 14px;
+            text-align: center;
+        }
+
+        .link {
+            text-align: center;
+            margin-top: 18px;
+        }
+
+        .link a {
+            color:#ff8c00;
+            text-decoration:none;
+            font-weight:bold;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="box">
+    <h2>Bejelentkezés</h2>
+
+    <label>E-mail</label>
+    <input id="email" type="email" placeholder="example@email.com">
+
+    <label>Jelszó</label>
+    <input id="password" type="password" placeholder="Jelszó…">
+
+    <button id="login-btn">Bejelentkezés</button>
+
+    <div class="hiba" id="hiba"></div>
+
+    <div class="link">
+        Nincs még fiókod? <a href="regisztracio.html">Regisztráció</a>
+    </div>
+</div>
+
+<script type="module">
+
+    import { initializeApp }
+        from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+
+    import {
+        getAuth,
+        signInWithEmailAndPassword
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+    import {
+        getFirestore,
+        doc,
+        getDoc
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    // 🔥 Firebase config – ugyanaz, mint mindenhol!
+    const firebaseConfig = {
+        apiKey: "AIzaSyAKhHvi3yObUurBKhT1r_feg4g0A5w766Q",
+        authDomain: "szaki-app.firebaseapp.com",
+        projectId: "szaki-app",
+        storageBucket: "szaki-app.appspot.com",
+        messagingSenderId: "418149364598",
+        appId: "1:418149364598:web:2ae4450dc8fadfbac30057"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+
+    document.getElementById("login-btn").onclick = async () => {
+
+        const email = document.getElementById("email").value.trim();
+        const pw = document.getElementById("password").value.trim();
+        const hiba = document.getElementById("hiba");
+
+        hiba.textContent = "";
+
+        if (!email || !pw) {
+            hiba.textContent = "Tölts ki minden mezőt!";
+            return;
+        }
+
+        try {
+            // 🔐 BELÉPÉS
+            const cred = await signInWithEmailAndPassword(auth, email, pw);
+
+            // 🔍 USER ADATOK
+            const ref = doc(db, "users", cred.user.uid);
+            const snap = await getDoc(ref);
+
+            if (!snap.exists()) {
+                hiba.textContent = "Hiba: nincs felhasználói adat!";
+                return;
+            }
+
+            const user = snap.data();
+
+            // ➡️ SZEREPKÖR ALAPJÁN ÁTIRÁNYÍTÁS
+            if (user.role === "szaki")
+                window.location.href = "szaki-profil.html";
+            else
+                window.location.href = "megrendelo-profil.html";
+
+        } catch (err) {
+            console.error(err);
+            hiba.textContent = "Hibás e-mail vagy jelszó!";
+        }
+    };
+
+</script>
+
+</body>
+</html>
