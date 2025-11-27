@@ -14,7 +14,7 @@ const firebaseConfig = {
     apiKey: "AIzaSyAKhHvi3yObUurBKhT1r_feg4g0A5w766Q",
     authDomain: "szaki-app.firebaseapp.com",
     projectId: "szaki-app",
-    storageBucket: "szaki-app.firebasestorage.app",
+    storageBucket: "szaki-app.appspot.com", // ✔ EZ A HELYES!!!
     messagingSenderId: "418149364598",
     appId: "1:418149364598:web:2ae4450dc8fadfbac30057"
 };
