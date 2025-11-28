@@ -1,154 +1,148 @@
-// -------------------------------------------------------------
-// Szaki-App – MUNKA MATCHING LOGIKA (orderId kezelése + választás)
-// -------------------------------------------------------------
-// Ezt a fájlt tedd a projekt gyökerébe: matching-job-flow.js
-// Betöltés: <script src="matching-job-flow.js"></script>
-// -------------------------------------------------------------
+// ======================================================
+// MATCHING – SZAKI KIVÁLASZTÁS ÚJ MUNKA ÉRKEZÉSEKOR
+// ======================================================
 
-(function () {
+import { db, auth } from "./firebase-config.js";
+import {
+    collection,
+    getDocs,
+    getDoc,
+    updateDoc,
+    doc,
+    query,
+    where,
+    addDoc,
+    serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-    // --- Firestore import (chat.html vagy más modul tölti be) ---
-    let db = null;
-    window.MatchFlow_initFirestore = function (firestoreInstance) {
-        db = firestoreInstance;
-    };
+/*
+    Folyamat:
+    1) Lekérjük a megrendelést a megrendelesek-ből
+    2) Kivesszük belőle a szakmákat
+    3) Kikeressük a szaki-adatok gyűjteményből azokat, akik ezt a szakmát vállalják
+    4) Megnézzük, kik vannak online (szaki-online gyűjtemény)
+    5) Ha van online → 1 szakival AZONNAL összekapcsoljuk
+    6) Ha nincs online → kiválasztunk 3 szakít a naptár alapján
+    7) Frissítjük a megrendelést → assignedTo = [szakiUidak]
+    8) A szakiknak értesítés Firestore-ba
+*/
 
-    // -------------------------------------------------------------
-    // 1) ÚJ MUNKA létrehozása
-    // -------------------------------------------------------------
-    window.MatchFlow_createJob = async function (megrendelonev, szakma) {
+// ------------------------------------------------------
+// FŐ FÜGGVÉNY – EZT HÍVJA MEG A RENDSZER
+// ------------------------------------------------------
+export async function matchJobToWorkers(jobId) {
+    try {
+        const jobRef = doc(db, "megrendelesek", jobId);
+        const jobSnap = await getDoc(jobRef);
 
-        if (!db) {
-            console.error("Firestore nincs inicializálva.");
-            return null;
+        if (!jobSnap.exists()) {
+            console.error("❌ A megrendelés nem található:", jobId);
+            return;
         }
 
-        const orderId = generateOrderId();
+        const jobData = jobSnap.data();
+        const neededSkills = jobData.szakmak;
 
-        try {
-            const ref = doc(db, "jobs", orderId);
-            await setDoc(ref, {
-                orderId,
-                createdAt: Date.now(),
-                megrendelonev: megrendelonev || "",
-                szakma: szakma || "",
-                selectedWorkerId: null,
-                selectedWorkerName: null,
-                status: "pending",
-                rejectedWorkers: []
+        console.log("👉 Új megrendelés érkezett:", jobData);
+
+        // ---------------------------------------------
+        // 1) Lekérjük az összes SZAKIT
+        // ---------------------------------------------
+        const workersRef = collection(db, "szaki-adatok");
+        const workersSnap = await getDocs(workersRef);
+
+        let matchingWorkers = [];
+
+        workersSnap.forEach(worker => {
+            const data = worker.data();
+
+            // Ellenőrzés: van-e közös szakma
+            const hasSkill = data.szakmak?.some(s => neededSkills.includes(s));
+
+            if (hasSkill) {
+                matchingWorkers.push({
+                    uid: worker.id,
+                    ...data
+                });
+            }
+        });
+
+        if (matchingWorkers.length === 0) {
+            console.log("❌ Nincs egyetlen szaki sem, aki illik a keresett szakmákra.");
+            return;
+        }
+
+        console.log("🎯 Illeszkedő szakik:", matchingWorkers.length);
+
+        // ---------------------------------------------
+        // 2) MEGNÉZZÜK, KI VAN ONLINE
+        // ---------------------------------------------
+        const onlineRef = collection(db, "szaki-online");
+        const onlineSnap = await getDocs(onlineRef);
+
+        const onlineWorkers = [];
+
+        onlineSnap.forEach(o => {
+            const odata = o.data();
+            const isMatching = matchingWorkers.some(w => w.uid === odata.uid);
+
+            if (isMatching && odata.online === true) {
+                onlineWorkers.push(odata.uid);
+            }
+        });
+
+        // ---------------------------------------------
+        // 3) Ha VAN ONLINE SZAKI → AZONNAL HOZZÁRENDELJÜK
+        // ---------------------------------------------
+        if (onlineWorkers.length > 0) {
+            const firstOnline = onlineWorkers[0];
+
+            await updateDoc(jobRef, {
+                assignedTo: [firstOnline],
+                status: "kiosztva",
+                matchedAt: serverTimestamp()
             });
 
-            return orderId;
+            console.log("⚡ Online szaki megtalálva → azonnali hozzárendelés:", firstOnline);
 
-        } catch (err) {
-            console.error("Job létrehozási hiba:", err);
-            return null;
-        }
-    };
-
-
-    // -------------------------------------------------------------
-    // 2) SZAKI kiválasztása (nyertes szaki)
-    // -------------------------------------------------------------
-    window.MatchFlow_chooseWorker = async function (orderId, workerName) {
-
-        if (!db) return console.error("Firestore nincs inicializálva.");
-
-        const ref = doc(db, "jobs", orderId);
-
-        try {
-            await updateDoc(ref, {
-                selectedWorkerName: workerName,
-                status: "chosen"
+            // értesítés neki
+            await addDoc(collection(db, "szaki-ertesitesek"), {
+                uid: firstOnline,
+                jobId,
+                type: "uj-munka",
+                createdAt: serverTimestamp()
             });
 
-            // NYERT SZAKINAK automatikus üzenet küldése
-            await sendAutoSystemMessage(workerName,
-                "Gratulálunk! A megrendelő Téged választott! 🎉");
-
-            console.log(`Nyertes szaki: ${workerName}`);
-
-        } catch (err) {
-            console.error("Szaki kiválasztása sikertelen:", err);
+            return; // DONE
         }
-    };
 
+        // ---------------------------------------------
+        // 4) Ha NINCS ONLINE → NAPTÁR ALAPJÁN TOP 3
+        // ---------------------------------------------
+        console.log("ℹ️ Nincs online szaki → keresés naptár alapján…");
 
-    // -------------------------------------------------------------
-    // 3) VESZTETT szakik kezelése
-    // -------------------------------------------------------------
-    window.MatchFlow_rejectWorker = async function (orderId, workerName) {
+        // egyszerű sorrend (később okosítjuk):
+        const top3 = matchingWorkers.slice(0, 3).map(w => w.uid);
 
-        if (!db) return console.error("Firestore nincs inicializálva.");
+        await updateDoc(jobRef, {
+            assignedTo: top3,
+            status: "kiosztva",
+            matchedAt: serverTimestamp()
+        });
 
-        const ref = doc(db, "jobs", orderId);
+        console.log("📌 Naptár alapján kiosztott szakik:", top3);
 
-        try {
-            await updateDoc(ref, {
-                rejectedWorkers: arrayUnion(workerName),
-                status: "rejected"
+        // értesítések
+        for (let uid of top3) {
+            await addDoc(collection(db, "szaki-ertesitesek"), {
+                uid,
+                jobId,
+                type: "uj-munka",
+                createdAt: serverTimestamp()
             });
-
-            // VESZTETT SZAKINAK automatikus üzenet
-            await sendAutoSystemMessage(workerName,
-                "Sajnos a megrendelő másik szakembert választott.");
-
-            console.log(`Elutasított szaki: ${workerName}`);
-
-        } catch (err) {
-            console.error("RejectWorker hiba:", err);
         }
-    };
 
-
-    // -------------------------------------------------------------
-    // 4) AUTOMATA RENDSZERÜZENET KÜLDÉS Firestore-ba
-    // -------------------------------------------------------------
-    async function sendAutoSystemMessage(workerName, text) {
-        try {
-            const roomId = canonicalRoom(workerName, "megrendelő");
-            const chatRef = collection(db, "chats", roomId, "uzenetek");
-
-            await addDoc(chatRef, {
-                senderName: "Rendszer",
-                text,
-                timestamp: serverTimestamp(),
-                system: true
-            });
-
-        } catch (err) {
-            console.error("Rendszerüzenet hiba:", err);
-        }
+    } catch (err) {
+        console.error("❌ Matching hiba:", err);
     }
-
-
-    // -------------------------------------------------------------
-    // 5) MUNKA BETÖLTÉSE (munka-részletei.html használja)
-    // -------------------------------------------------------------
-    window.MatchFlow_loadJob = async function (orderId) {
-        if (!db) return null;
-        try {
-            const ref = doc(db, "jobs", orderId);
-            const snap = await getDoc(ref);
-            return snap.exists() ? snap.data() : null;
-        } catch (err) {
-            console.error("Job betöltés hiba:", err);
-            return null;
-        }
-    };
-
-
-    // -------------------------------------------------------------
-    // SEGÉDEK
-    // -------------------------------------------------------------
-    function generateOrderId() {
-        return "job_" + Math.random().toString(36).substring(2, 10);
-    }
-
-    function canonicalRoom(a, b) {
-        const x = (a || "").trim().toLowerCase();
-        const y = (b || "").trim().toLowerCase();
-        return [x, y].sort().join("__");
-    }
-
-})();
+}
