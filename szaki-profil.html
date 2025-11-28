@@ -53,27 +53,22 @@
         doc, getDoc
     } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-    // ────────────────────────────────────────
     // URL PARAMÉTEREK
-    // ────────────────────────────────────────
     const params = new URLSearchParams(window.location.search);
 
-    const workerId = params.get("id");         // szakember Firestore ID
+    const workerId = params.get("id");
     const orderId = params.get("orderId") || "";
     const megrendelonev = params.get("megrendelonev") || "";
 
-    // Ha nincs workerId → hiba
     if (!workerId) {
         document.getElementById("profile-area").innerHTML =
             "<p>Hiba: nincs megadva szakember ID!</p>";
         throw new Error("workerId missing");
     }
 
-    // ────────────────────────────────────────
-    // SZAKI ADATOK LEKÉRÉSE
-    // ────────────────────────────────────────
+    // 🔥 HELYES: 'szakik' gyűjteményből tölti be!
     async function loadWorker() {
-        const ref = doc(db, "workers", workerId);
+        const ref = doc(db, "szakik", workerId);
         const snap = await getDoc(ref);
 
         if (!snap.exists()) {
@@ -83,13 +78,9 @@
         }
 
         const d = snap.data();
-
         renderProfile(d);
     }
 
-    // ────────────────────────────────────────
-    // PROFIL RENDER
-    // ────────────────────────────────────────
     function renderProfile(d) {
 
         const prof = Array.isArray(d.profession)
@@ -99,9 +90,7 @@
         document.getElementById("profile-area").innerHTML = `
             <div class="title">${d.name}</div>
 
-            <div class="row">
-                <span class="label">Szakmák:</span> ${prof}
-            </div>
+            <div class="row"><span class="label">Szakmák:</span> ${prof}</div>
 
             <div class="row">
                 <span class="label">Bemutatkozás:</span><br>
@@ -111,13 +100,13 @@
             <div class="row">
                 <span class="label">Telefonszám:</span>
                 <span style="color:#999;">(maszkolva)</span><br>
-                ${d.maskedPhone || "*****"}
+                ${d.maskedPhone || "***"}
             </div>
 
             <div class="row">
                 <span class="label">Email:</span>
                 <span style="color:#999;">(maszkolva)</span><br>
-                ${d.maskedEmail || "*****"}
+                ${d.maskedEmail || "***"}
             </div>
 
             <div class="row">
@@ -131,16 +120,13 @@
             </div>
         `;
 
-        // Gombok láthatóvá tétele
         document.getElementById("button-area").style.display = "flex";
 
-        // Vissza gomb
         document.getElementById("btnBack").onclick = () => {
             window.location.href =
                 `valassz-szakit.html?szakma=${encodeURIComponent(prof)}&megrendelonev=${encodeURIComponent(megrendelonev)}&orderId=${orderId}`;
         };
 
-        // Chat gomb
         document.getElementById("btnChat").onclick = () => {
             window.location.href =
                 `chat.html?sender=${encodeURIComponent(megrendelonev)}&partner=${encodeURIComponent(d.name)}&orderId=${orderId}&workerId=${workerId}`;
