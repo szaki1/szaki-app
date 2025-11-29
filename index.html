@@ -55,6 +55,85 @@
             font-size: 15px;
             line-height: 1.5;
         }
+
+        /* --- Szaki-AI lebegő gomb --- */
+        #ai-btn {
+            position: fixed;
+            right: 20px;
+            bottom: 20px;
+            background: #ff8c00;
+            color: white;
+            padding: 16px 20px;
+            border-radius: 50px;
+            font-size: 18px;
+            font-weight: bold;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+            cursor: pointer;
+            z-index: 9999;
+        }
+
+        #ai-btn:active {
+            filter: brightness(0.85);
+        }
+
+        /* --- AI Chat ablak --- */
+        #ai-window {
+            position: fixed;
+            right: 20px;
+            bottom: 90px;
+            width: 320px;
+            height: 420px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            z-index: 9999;
+        }
+
+        #ai-header {
+            background: #ff8c00;
+            color: white;
+            padding: 12px;
+            font-size: 18px;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        #ai-messages {
+            flex: 1;
+            padding: 12px;
+            overflow-y: auto;
+            font-size: 15px;
+            background: #fafafa;
+        }
+
+        #ai-input-box {
+            display: flex;
+            border-top: 1px solid #ddd;
+        }
+
+        #ai-input {
+            flex: 1;
+            padding: 10px;
+            font-size: 15px;
+            border: none;
+            outline: none;
+        }
+
+        #ai-send {
+            width: 70px;
+            background: #ff8c00;
+            color: white;
+            border: none;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        #ai-send:active {
+            filter: brightness(0.85);
+        }
     </style>
 </head>
 
@@ -69,16 +148,72 @@
         Küldd el a linket ismerőseidnek, vagy nyomj a <b>Megosztás</b> gombra!
     </div>
 
-    <!-- Külön link a megrendelőknek (ahogy kérted: mindkettő legyen) -->
     <a class="btn" href="uj-megrendelo.html">ÚJ MEGRENDELŐ</a>
-
-    <!-- Szaki regisztráció -->
     <a class="btn" href="szaki-profil.html">Szaki profilok</a>
-
-    <!-- Chat teszt oldal -->
     <a class="btn" href="chat.html">Chat teszt</a>
 
 </div>
+
+<!-- 🔥 Szaki-AI lebegő gomb -->
+<div id="ai-btn">🤖 Szaki-AI</div>
+
+<!-- 🔥 Szaki-AI chat ablak -->
+<div id="ai-window">
+    <div id="ai-header">Szaki-AI</div>
+    <div id="ai-messages"></div>
+    <div id="ai-input-box">
+        <input id="ai-input" type="text" placeholder="Írd ide a kérdésed..." />
+        <button id="ai-send">Küld</button>
+    </div>
+</div>
+
+<script>
+    const aiBtn = document.getElementById("ai-btn");
+    const aiWindow = document.getElementById("ai-window");
+    const aiSend = document.getElementById("ai-send");
+    const aiInput = document.getElementById("ai-input");
+    const aiMessages = document.getElementById("ai-messages");
+
+    aiBtn.onclick = () => {
+        aiWindow.style.display = aiWindow.style.display === "flex" ? "none" : "flex";
+    };
+
+    aiSend.onclick = sendMessage;
+    aiInput.addEventListener("keydown", e => {
+        if (e.key === "Enter") sendMessage();
+    });
+
+    function addMessage(role, text) {
+        const div = document.createElement("div");
+        div.style.margin = "6px 0";
+        div.innerHTML = (role === "user" ? "<b>Te:</b> " : "<b>AI:</b> ") + text;
+        aiMessages.appendChild(div);
+        aiMessages.scrollTop = aiMessages.scrollHeight;
+    }
+
+    async function sendMessage() {
+        const text = aiInput.value.trim();
+        if (!text) return;
+        aiInput.value = "";
+
+        addMessage("user", text);
+
+        // 🚀 IDE a saját Cloudflare Worker URL-ed
+        const url = "https://muddy-frost-2510.chisnyan.workers.dev/";
+
+        try {
+            const res = await fetch(url, {
+                method: "POST",
+                body: text
+            });
+
+            const data = await res.json();
+            addMessage("ai", data.cleaned || "Hiba történt a válasz feldolgozásakor.");
+        } catch (err) {
+            addMessage("ai", "Hálózati hiba vagy nincs válasz a szervertől.");
+        }
+    }
+</script>
 
 </body>
 </html>
