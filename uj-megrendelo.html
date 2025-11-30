@@ -2,289 +2,218 @@
 <html lang="hu">
 <head>
     <meta charset="UTF-8" />
-    <title>Megrendelő – Alapadatok | Szaki-App</title>
+    <title>Új Megrendelő – Szaki-App</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <style>
         body {
             font-family: Arial, sans-serif;
-            background: #f2f2f2;
-            margin: 0;
-            padding: 30px 10px;
+            background:#f5f5f5;
+            margin:0;
+            padding:0;
+        }
+
+        header {
+            background:#ff8c00;
+            padding:18px;
+            color:white;
+            text-align:center;
+            font-size:22px;
+            font-weight:bold;
         }
 
         .wrap {
-            max-width: 900px;
-            margin: 0 auto;
-            background: #ffffff;
-            border-radius: 12px;
-            padding: 26px 22px 32px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.06);
+            max-width:900px;
+            margin:20px auto;
+            background:white;
+            padding:22px;
+            border-radius:12px;
+            box-shadow:0 4px 16px rgba(0,0,0,0.08);
         }
 
-        h1 {
-            margin: 0 0 8px;
-            text-align: center;
+        h2 {
+            margin:0 0 14px;
+            font-size:20px;
+            color:#333;
         }
 
-        .alcim {
-            text-align: center;
-            margin: 0 0 20px;
-            color: #555;
-        }
-
-        .szekcio-cim {
-            font-size: 18px;
-            font-weight: bold;
-            margin: 22px 0 10px;
-        }
-
-        .mezo-csoport {
-            margin-bottom: 16px;
+        .mezo {
+            margin-bottom:16px;
         }
 
         label {
-            display: block;
-            font-weight: bold;
-            margin-bottom: 4px;
+            font-weight:bold;
+            margin-bottom:4px;
+            display:block;
         }
 
-        label span.kotelezo {
-            color: #e53935;
-            font-weight: normal;
-            font-size: 13px;
-            margin-left: 4px;
+        .kotelezo {
+            color:#d32f2f;
+            font-weight:normal;
         }
 
-        input[type="text"],
-        input[type="email"],
-        input[type="tel"],
-        input[type="date"],
-        select {
-            width: 100%;
-            padding: 10px 12px;
-            border-radius: 6px;
-            border: 1px solid #ccc;
-            font-size: 14px;
-            box-sizing: border-box;
+        input, select {
+            width:100%;
+            padding:10px;
+            border-radius:8px;
+            border:1px solid #ccc;
+            font-size:15px;
         }
 
-        .info-szoveg {
-            font-size: 13px;
-            color: #777;
-            margin-top: 4px;
+        .next-btn {
+            width:100%;
+            padding:16px;
+            border:none;
+            border-radius:10px;
+            background:#ff8c00;
+            color:white;
+            font-size:18px;
+            font-weight:bold;
+            cursor:pointer;
+            margin-top:20px;
         }
 
-        .fo-gomb {
-            background: #f57c00;
-            color: #fff;
-            border: none;
-            border-radius: 8px;
-            padding: 14px 24px;
-            font-size: 16px;
-            cursor: pointer;
-            width: 100%;
-            margin-top: 18px;
-        }
-
-        .fo-gomb:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-
-        @media (max-width: 600px) {
-            .wrap {
-                padding: 20px 14px 24px;
-            }
+        .next-btn:disabled {
+            opacity:.5;
+            cursor:not-allowed;
         }
     </style>
 </head>
-
 <body>
 
+<header>Új megrendelés indítása</header>
+
 <div class="wrap">
-    <h1>Megrendelő – 1. lépés</h1>
-    <p class="alcim">Add meg az alapadatokat, utána jön a munka részletes leírása.</p>
 
-    <!-- 1. Kapcsolati adatok -->
-    <div class="szekcio-cim">1. Kapcsolati adatok</div>
+    <h2>1. Alapadatok</h2>
 
-    <div class="mezo-csoport">
-        <label for="nev">Neved <span class="kotelezo">(kötelező)</span></label>
-        <input type="text" id="nev" placeholder="Pl.: Kovács Péter" />
+    <div class="mezo">
+        <label>Neved <span class="kotelezo">(kötelező)</span></label>
+        <input type="text" id="nev" placeholder="Pl.: Kiss József">
     </div>
 
-    <div class="mezo-csoport">
-        <label for="elerhetoseg">Telefonszám vagy e-mail <span class="kotelezo">(kötelező)</span></label>
-        <input type="text" id="elerhetoseg" placeholder="Pl.: +36 30 123 4567 vagy valami@valami.hu" />
-        <div class="info-szoveg">
-            Ez az adat csak a kiválasztott szakiknak látszik majd.
-        </div>
+    <div class="mezo">
+        <label>Telefonszám vagy e-mail <span class="kotelezo">(kötelező)</span></label>
+        <input type="text" id="elerhetoseg" placeholder="+36 30 ... vagy email">
     </div>
 
-    <!-- 2. Helyszín -->
-    <div class="szekcio-cim">2. A munka helyszíne</div>
-
-    <div class="mezo-csoport">
-        <label for="varos">Város / kerület <span class="kotelezo">(kötelező)</span></label>
-        <input type="text" id="varos" placeholder="Pl.: Budapest II. kerület" />
+    <div class="mezo">
+        <label>Város / kerület <span class="kotelezo">(kötelező)</span></label>
+        <input type="text" id="varos" placeholder="Pl.: Budapest XXI. kerület">
     </div>
 
-    <div class="mezo-csoport">
-        <label for="cim">Pontos cím (nem kötelező)</label>
-        <input type="text" id="cim" placeholder="Pl.: Szilágyi Erzsébet fasor környéke" />
+    <div class="mezo">
+        <label>Keresett szakma <span class="kotelezo">(kötelező)</span></label>
+        <select id="szakma"></select>
     </div>
 
-    <!-- 3. Keresett szakma -->
-    <div class="szekcio-cim">3. Keresett szakma</div>
+    <button class="next-btn" id="nextBtn" disabled>Tovább a szakik listájához</button>
 
-    <div class="mezo-csoport">
-        <label for="szakma">Választott fő szakma <span class="kotelezo">(kötelező)</span></label>
-        <select id="szakma">
-            <option value="">Válassz szakmát…</option>
-        </select>
-    </div>
-
-    <!-- 4. Időzítés -->
-    <div class="szekcio-cim">4. Mikor szeretnéd a munkát?</div>
-
-    <div class="mezo-csoport">
-        <label for="kezdesMin">Leghamarabb kezdhető</label>
-        <input type="date" id="kezdesMin">
-    </div>
-
-    <div class="mezo-csoport">
-        <label for="kezdesMax">Legkésőbb elkezdhető</label>
-        <input type="date" id="kezdesMax">
-    </div>
-
-    <div class="mezo-csoport">
-        <label for="hatarido">Végső határidő</label>
-        <input type="date" id="hatarido">
-    </div>
-
-    <!-- 5. Munka nagysága -->
-    <div class="szekcio-cim">5. A munka nagysága</div>
-
-    <div class="mezo-csoport">
-        <label for="meret">Körülbelüli méret</label>
-        <select id="meret">
-            <option value="">Nem tudom pontosan</option>
-            <option value="Kisebb javítás / 1 helyiség">Kisebb javítás / 1 helyiség</option>
-            <option value="Több helyiség, részleges felújítás">Több helyiség, részleges felújítás</option>
-            <option value="Nagyobb munka, komplett fürdő / konyha">Nagyobb munka, komplett fürdő / konyha</option>
-            <option value="Teljes lakásfelújítás (80–130 m²)">Teljes lakásfelújítás (80–130 m²)</option>
-        </select>
-    </div>
-
-    <!-- Gomb -->
-    <button class="fo-gomb" id="tovabb-gomb" disabled>
-        Tovább a munka részleteihez
-    </button>
 </div>
 
-<script>
-    /*  
-    ===============================================
-      JAVÍTOTT, MATCHING-KOMPATIBILIS SZAKMALISTA
-    ===============================================
-    */
+<script type="module">
 
-    const SZAKMAK = [
-        "Burkoló",
-        "Festő",
-        "Kőműves",
-        "Villanyszerelő",
-        "Vízszerelő",
-        "Gázszerelő",
-        "Gipszkartonszerelő",
-        "Teljes felújítás"
-    ];
+/* ===============================
+   FIREBASE
+================================ */
+import { db } from "./firebase-config.js";
+import {
+    collection,
+    doc,
+    setDoc,
+    serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-    function toltsdFelSzakmaSelectet() {
-        const sel = document.getElementById("szakma");
-        SZAKMAK.forEach(s => {
-            const opt = document.createElement("option");
-            opt.value = s;
-            opt.textContent = s;
-            sel.appendChild(opt);
-        });
-    }
 
-    // Visszatöltés a localStorage-ból
-    function visszatoltes() {
-        const mezok = [
-            "nev",
-            "elerhetoseg",
-            "varos",
-            "cim",
-            "kezdesMin",
-            "kezdesMax",
-            "hatarido",
-            "meret",
-            "szakma"
-        ];
+/* ===============================
+   SZAKMALISTA – BŐVÍTVE!
+================================ */
+const SZAKMAK = [
+    "Burkoló",
+    "Festő",
+    "Villanyszerelő",
+    "Gipszkartonszerelő",
+    "Kőműves",
+    "Vízszerelő",
+    "Gázkészülékszerelő",
+    "Autószerelő",
+    "Asztalos",
+    "Épületasztalos",
+    "Bútorasztalos",
+    "Bútor összeszerelő",
+    "Teljes lakásfelújítás"
+];
 
-        mezok.forEach(id => {
-            const el = document.getElementById(id);
-            const val = localStorage.getItem("mr_" + id);
-            if (val && el) el.value = val;
-        });
-    }
-
-    // Mentés localStorage-be
-    function initMezokMentese() {
-        const mezok = [
-            "nev",
-            "elerhetoseg",
-            "varos",
-            "cim",
-            "kezdesMin",
-            "kezdesMax",
-            "hatarido",
-            "meret",
-            "szakma"
-        ];
-
-        mezok.forEach(id => {
-            const el = document.getElementById(id);
-            if (!el) return;
-
-            const key = "mr_" + id;
-
-            const handler = () => {
-                localStorage.setItem(key, el.value);
-                ellenoriz();
-            };
-
-            el.addEventListener("input", handler);
-            el.addEventListener("change", handler);
-        });
-    }
-
-    // Kötelező mezők ellenőrzése
-    function ellenoriz() {
-        const ok =
-            document.getElementById("nev").value.trim() &&
-            document.getElementById("elerhetoseg").value.trim() &&
-            document.getElementById("varos").value.trim() &&
-            document.getElementById("szakma").value.trim();
-
-        document.getElementById("tovabb-gomb").disabled = !ok;
-    }
-
-    // Tovább gomb → részletek oldal
-    function initTovabb() {
-        document.getElementById("tovabb-gomb").addEventListener("click", () => {
-            window.location.href = "munka-reszletei.html";
-        });
-    }
-
-    document.addEventListener("DOMContentLoaded", () => {
-        toltsdFelSzakmaSelectet();
-        visszatoltes();
-        initMezokMentese();
-        ellenoriz();
-        initTovabb();
+function feltoltSzakmak() {
+    const sel = document.getElementById("szakma");
+    sel.innerHTML = `<option value="">Válassz szakmát…</option>`;
+    SZAKMAK.forEach(s => {
+        sel.innerHTML += `<option value="${s}">${s}</option>`;
     });
+}
+
+feltoltSzakmak();
+
+
+/* ===============================
+   VALIDÁLÁS
+================================ */
+const requiredFields = ["nev","elerhetoseg","varos","szakma"];
+
+function checkValid() {
+    const ok = requiredFields.every(id => {
+        return document.getElementById(id).value.trim() !== "";
+    });
+
+    document.getElementById("nextBtn").disabled = !ok;
+}
+
+requiredFields.forEach(id => {
+    document.getElementById(id).addEventListener("input", checkValid);
+});
+
+
+/* ===============================
+   ORDER ID GENERÁLÁSA
+================================ */
+function generateOrderId() {
+    return "ORD-" + Math.random().toString(36).substring(2,9).toUpperCase();
+}
+
+
+/* ===============================
+   MEGRENDELÉS MENTÉSE
+================================ */
+document.getElementById("nextBtn").onclick = async () => {
+
+    const nev = document.getElementById("nev").value.trim();
+    const el = document.getElementById("elerhetoseg").value.trim();
+    const varos = document.getElementById("varos").value.trim();
+    const szakma = document.getElementById("szakma").value.trim();
+
+    /* --- Locals --- */
+    localStorage.setItem("mr_nev", nev);
+    localStorage.setItem("mr_szakma", szakma);
+
+    /* --- Order ID --- */
+    const orderId = generateOrderId();
+
+    /* --- Firestore mentés --- */
+    await setDoc(doc(db, "orders", orderId), {
+        orderId,
+        megrendeloNev: nev,
+        elerhetoseg: el,
+        varos,
+        szakma,
+        status: "new",
+        createdAt: serverTimestamp()
+    });
+
+    /* --- Tovább a szakiválasztó oldalra --- */
+    window.location.href =
+        `valassz-szakit.html?megrendelonev=${encodeURIComponent(nev)}&szakma=${encodeURIComponent(szakma)}&orderId=${orderId}`;
+};
+
 </script>
 
 </body>
