@@ -74,4 +74,95 @@
                     lastActiveMinutes: i < 2 ? 0 : Math.floor(Math.random() * 115) + 5,
 
                     phone: "+3630" + Math.floor(1000000 + Math.random() * 8999999),
-                    email: "info@" + szakma.replace(/[^a-z0-9]/gi,
+                    email: "info@" + szakma.replace(/[^a-z0-9]/gi, "").toLowerCase() + ".hu",
+
+                    fakeChat: {
+                        enabled: true,
+                        messageCount: 0
+                    }
+                });
+            }
+        });
+
+        return list;
+    }
+
+    const FAKE_SZAKIK = generateFakeWorkers();
+
+    // -----------------------------------------
+    // 6) VALÓDI SZAKIK (Te + Zsolti)
+    // -----------------------------------------
+    const REAL_SZAKIK = [
+        {
+            name: "Csabi",
+            profession: ["Festő", "Burkoló", "Gipszkarton", "Teljes felújítás"],
+            phone: "+36201234567",
+            email: "csabi@example.com",
+            isReal: true,
+            isOnline: true,
+            priority: 999
+        },
+        {
+            name: "Zsolti",
+            profession: ["Villanyszerelő"],
+            phone: "+36307654321",
+            email: "zsolti@example.com",
+            isReal: true,
+            isOnline: true,
+            priority: 998
+        }
+    ];
+
+    // -----------------------------------------
+    // 7) VÉGLEGES LISTA
+    // -----------------------------------------
+    const SZAKIK = [
+        ...REAL_SZAKIK,
+        ...FAKE_SZAKIK
+    ];
+
+    // -----------------------------------------
+    // 8) EXPORT
+    // -----------------------------------------
+    window.SzakiAdatok = {
+
+        getAllSzakik: () => SZAKIK.map(s => structuredClone(s)),
+
+        findByProfession: szakma => SZAKIK
+            .filter(sz => {
+                if (Array.isArray(sz.profession))
+                    return sz.profession.includes(szakma);
+                return sz.profession === szakma;
+            })
+            .map(s => structuredClone(s)),
+
+        getOnlineSzakik: szakma => SZAKIK
+            .filter(sz => sz.isOnline)
+            .filter(sz => {
+                if (Array.isArray(sz.profession))
+                    return sz.profession.includes(szakma);
+                return sz.profession === szakma;
+            })
+            .map(s => structuredClone(s)),
+
+        getCalendarBasedBackup: szakma => SZAKIK
+            .filter(sz => !sz.isOnline)
+            .filter(sz => {
+                if (Array.isArray(sz.profession))
+                    return sz.profession.includes(szakma);
+                return sz.profession === szakma;
+            })
+            .sort((a, b) => b.lastActiveMinutes - a.lastActiveMinutes)
+            .map(s => structuredClone(s)),
+
+        getMaskedPhone: sz => maskPhone(sz?.phone || ""),
+        getMaskedEmail: sz => maskEmail(sz?.email || ""),
+
+        // last active formázása
+        getLastActiveLabel: szaki => {
+            if (szaki.lastActiveMinutes === 0) return "most online";
+            return `${szaki.lastActiveMinutes} perce volt aktív`;
+        }
+    };
+
+})();
