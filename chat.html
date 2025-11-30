@@ -5,7 +5,6 @@
   <title>Chat – Szaki-App</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!-- 🔥 CACHE TILTÁS – GITHUB PAGES FIX -->
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -64,21 +63,14 @@
   <button class="send-btn" id="send-btn">Küldés</button>
 </div>
 
-<!-- 🔥 A SCRIPT KÜLÖN FÁJL NÉLKÜL, CACHE FIX-SZEL -->
 <script type="module">
 
-  /* ============================================
-     FIREBASE
-  ============================================= */
-  import { db } from "./firebase-config.js?v=3";
+  import { db } from "./firebase-config.js?v=5";
   import {
-      collection, doc, addDoc, query, orderBy, onSnapshot,
-      serverTimestamp, updateDoc
-  } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js?v=3";
+      collection, doc, setDoc, addDoc, query,
+      orderBy, onSnapshot, serverTimestamp, updateDoc
+  } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js?v=5";
 
-  /* ============================================
-     PARAMÉTEREK
-  ============================================= */
   const params = new URLSearchParams(window.location.search);
 
   let USER_NAME = params.get("sender") || localStorage.getItem("szakiName");
@@ -90,38 +82,28 @@
       localStorage.setItem("szakiName", USER_NAME);
   }
 
-  const isFakeWorker =
-      PARTNER_NAME !== "Csabi" &&
-      PARTNER_NAME !== "Zsolti" &&
-      !PARTNER_NAME.toLowerCase().includes("admin");
-
-  let fakeMessageCount = 0;
-
   const ROOM_ID = [USER_NAME.toLowerCase(), PARTNER_NAME.toLowerCase()].sort().join("__");
 
   document.getElementById("top-bar").innerHTML =
     `<b>Te:</b> ${USER_NAME} &nbsp; | &nbsp;
      <b>Szakember:</b> ${PARTNER_NAME}
-     ${ORDER_ID ? ` | <b>Munka ID:</b> ${ORDER_ID}` : ""}`;
+     ${ORDER_ID ? " | <b>Munka ID:</b> " + ORDER_ID : ""}`;
 
-  /* ============================================
-     FIRESTORE REF
-  ============================================= */
   const chatRef = doc(db, "chats", ROOM_ID);
   const messagesRef = collection(db, "chats", ROOM_ID, "uzenetek");
 
+  /* 🔥 FIX: ha nem létezik → létrehozzuk */
   try {
-      await updateDoc(chatRef, {
+      await setDoc(chatRef, {
           roomId: ROOM_ID,
-          members: { you: USER_NAME, partner: PARTNER_NAME, orderId: ORDER_ID },
-          status: "active",
-          lastMessageAt: serverTimestamp()
-      });
-  } catch (e) {}
+          createdAt: serverTimestamp(),
+          members: { you: USER_NAME, partner: PARTNER_NAME },
+          status: "active"
+      }, { merge: true });
+  } catch (e) {
+      console.error("setDoc error:", e);
+  }
 
-  /* ============================================
-     REALTIME LISTENER
-  ============================================= */
   const chatBox = document.getElementById("chat-box");
   const q = query(messagesRef, orderBy("timestamp"));
 
@@ -131,24 +113,18 @@
           const d = m.data();
           const p = document.createElement("p");
           p.className = "msg";
-
-          const ownClass = d.senderName === USER_NAME ? "own" : "";
+          const own = d.senderName === USER_NAME ? "own" : "";
           const time = d.timestamp?.toDate().toLocaleTimeString("hu-HU",
                       {hour:"2-digit",minute:"2-digit"});
 
           p.innerHTML =
-            `<span class="${ownClass}">${d.senderName}:</span> ` +
-            `${escapeHtml(d.text)} <span class="meta">(${time})</span>`;
-
+            `<span class="${own}">${d.senderName}:</span> ${d.text}
+             <span class="meta">(${time})</span>`;
           chatBox.appendChild(p);
       });
-
       chatBox.scrollTop = chatBox.scrollHeight;
   });
 
-  /* ============================================
-     ÜZENET KÜLDÉS
-  ============================================= */
   document.getElementById("send-btn").onclick = sendMsg;
   document.getElementById("message-input").onkeydown = e => {
       if (e.key === "Enter") sendMsg();
@@ -161,66 +137,14 @@
 
       await addDoc(messagesRef, {
           senderName: USER_NAME,
-          text,
+          text: text,
           timestamp: serverTimestamp()
       });
 
-      await updateDoc(chatRef, { lastMessageAt: serverTimestamp() });
-
-      /* 🔥 VÉGRE FIXEN TÖRLI + FÓKUSZT ADJA VISSZA */
       input.value = "";
       input.focus();
-
-      if (isFakeWorker) handleFakeWorkerReply();
   }
 
-  /* ============================================
-     ÁL-SZAKI AI
-  ============================================= */
-  const fakeReplies = [
-      "Szia! Köszi, hogy írtál! Sajnos most tele vagyok.",
-      "Most épp be vagyok táblázva, ne haragudj!",
-      "Szia! Most nincs kapacitásom új munkára.",
-      "Köszi az üzenetet! Most nem tudok több munkát vállalni."
-  ];
-
-  const byeReplies = [
-      "Szép napot kívánok! 😊",
-      "Sok sikert a munkához! 🙂",
-      "Köszönöm, vigyázz magadra!",
-      "További szép napot!"
-  ];
-
-  async function handleFakeWorkerReply() {
-      fakeMessageCount++;
-
-      if (fakeMessageCount === 1) {
-          await addDoc(messagesRef, {
-              senderName: PARTNER_NAME,
-              text: fakeReplies[Math.floor(Math.random() * fakeReplies.length)],
-              timestamp: serverTimestamp()
-          });
-          return;
-      }
-
-      if (fakeMessageCount === 2) {
-          await addDoc(messagesRef, {
-              senderName: PARTNER_NAME,
-              text: byeReplies[Math.floor(Math.random() * byeReplies.length)],
-              timestamp: serverTimestamp()
-          });
-
-          await addDoc(messagesRef, {
-              senderName: "Rendszer",
-              text: `${PARTNER_NAME} kilépett a beszélgetésből.`,
-              timestamp: serverTimestamp()
-          });
-      }
-  }
-
-  /* ============================================
-     HTML ESCAPE
-  ============================================= */
   function escapeHtml(s){
       const div = document.createElement("div");
       div.innerText = s;
