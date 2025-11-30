@@ -7,16 +7,11 @@
 
   <style>
     body { margin:0; padding:0; background:#f5f5f5; font-family:Arial,sans-serif; }
+    header { background:#ff8c00; padding:12px 16px; color:#fff;
+             font-weight:bold; font-size:18px; text-align:center; }
 
-    header {
-      background:#ff8c00; padding:12px 16px; color:#fff;
-      font-weight:bold; font-size:18px; text-align:center;
-    }
-
-    .top-bar {
-      max-width:900px; margin:0 auto; background:white;
-      padding:10px 14px; border-bottom:1px solid #eee; font-size:13px;
-    }
+    .top-bar { max-width:900px; margin:0 auto; background:white;
+               padding:10px 14px; border-bottom:1px solid #eee; font-size:13px; }
 
     #chat-box{
       max-width:900px; margin:12px auto; padding:12px 14px;
@@ -28,10 +23,8 @@
     .own{ font-weight:bold; }
     .meta{ font-size:11px; color:#777; margin-left:6px; }
 
-    .input-row{
-      max-width:900px; margin:0 auto 14px; padding:0 14px;
-      display:flex; gap:8px;
-    }
+    .input-row{ max-width:900px; margin:0 auto 14px; padding:0 14px;
+                display:flex; gap:8px; }
 
     #message-input{
       flex:1; padding:10px; border-radius:8px;
@@ -44,58 +37,6 @@
       cursor:pointer;
     }
 
-    /* ---- POPUP ---- */
-    #rating-popup {
-      position: fixed;
-      top:0; left:0; right:0; bottom:0;
-      background: rgba(0,0,0,0.55);
-      display:none;
-      justify-content:center;
-      align-items:center;
-      z-index:999;
-    }
-
-    #rating-box {
-      background:white;
-      width:90%;
-      max-width:420px;
-      padding:20px;
-      border-radius:12px;
-      text-align:center;
-      box-shadow:0 4px 20px rgba(0,0,0,0.25);
-    }
-
-    .star {
-      font-size:32px;
-      cursor:pointer;
-      color:#ddd;
-    }
-    .star.active {
-      color:#ffb300;
-    }
-
-    textarea {
-      width:100%;
-      padding:10px;
-      margin-top:12px;
-      border-radius:8px;
-      border:1px solid #aaa;
-      resize:none;
-      height:80px;
-    }
-
-    #submit-rating {
-      margin-top:14px;
-      width:100%;
-      padding:12px;
-      border:none;
-      border-radius:8px;
-      background:#ff8c00;
-      color:white;
-      font-size:15px;
-      font-weight:bold;
-      cursor:pointer;
-    }
   </style>
 </head>
 
@@ -109,26 +50,6 @@
   <p><i>Csatlakoztál a beszélgetéshez…</i></p>
 </div>
 
-<!-- ------------------ ÉRTÉKELŐ POPUP ------------------- -->
-<div id="rating-popup">
-  <div id="rating-box">
-    <h3>Értékeld a szakembert</h3>
-
-    <div id="stars">
-      <span class="star" data-v="1">★</span>
-      <span class="star" data-v="2">★</span>
-      <span class="star" data-v="3">★</span>
-      <span class="star" data-v="4">★</span>
-      <span class="star" data-v="5">★</span>
-    </div>
-
-    <textarea id="rating-text" placeholder="Rövid vélemény…"></textarea>
-
-    <button id="submit-rating">Értékelés elküldése</button>
-  </div>
-</div>
-<!-- ------------------------------------------------------ -->
-
 <div class="input-row">
   <input type="text" id="message-input" placeholder="Írj üzenetet…" />
   <button class="send-btn" id="send-btn">Küldés</button>
@@ -136,13 +57,18 @@
 
 <script type="module">
 
-  import { app, db } from "./firebase-config.js";
+  /* ============================================
+     FIREBASE
+  ============================================= */
+  import { db } from "./firebase-config.js";
   import {
       collection, doc, addDoc, query, orderBy, onSnapshot,
-      serverTimestamp, updateDoc, setDoc, getDocs
+      serverTimestamp, updateDoc
   } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-  /* ============ PARAMÉTEREK =============== */
+  /* ============================================
+     PARAMÉTEREK
+  ============================================= */
   const params = new URLSearchParams(window.location.search);
 
   let USER_NAME = params.get("sender") || localStorage.getItem("szakiName");
@@ -154,31 +80,39 @@
       localStorage.setItem("szakiName", USER_NAME);
   }
 
+  // --- Ál-szaki felismerés ---
+  const isFakeWorker =
+      PARTNER_NAME !== "Csabi" &&
+      PARTNER_NAME !== "Zsolti" &&
+      !PARTNER_NAME.toLowerCase().includes("admin");
+
+  let fakeMessageCount = 0;
+
   const ROOM_ID = [USER_NAME.toLowerCase(), PARTNER_NAME.toLowerCase()].sort().join("__");
 
   document.getElementById("top-bar").innerHTML =
     `<b>Te:</b> ${USER_NAME} &nbsp; | &nbsp;
      <b>Szakember:</b> ${PARTNER_NAME}
-     ${ORDER_ID ? ` | <b>Megrendelés azonosító:</b> ${ORDER_ID}` : ""}`;
+     ${ORDER_ID ? ` | <b>Munka azonosító:</b> ${ORDER_ID}` : ""}`;
 
-  /* ============ FIRESTORE REFERENCIÁK =============== */
+  /* ============================================
+     FIRESTORE REFERENCIÁK
+  ============================================= */
   const chatRef = doc(db, "chats", ROOM_ID);
   const messagesRef = collection(db, "chats", ROOM_ID, "uzenetek");
 
   try {
       await updateDoc(chatRef, {
           roomId: ROOM_ID,
-          members: {
-              you: USER_NAME,
-              partner: PARTNER_NAME,
-              orderId: ORDER_ID
-          },
+          members: { you: USER_NAME, partner: PARTNER_NAME, orderId: ORDER_ID },
           status: "active",
           lastMessageAt: serverTimestamp()
       });
   } catch (e) {}
 
-  /* ============ CHAT FIGYELŐ =============== */
+  /* ============================================
+     CHAT LISTENER
+  ============================================= */
   const chatBox = document.getElementById("chat-box");
   const q = query(messagesRef, orderBy("timestamp"));
 
@@ -186,12 +120,12 @@
       chatBox.innerHTML = "";
       snap.forEach(m => {
           const d = m.data();
-
           const p = document.createElement("p");
           p.className = "msg";
 
           const own = d.senderName === USER_NAME ? "own" : "";
-          const time = d.timestamp?.toDate().toLocaleTimeString("hu-HU",{hour:"2-digit",minute:"2-digit"});
+          const time = d.timestamp?.toDate().toLocaleTimeString("hu-HU",
+                      {hour:"2-digit",minute:"2-digit"});
 
           p.innerHTML =
             `<span class="${own}">${d.senderName}:</span> ` +
@@ -203,7 +137,9 @@
       chatBox.scrollTop = chatBox.scrollHeight;
   });
 
-  /* ============ ÜZENET KÜLDÉS =============== */
+  /* ============================================
+     ÜZENET KÜLDÉS
+  ============================================= */
   document.getElementById("send-btn").onclick = sendMsg;
   document.getElementById("message-input").onkeydown = e => {
       if (e.key === "Enter") sendMsg();
@@ -220,90 +156,75 @@
           timestamp: serverTimestamp()
       });
 
-      await updateDoc(chatRef, {
-          lastMessageAt: serverTimestamp()
-      });
+      await updateDoc(chatRef, { lastMessageAt: serverTimestamp() });
 
       input.value = "";
+
+      // ál-szaki válasz
+      if (isFakeWorker) {
+          handleFakeWorkerReply();
+      }
   }
 
-  /* =====================================================
-       MEGRENDELŐ ÉRTÉKELŐ POPUP
-  ====================================================== */
+  /* ============================================
+     ÁLSZAKI AI VÁLASZOK
+  ============================================= */
+  const fakeReplies = [
+      "Szia! Köszi, hogy írtál! Most sajnos teljesen tele vagyok, nem tudok új munkát vállalni.",
+      "Üdv! Nagyon sajnálom, de épp be vagyok táblázva. Remélem találsz gyorsan szakembert!",
+      "Szia! Most nincs kapacitásom új munkára, ne haragudj.",
+      "Köszönöm az üzenetet! Most épp nem tudok több feladatot vállalni.",
+      "Helló! Jelenleg mindent betábláztam, sajnálom."
+  ];
 
-  const popup = document.getElementById("rating-popup");
-  const stars = [...document.querySelectorAll(".star")];
-  let selectedStars = 0;
+  const byeReplies = [
+      "További szép napot kívánok! 😊",
+      "Sok sikert a munkához! 🙂",
+      "Szép napot, és köszi a megkeresést!",
+      "Vigyázz magadra, szép napot!",
+      "Köszönöm még egyszer, viszlát!"
+  ];
 
-  stars.forEach(s => {
-      s.onclick = () => {
-          selectedStars = Number(s.dataset.v);
-          stars.forEach(st => st.classList.remove("active"));
-          for (let i=0; i<selectedStars; i++) stars[i].classList.add("active");
-      };
-  });
+  async function handleFakeWorkerReply() {
 
-  function openRatingPopup(){
-      popup.style.display = "flex";
-  }
+      fakeMessageCount++;
 
-  /* ----- ÉRTÉKELÉS KÜLDÉSE ----- */
-  document.getElementById("submit-rating").onclick = async () => {
+      // 1. üzenet – udvarias elutasítás
+      if (fakeMessageCount === 1) {
+          const msg = fakeReplies[Math.floor(Math.random() * fakeReplies.length)];
 
-      const text = document.getElementById("rating-text").value.trim();
-
-      if (selectedStars < 1) {
-          alert("Adj csillagot!");
+          await addDoc(messagesRef, {
+              senderName: PARTNER_NAME,
+              text: msg,
+              timestamp: serverTimestamp()
+          });
           return;
       }
 
-      // --- ratings gyűjtemény ---
-      await addDoc(collection(db, "ratings"), {
-          szakiName: PARTNER_NAME,
-          fromUser: USER_NAME,
-          stars: selectedStars,
-          text,
-          createdAt: serverTimestamp()
-      });
+      // 2. üzenet – elköszönés
+      if (fakeMessageCount === 2) {
+          const msg = byeReplies[Math.floor(Math.random() * byeReplies.length)];
 
-      // --- ratingSummary frissítése ---
-      await updateRatingSummary(PARTNER_NAME);
+          await addDoc(messagesRef, {
+              senderName: PARTNER_NAME,
+              text: msg,
+              timestamp: serverTimestamp()
+          });
 
-      alert("Köszönjük az értékelést!");
-      popup.style.display = "none";
-  };
+          // kilépés jelzése
+          await addDoc(messagesRef, {
+              senderName: "Rendszer",
+              text: `${PARTNER_NAME} kilépett a beszélgetésből.`,
+              timestamp: serverTimestamp()
+          });
 
-  async function updateRatingSummary(szakiName){
-      const snap = await getDocs(collection(db, "ratings"));
-      let sum = 0, count = 0;
-
-      snap.forEach(d => {
-          const r = d.data();
-          if (r.szakiName === szakiName){
-              sum += r.stars;
-              count++;
-          }
-      });
-
-      await setDoc(doc(db, "szakik", szakiName, "ratingSummary", "stats"), {
-          avg: count ? (sum / count) : 0,
-          count
-      });
+          return;
+      }
   }
 
-  /* =====================================================
-       CHAT BEZÁRÁSAKOR MUTASSUK AZ ÉRTÉKELŐ POPUPOT
-  ====================================================== */
-
-  window.addEventListener("beforeunload", () => {
-      if (USER_NAME !== PARTNER_NAME) {
-          openRatingPopup();
-      }
-  });
-
-  /* =====================================================
-       SEGÉDEK
-  ====================================================== */
+  /* ============================================
+     SEGÉD – HTML sanitization
+  ============================================= */
   function escapeHtml(s){
       const div = document.createElement("div");
       div.innerText = s;
