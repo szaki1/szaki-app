@@ -145,26 +145,31 @@
       if (e.key === "Enter") sendMsg();
   };
 
-  async function sendMsg() {
-      const input = document.getElementById("message-input");
-      const text = input.value.trim();
-      if (!text) return;
+async function sendMsg() {
+    const input = document.getElementById("message-input");
+    const text = input.value.trim();
+    if (!text) return;
 
-      await addDoc(messagesRef, {
-          senderName: USER_NAME,
-          text,
-          timestamp: serverTimestamp()
-      });
+    // ÜZENET TÁROLÁSA
+    await addDoc(messagesRef, {
+        senderName: USER_NAME,
+        text,
+        timestamp: serverTimestamp()
+    });
 
-      await updateDoc(chatRef, { lastMessageAt: serverTimestamp() });
+    // CHAT META FRISSÍTÉSE
+    await updateDoc(chatRef, { lastMessageAt: serverTimestamp() });
 
-      input.value = "";
+    // INPUT MEZŐ ÜRÍTÉSE — EZ A FONTOS!!!
+    input.value = "";
+    input.focus();
 
-      // ál-szaki válasz
-      if (isFakeWorker) {
-          handleFakeWorkerReply();
-      }
-  }
+    // Ál-szaki automatikus válasz
+    if (isFakeWorker) {
+        handleFakeWorkerReply();
+    }
+}
+
 
   /* ============================================
      ÁLSZAKI AI VÁLASZOK
