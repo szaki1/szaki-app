@@ -44,9 +44,31 @@
             box-shadow:0 2px 10px rgba(0,0,0,0.1);
         }
 
+        .szaki-top{
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+        }
+
         .szaki-name{
             font-size:18px;
             font-weight:bold;
+        }
+
+        .status{
+            font-size:13px;
+            padding:4px 10px;
+            border-radius:20px;
+            color:white;
+        }
+
+        .online{ background:#28a745; }
+        .offline{ background:#777; }
+
+        .lastseen{
+            font-size:12px;
+            color:#666;
+            margin-top:6px;
         }
 
         .szaki-profession{
@@ -75,6 +97,18 @@
         .btn-chat{ background:#007bff; }
         .btn-choose{ background:#28a745; }
         .btn-reject{ background:#c00; }
+
+        /* Reklámhely */
+        .ads-box{
+            background:#fff7e6;
+            padding:15px;
+            border-radius:10px;
+            text-align:center;
+            margin:20px 0;
+            font-size:14px;
+            border:1px dashed #ff8c00;
+            color:#333;
+        }
     </style>
 </head>
 
@@ -86,12 +120,18 @@
 
     <div id="info-box" class="info-box"></div>
 
+    <!-- Reklám hely -->
+    <div class="ads-box">🔶 Reklám hely (Google Ads / saját banner)</div>
+
     <div id="szaki-lista"></div>
 
 </div>
 
-<!-- STATIKUS SZAKI LISTA (Pótlista, ha Firestore üres) -->
+<!-- STATIKUS SZAKI LISTA -->
 <script src="szaki-adatok.js"></script>
+
+<!-- ONLINE MOTOR -->
+<script src="szaki-online-engine.js"></script>
 
 <!-- MATCHING FLOW -->
 <script src="matching-job-flow.js"></script>
@@ -100,14 +140,11 @@
 <script type="module">
 
 import { db } from "./firebase-config.js";
-
 import {
     collection,
     query,
     where,
-    getDocs,
-    doc,
-    getDoc
+    getDocs
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 
@@ -132,7 +169,7 @@ document.getElementById("info-box").innerHTML = `
 
 
 // =============================
-// SZAKIK LEKÉRÉSE FIRESTORE-BÓL
+// SZAKIK BETÖLTÉSE
 // =============================
 async function loadWorkers() {
 
@@ -146,16 +183,14 @@ async function loadWorkers() {
             collection(db, "szakik"),
             where("profession", "==", szakma)
         );
-
         const snap = await getDocs(q);
-
         snap.forEach(d => items.push(d.data()));
 
     } catch (e) {
         console.error(e);
     }
 
-    // Ha üres a Firestore → fallback local lista
+    // Firestore üres → SZAKI-ADATOK fallback
     if (items.length === 0) {
         items = window.SzakiAdatok.findByProfession(szakma);
     }
@@ -164,6 +199,7 @@ async function loadWorkers() {
 
     items.forEach(sz => renderCard(sz));
 }
+
 
 // =============================
 // SZAKI CARD KIRAJZOLÓ
@@ -175,9 +211,22 @@ function renderCard(sz) {
     const card = document.createElement("div");
     card.className = "szaki-card";
 
+    const onlineLabel = sz.isOnline
+        ? `<span class="status online">🟢 online</span>`
+        : `<span class="status offline">⚫ offline</span>`;
+
+    const lastSeen = !sz.isOnline && sz.lastSeenMinutes
+        ? `<div class="lastseen">Utoljára aktív: ${sz.lastSeenMinutes} perce</div>`
+        : "";
+
     card.innerHTML = `
-        <div class="szaki-name">${sz.name}</div>
+        <div class="szaki-top">
+            <div class="szaki-name">${sz.name}</div>
+            ${onlineLabel}
+        </div>
+
         <div class="szaki-profession">${sz.profession}</div>
+        ${lastSeen}
 
         <div class="actions">
             <button class="btn-chat">Chat</button>
@@ -188,7 +237,8 @@ function renderCard(sz) {
 
     // CHAT
     card.querySelector(".btn-chat").onclick = () => {
-        window.location.href = `chat.html?sender=${encodeURIComponent(megrendelonev)}&partner=${encodeURIComponent(sz.name)}&orderId=${orderId}`;
+        window.location.href =
+            `chat.html?sender=${encodeURIComponent(megrendelonev)}&partner=${encodeURIComponent(sz.name)}&orderId=${orderId}`;
     };
 
     // VÁLASZTÁS
