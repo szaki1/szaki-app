@@ -2,79 +2,197 @@
 <html lang="hu">
 <head>
     <meta charset="UTF-8">
-    <title>Szaki profil – SzakiChat</title>
+    <title>Szaki Panel – SzakiChat</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="style.css">
+
+    <style>
+        body {
+            background:#f4f4f4;
+            margin:0;
+            font-family:Arial, sans-serif;
+        }
+
+        header {
+            background:#007aff;
+            color:white;
+            padding:16px;
+            text-align:center;
+            font-size:20px;
+            font-weight:bold;
+        }
+
+        .box {
+            background:white;
+            padding:18px;
+            border-radius:12px;
+            margin:14px;
+            box-shadow:0 2px 10px rgba(0,0,0,0.08);
+        }
+
+        .btn {
+            width:100%;
+            padding:12px;
+            margin-top:14px;
+            font-size:16px;
+            background:#007aff;
+            color:white;
+            border:none;
+            border-radius:8px;
+            cursor:pointer;
+        }
+
+        .btn:hover {
+            transform:scale(1.02);
+        }
+
+        #logoutBtn {
+            background:#c00;
+        }
+
+        .ads-box {
+            text-align:center;
+            padding:16px;
+            background:white;
+            border-radius:12px;
+            margin:14px;
+            font-size:15px;
+            color:#444;
+            box-shadow:0 2px 10px rgba(0,0,0,0.08);
+        }
+
+        .statusBadge {
+            font-weight:bold;
+            margin-left:4px;
+        }
+    </style>
 </head>
 
 <body>
 
-<header>Szaki – Profil</header>
+<header>SzakiChat – Szaki Panel</header>
 
 <div class="container">
 
-    <!-- NÉV -->
-    <div class="box">
-        <label><b>Neved:</b></label><br>
-        <input type="text" id="nameInput" class="input" placeholder="Add meg a neved">
-        <button class="btn" id="saveNameBtn">Mentés</button>
+    <!-- USER INFO -->
+    <div class="box" id="userBox">
+        Betöltés…
     </div>
 
-    <!-- SZAKMA -->
+    <!-- ONLINE / OFFLINE -->
     <div class="box">
-        <label><b>Szakmád:</b></label><br>
-        <select id="szakmaSelect" class="input">
-            <option value="">– Válassz szakmát –</option>
-            <option value="Burkoló">Burkoló</option>
-            <option value="Festő">Festő</option>
-            <option value="Gipszkarton szerelő">Gipszkarton szerelő</option>
-            <option value="Villanyszerelő">Villanyszerelő</option>
-            <option value="Kőműves">Kőműves</option>
-            <option value="Víz / Gáz / Fűtés">Víz / Gáz / Fűtés</option>
-        </select>
-
-        <button class="btn" id="saveSzakmaBtn" style="margin-top:12px;">
-            Szakma mentése
-        </button>
+        <h3>Állapot</h3>
+        <p><b>Online státusz:</b> <span id="status">–</span></p>
+        <button id="toggleOnline" class="btn">Online váltás</button>
     </div>
 
-    <!-- MEGOSZTÁS -->
+    <!-- CHAT LISTA -->
     <div class="box">
-        <b>Megosztások száma:</b><br>
-        <div id="shareCountBox" style="font-size:20px; margin:8px 0;">0 / 5</div>
-
-        <button class="btn" id="addShareBtn">Megosztottam! (+1)</button>
-
-        <p id="unlockInfo" style="margin-top:10px; font-size:15px; color:#777;">
-            Elérhetőség küldése zárolva.
-        </p>
+        <h3>Chat</h3>
+        <button onclick="window.location.href='chat-list.html'" class="btn">Chat megnyitása</button>
     </div>
+
+    <!-- REKLÁM -->
+    <div class="ads-box">
+        🔶 Itt lesznek a hirdetések (Google Ads / céges bannerek)
+    </div>
+
+    <!-- KIJELENTKEZÉS -->
+    <button id="logoutBtn" class="btn" style="margin:14px;">Kijelentkezés</button>
 
 </div>
 
-<!-- ❤️ Lebegő támogatás gomb -->
+
+<!-- ❤️ Lebegő támogatás -->
 <div id="supportFloatingBtn"
      onclick="window.open('https://www.paypal.com/donate/?hosted_button_id=QGU3WXVSCH22A','_blank')">
     <span class="heart">❤️</span> Támogasd a SzakiChat-et
 </div>
 
 
-<!-- 🔥 JAVASCRIPT LOGIKA – AUTOMATIKUSAN MŰKÖDIK -->
 <script type="module">
+/* ============================================================
+   FIREBASE IMPORT
+============================================================ */
+import { auth, db } from "./firebase-config.js";
+
 import {
-    loadSzakiProfile,
-    saveNameClick,
-    saveSzakmaClick,
-    addShareClick
-} from "./szaki-profil.js";
+    onAuthStateChanged,
+    signOut
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
-// Oldal betöltésekor adatok betöltése
-loadSzakiProfile();
+import {
+    doc,
+    getDoc,
+    updateDoc
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-// Gombok összekötése
-document.getElementById("saveNameBtn").onclick = saveNameClick;
-document.getElementById("saveSzakmaBtn").onclick = saveSzakmaClick;
-document.getElementById("addShareBtn").onclick = addShareClick;
+
+/* ============================================================
+   USER BETÖLTÉS
+============================================================ */
+let uid = localStorage.getItem("uid") || null;
+
+if (!uid) {
+    window.location.href = "login.html";
+}
+
+onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+        window.location.href = "login.html";
+        return;
+    }
+
+    uid = user.uid;
+
+    const ref = doc(db, "users", uid);
+    const snap = await getDoc(ref);
+
+    if (!snap.exists()) {
+        document.getElementById("userBox").innerHTML = "Hiba: nincs felhasználói adat!";
+        return;
+    }
+
+    const data = snap.data();
+
+    document.getElementById("userBox").innerHTML = `
+        <h3>Üdv, ${data.name || data.email}</h3>
+        <p><b>Szakma:</b> ${data.szakma || "Nincs megadva"}</p>
+    `;
+
+    document.getElementById("status").innerText =
+        data.online ? "🟢 Online" : "⚪ Offline";
+});
+
+
+/* ============================================================
+   ONLINE / OFFLINE VÁLTÁS
+============================================================ */
+document.getElementById("toggleOnline").onclick = async () => {
+    const ref = doc(db, "users", uid);
+    const snap = await getDoc(ref);
+    const act = snap.data().online;
+
+    await updateDoc(ref, { online: !act });
+
+    document.getElementById("status").innerText =
+        !act ? "🟢 Online" : "⚪ Offline";
+};
+
+
+/* ============================================================
+   KIJELENTKEZÉS
+============================================================ */
+document.getElementById("logoutBtn").onclick = async () => {
+    if (uid) {
+        await updateDoc(doc(db, "users", uid), { online: false });
+    }
+
+    await signOut(auth);
+    localStorage.clear();
+
+    window.location.href = "login.html";
+};
 </script>
 
 </body>
