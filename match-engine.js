@@ -1,85 +1,78 @@
-// ======================================================================
-//  SzakiChat – match-engine.js
-//  Automatikus szaki párosítás megrendelőnek
-// ======================================================================
+// =======================================================
+// MATCH ENGINE – Szaki kiválasztó logika (Végleges verzió)
+// =======================================================
 
 import { db } from "./firebase-config.js";
-
 import {
     collection,
     query,
     where,
     getDocs,
-    orderBy,
-    limit
+    doc,
+    getDoc
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-import { startChatWithSzaki } from "./chat-create.js";
 
-
-// ======================================================================
-//  SZAKI LISTA LEKÉRÉSE FIRESTORE-BÓL
-// ======================================================================
-export async function findSzakikBySzakma(szakma) {
+// -------------------------------------------------------
+// 1) Szakma alapján összes szaki lekérése
+// -------------------------------------------------------
+export async function getWorkersByProfession(profession) {
     const q = query(
         collection(db, "users"),
         where("role", "==", "szaki"),
-        where("szakma", "==", szakma)
+        where("szakma", "==", profession.toLowerCase())
     );
 
     const snap = await getDocs(q);
-    const szakik = [];
 
-    snap.forEach((d) => szakik.push({ uid: d.id, ...d.data() }));
+    const results = [];
+    snap.forEach(docu => {
+        results.push({
+            id: docu.id,
+            ...docu.data()
+        });
+    });
 
-    return szakik;
+    return results;
 }
 
 
-// ======================================================================
-//  PÁROSÍTÓ ALGORITMUS:
-//  1) Online szakik előre
-//  2) Ha nincs online → legutóbbi aktivitás szerint 3 szakival próbálkozik
-// ======================================================================
-export async function matchBestSzaki(szakma) {
-    const szakik = await findSzakikBySzakma(szakma);
+// -------------------------------------------------------
+// 2) Első kör: online szakik prioritása
+// -------------------------------------------------------
+export function filterOnlineFirst(workers) {
+    const online = workers.filter(w => w.online);
+    const offline = workers.filter(w => !w.online);
 
-    if (szakik.length === 0) return null;
-
-    // 1) ONLINE szakik kiemelése
-    const online = szakik.filter((s) => s.online === true);
-
-    if (online.length > 0) {
-        // A legfrissebb online legyen az első
-        online.sort((a, b) => (b.lastSeen?.seconds || 0) - (a.lastSeen?.seconds || 0));
-        return online[0];
-    }
-
-    // 2) Nincs online → válasszunk 3 legaktívabbat
-    szakik.sort((a, b) => (b.lastSeen?.seconds || 0) - (a.lastSeen?.seconds || 0));
-
-    return szakik.slice(0, 3);  // több jelöltet visszaad
+    return [...online, ...offline];
 }
 
 
-// ======================================================================
-//  CHAT INDÍTÁSA A LEGJOBB SZAKIVAL
-// ======================================================================
-export async function connectMegrendeloToSzaki(szakma) {
-    const match = await matchBestSzaki(szakma);
+// -------------------------------------------------------
+// 3) Második kör: naptár (később bővítjük)
+// Most placeholder: egyszerűen visszaad 3 szakembert
+// -------------------------------------------------------
+export function pickBest3(workers) {
+    if (workers.length <= 3) return workers;
+    return workers.slice(0, 3);
+}
 
-    if (!match) {
-        alert("Ehhez a szakmához jelenleg nincs elérhető szakember!");
-        return;
-    }
 
-    // Ha egy szaki van → azonnal chat
-    if (!Array.isArray(match)) {
-        return startChatWithSzaki(match.uid);
-    }
+// -------------------------------------------------------
+// 4) Match engine fő logika
+// -------------------------------------------------------
+export async function matchWorkers(profession) {
 
-    // Ha több szaki van → küldjük a megrendelést mindháromnak
-    for (const szaki of match) {
-        startChatWithSzaki(szaki.uid);
-    }
+    // szakemberek szűrése
+    const allWorkers = await getWorkersByProfession(profession);
+
+    if (allWorkers.length === 0) return [];
+
+    // online → majd offline
+    const sorted = filterOnlineFirst(allWorkers);
+
+    // top 3 kiválasztása
+    const best = pickBest3(sorted);
+
+    return best;  // [{id, name, online, szakma, ...}, ...]
 }
