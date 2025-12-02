@@ -7,84 +7,65 @@
     <link rel="stylesheet" href="style.css">
 
     <style>
+        body {
+            margin:0;
+            background:#f4f4f4;
+            font-family:Arial, sans-serif;
+        }
+
         header {
             background:#007aff;
             color:white;
             padding:16px;
-            font-size:22px;
             text-align:center;
-        }
-
-        .container {
-            max-width:450px;
-            margin:25px auto;
-            background:white;
-            padding:20px;
-            border-radius:12px;
-            box-shadow:0 4px 14px rgba(0,0,0,0.08);
+            font-size:20px;
+            font-weight:bold;
         }
 
         .box {
-            margin-bottom:28px;
+            background:white;
+            padding:18px;
+            margin:14px;
+            border-radius:12px;
+            box-shadow:0 2px 10px rgba(0,0,0,0.08);
         }
 
-        .input {
+        select {
             width:100%;
             padding:12px;
             border-radius:8px;
             border:1px solid #ccc;
-            margin-top:6px;
             font-size:16px;
+            margin-top:10px;
         }
 
         .btn {
             width:100%;
-            padding:12px;
+            padding:14px;
+            font-size:17px;
+            font-weight:bold;
             background:#007aff;
+            color:white;
             border:none;
             border-radius:8px;
-            color:white;
-            font-weight:bold;
+            margin-top:20px;
             cursor:pointer;
         }
 
-        .btn:disabled {
-            background:#999;
-            cursor:not-allowed;
+        .btn:hover {
+            transform:scale(1.02);
         }
 
         .ads-box {
-            background:#f1f1f1;
-            padding:14px;
-            border-radius:8px;
             text-align:center;
-            color:#777;
+            padding:16px;
+            background:white;
+            border-radius:12px;
+            margin:14px;
+            font-size:15px;
+            color:#444;
+            box-shadow:0 2px 10px rgba(0,0,0,0.08);
         }
-
-        /* ❤️ Pulzáló gomb */
-        @keyframes heartbeat {
-            0%{transform:scale(1);}
-            25%{transform:scale(1.25);}
-            40%{transform:scale(1);}
-            60%{transform:scale(1.25);}
-            100%{transform:scale(1);}
-        }
-        #supportFloatingBtn {
-            position:fixed;
-            bottom:22px;
-            right:22px;
-            background:#ff2d55;
-            color:white;
-            padding:14px 22px;
-            border-radius:40px;
-            display:flex;
-            align-items:center;
-            gap:10px;
-            font-weight:bold;
-            cursor:pointer;
-            box-shadow:0 4px 15px rgba(0,0,0,0.25);
-        }
-        .heart { animation:heartbeat 1.4s infinite; }
     </style>
 </head>
 
@@ -96,26 +77,24 @@
 
     <div class="box">
         <h3>Válassz szakmát</h3>
-        <p>Válaszd ki, milyen szakembert keresel.</p>
+        <p>Kérjük, válaszd ki, milyen szakembert keresel.</p>
 
-        <select id="szakma" class="input">
+        <select id="szakma">
             <option value="">– Válassz szakmát –</option>
-            <option value="Burkoló">Burkoló</option>
-            <option value="Festő">Festő</option>
-            <option value="Gipszkarton szerelő">Gipszkarton szerelő</option>
-            <option value="Villanyszerelő">Villanyszerelő</option>
-            <option value="Kőműves">Kőműves</option>
-            <option value="Víz / Gáz / Fűtés">Víz / Gáz / Fűtés</option>
+            <option value="burkoló">Burkoló</option>
+            <option value="festő">Festő</option>
+            <option value="gipszkarton szerelő">Gipszkarton szerelő</option>
+            <option value="villanyszerelő">Villanyszerelő</option>
+            <option value="kőműves">Kőműves</option>
+            <option value="víz / gáz / fűtés">Víz / Gáz / Fűtés</option>
         </select>
 
-        <button id="nextBtn" class="btn" style="margin-top:16px;" disabled>
-            Tovább
-        </button>
+        <button id="nextBtn" class="btn" disabled>Tovább</button>
     </div>
 
-    <div class="box" style="background:#fff4e6; padding:14px; border-radius:10px;">
+    <div class="box" style="background:#fff4e6;">
         <b>Az oldal használata ingyenes!</b><br><br>
-        A szakik elérhetőségének feloldásához oszd meg az oldalt legalább <b>5 helyen</b>.
+        A szakik valós telefonszáma csak legalább <b>5 megosztás</b> után érhető el.
     </div>
 
     <div class="ads-box">
@@ -124,100 +103,44 @@
 
 </div>
 
-<!-- ❤️ Lebegő gomb -->
+<!-- ❤️ TÁMOGATÓ GOMB -->
 <div id="supportFloatingBtn"
      onclick="window.open('https://www.paypal.com/donate/?hosted_button_id=QGU3WXVSCH22A','_blank')">
     <span class="heart">❤️</span> Támogasd a SzakiChat-et
 </div>
 
+<script>
+/* ============================================================
+   SZAKMA VÁLASZTÓ LOGIKA
+============================================================ */
 
-<script type="module">
-/* ============================================
-   Firebase import
-============================================ */
-import { auth, db } from "./firebase-config.js";
-import {
-    onAuthStateChanged
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import {
-    doc,
-    updateDoc,
-    getDoc
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
-/* ============================================
-   Belépés-ellenőrzés
-============================================ */
-let uid = null;
-let userData = null;
-
-onAuthStateChanged(auth, async (user) => {
-    if (!user) return window.location.href = "login.html";
-
-    uid = user.uid;
-
-    const ref = doc(db, "users", uid);
-    const snap = await getDoc(ref);
-
-    if (!snap.exists()) {
-        window.location.href = "profil.html";
-        return;
-    }
-
-    userData = snap.data();
-
-    // Ha szaki próbál itt lenni → visszadobjuk
-    if (userData.role !== "megrendelo") {
-        window.location.href = "szaki-panel.html";
-        return;
-    }
-
-    loadDefault();
-});
-
-
-/* ============================================
-   Funkció: mentett szakma visszatöltése
-============================================ */
-function loadDefault() {
-    const szakmaSel = document.getElementById("szakma");
-
-    if (userData.preferredSzakma) {
-        szakmaSel.value = userData.preferredSzakma;
-        document.getElementById("nextBtn").disabled = false;
-    }
-}
-
-
-/* ============================================
-   Választás kezelése
-============================================ */
 const szakmaSelect = document.getElementById("szakma");
 const nextBtn = document.getElementById("nextBtn");
 
-szakmaSelect.onchange = async () => {
-    const value = szakmaSelect.value.trim();
+// ha korábban mentett szakma van
+const saved = localStorage.getItem("mr_szakma");
+if (saved) {
+    szakmaSelect.value = saved;
+    nextBtn.disabled = false;
+}
 
+szakmaSelect.onchange = () => {
+    const value = szakmaSelect.value.trim();
     nextBtn.disabled = value === "";
 
     if (value) {
-        // mentjük Firestore-ba
-        await updateDoc(doc(db, "users", uid), {
-            preferredSzakma: value
-        });
+        // szakma mentése localStorage-be
+        localStorage.setItem("mr_szakma", value);
     }
 };
 
-
-/* ============================================
-   Tovább gomb
-============================================ */
 nextBtn.onclick = () => {
-    const v = szakmaSelect.value.trim();
-    if (!v) return;
+    const szakma = szakmaSelect.value.trim();
+    if (!szakma) return;
 
+    // átirányítás a szaki választó oldalra
     window.location.href =
-        "szaki-valasztas.html?szakma=" + encodeURIComponent(v);
+        "szakivalasztas.html?szakma=" + encodeURIComponent(szakma);
 };
 </script>
 
