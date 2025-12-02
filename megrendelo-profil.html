@@ -1,79 +1,56 @@
 <!DOCTYPE html>
 <html lang="hu">
 <head>
-    <meta charset="UTF-8" />
+    <meta charset="UTF-8">
     <title>Megrendelő profil – SzakiChat</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="style.css">
 
     <style>
+        body {
+            background:#f4f4f4;
+            margin:0;
+            font-family:Arial, sans-serif;
+        }
+
         header {
-            background: #007aff;
-            color: white;
-            padding: 16px;
-            font-size: 22px;
+            background:#007aff;
+            color:white;
+            padding:16px;
             text-align:center;
+            font-size:20px;
+            font-weight:bold;
         }
 
-        .container {
-            max-width: 420px;
-            margin: 25px auto;
-            background: white;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+        .box {
+            background:white;
+            border-radius:12px;
+            padding:18px;
+            box-shadow:0 2px 10px rgba(0,0,0,0.08);
+            margin:14px;
         }
-
-        .box { margin-bottom: 28px; }
 
         .infoText {
-            background:#f2f2f2;
-            padding:10px;
-            border-radius:8px;
-            margin-top:6px;
+            padding:10px 0;
+            font-size:18px;
+            font-weight:bold;
         }
 
         .btn {
-            width: 100%;
-            padding: 12px;
+            margin-top:12px;
+            padding:12px;
             background:#007aff;
             color:white;
-            font-weight:bold;
             border:none;
+            width:100%;
+            font-size:16px;
             border-radius:8px;
             cursor:pointer;
-            margin-top:10px;
         }
 
-        .btn:hover { transform: scale(1.03); }
-
-        /* ❤️ Pulzáló szív animáció */
-        @keyframes heartbeat {
-            0%{transform:scale(1);}
-            25%{transform:scale(1.25);}
-            40%{transform:scale(1);}
-            60%{transform:scale(1.25);}
-            100%{transform:scale(1);}
+        .btn:hover {
+            transform:scale(1.02);
         }
-
-        /* ❤️ Lebegő támogatás gomb */
-        #supportFloatingBtn {
-            position: fixed;
-            bottom: 22px;
-            right: 22px;
-            background:#ff2d55;
-            padding:14px 22px;
-            color:white;
-            border-radius:40px;
-            font-weight:bold;
-            display:flex;
-            gap:10px;
-            align-items:center;
-            cursor:pointer;
-            box-shadow:0 4px 14px rgba(0,0,0,0.3);
-        }
-
-        .heart { animation: heartbeat 1.4s infinite; }
     </style>
 </head>
 
@@ -83,67 +60,70 @@
 
 <div class="container">
 
-    <!-- NÉV -->
+    <!-- Név -->
     <div class="box">
         <b>Név:</b><br>
         <div id="nameDisplay" class="infoText">Betöltés...</div>
     </div>
 
-    <!-- SZEREP -->
+    <!-- Szerep -->
     <div class="box">
         <b>Szerep:</b><br>
         <div class="infoText">Megrendelő</div>
     </div>
 
-    <!-- MEGOSZTÁS -->
+    <!-- Megosztás -->
     <div class="box">
-        <b>Megosztások száma:</b><br>
-        <div id="shareCountBox" style="font-size:20px; margin-top:6px;" class="infoText">0 / 5</div>
+        <b>Megosztások száma:</b>
+        <div id="shareCountBox" class="infoText">0 / 5</div>
 
-        <button class="btn" onclick="addShare()">Megosztottam! (+1)</button>
+        <button class="btn" id="addShareBtn">Megosztottam! (+1)</button>
 
-        <p id="unlockInfo" style="margin-top:12px; font-size:15px;"></p>
+        <p id="unlockInfo" style="color:#777; margin-top:10px;">
+            Elérhetőség küldése: <b style="color:red;">Zárolva</b>
+        </p>
     </div>
 
-    <!-- KÉSŐBBI FUNKCIÓ -->
+    <!-- Korábbi beszélgetések -->
     <div class="box">
         <b>Korábbi beszélgetések:</b>
-        <div style="color:#777; font-size:14px;">(Hamarosan!)</div>
+        <p style="color:#777; font-size:14px;">Hamarosan…</p>
     </div>
 
 </div>
 
-<!-- ❤️ Lebegő gomb -->
+<!-- ❤️ Lebegő támogatás -->
 <div id="supportFloatingBtn"
      onclick="window.open('https://www.paypal.com/donate/?hosted_button_id=QGU3WXVSCH22A','_blank')">
-     <span class="heart">❤️</span> Támogasd a SzakiChat-et
+    <span class="heart">❤️</span> Támogasd a SzakiChat-et
 </div>
 
 
 <script type="module">
-/* ======================================================
+/* ============================================================
    FIREBASE IMPORT
-====================================================== */
-import { db, auth } from "./firebase-config.js";
-import {
-    doc, getDoc, updateDoc, setDoc
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+============================================================ */
+import { auth, db } from "./firebase-config.js";
 
 import {
     onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
-let uid = null;
-let userData = null;
+import {
+    doc,
+    getDoc,
+    updateDoc
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-/* ======================================================
+
+/* ============================================================
    FELHASZNÁLÓ BETÖLTÉSE
-====================================================== */
+============================================================ */
+let uid = null;
+let shareCount = 0;
+
 onAuthStateChanged(auth, async (user) => {
-    if (!user) {
-        window.location.href = "login.html";
-        return;
-    }
+    if (!user) return window.location.href = "login.html";
 
     uid = user.uid;
 
@@ -151,52 +131,45 @@ onAuthStateChanged(auth, async (user) => {
     const snap = await getDoc(ref);
 
     if (!snap.exists()) {
-        await setDoc(ref, {
-            name: "Ismeretlen",
-            role: "megrendelo",
-            shareCount: 0
-        }, { merge: true });
+        document.getElementById("nameDisplay").innerText = "Ismeretlen felhasználó";
+        return;
     }
 
-    userData = snap.data();
+    const data = snap.data();
 
-    document.getElementById("nameDisplay").innerText = userData.name || "Ismeretlen";
+    document.getElementById("nameDisplay").innerText =
+        data.name || data.email || "Nincs név";
 
+    shareCount = data.shareCount || 0;
     updateShareUI();
 });
 
 
-/* ======================================================
-   MEGOSZTÁS +1
-====================================================== */
-async function addShare() {
-    if (!userData.shareCount) userData.shareCount = 0;
-
-    if (userData.shareCount < 5) userData.shareCount++;
-    else userData.shareCount = 5;
+/* ============================================================
+   MEGOSZTÁS SZÁMLÁLÓ + MENTÉS
+============================================================ */
+document.getElementById("addShareBtn").onclick = async () => {
+    if (shareCount < 5) shareCount++;
+    updateShareUI();
 
     await updateDoc(doc(db, "users", uid), {
-        shareCount: userData.shareCount
+        shareCount: shareCount
     });
-
-    updateShareUI();
-}
+};
 
 
-/* ======================================================
-   UI FRISSÍTÉS
-====================================================== */
+/* ============================================================
+   FELÜLET FRISSÍTÉSE
+============================================================ */
 function updateShareUI() {
-    const count = userData?.shareCount || 0;
+    document.getElementById("shareCountBox").innerText = `${shareCount} / 5`;
 
-    document.getElementById("shareCountBox").innerHTML = `<b>${count} / 5</b>`;
-
-    if (count < 5) {
+    if (shareCount >= 5) {
         document.getElementById("unlockInfo").innerHTML =
-            "<b style='color:red;'>Elérhetőség küldése: Zárolva</b>";
+            "<b style='color:green;'>Feloldva! Küldhetsz telefonszámot a chatben.</b>";
     } else {
         document.getElementById("unlockInfo").innerHTML =
-            "<b style='color:green;'>Feloldva! A chatben küldhetsz telefonszámot.</b>";
+            "Elérhetőség küldése: <b style='color:red;'>Zárolva</b>";
     }
 }
 </script>
