@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <title>Szakember választása – SzakiChat</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<header>Szakember választása</header>
+
+<div class="container">
+
+    <!-- Megrendelő adatai + választott szakma -->
+    <div class="box" id="infoBox"></div>
+
+    <!-- Megosztási figyelmeztetés -->
+    <div class="box" style="background:#fff4e6;">
+        <b>A szakik elérhetősége zárolva!</b><br><br>
+        Oszd meg az oldalt legalább <b>5 alkalommal</b> a feloldáshoz.
+        <br><br>
+        Jelenlegi megosztások: <span id="shareCount">0</span> / 5
+        <br><br>
+        <button class="btn" id="shareBtn">Megosztom</button>
+    </div>
+
+    <!-- Reklám -->
+    <div class="ads-box">
+        🔶 Reklám hely – Google Ads vagy banner
+    </div>
+
+    <!-- SZAKI LISTA -->
+    <div id="szakiLista"></div>
+
+</div>
+
+<!-- ❤️ TÁMOGATÓ GOMB -->
+<div id="supportFloatingBtn"
+     onclick="window.open('https://www.paypal.com/donate/?hosted_button_id=QGU3WXVSCH22A','_blank')">
+    <span class="heart">❤️</span> Támogasd a SzakiChat-et
+</div>
+
+
+<script>
+// ========================================
+// PARAMÉTEREK: szakma
+// ========================================
+const params = new URLSearchParams(window.location.search);
+const szakma = params.get("szakma") || localStorage.getItem("mr_szakma") || "";
+
+if (!szakma) {
+    alert("Hiányzik a szakma!");
+    location.href = "szakma-valasztas.html";
+}
+
+// Megrendelő info a fejlécdobozba
+document.getElementById("infoBox").innerHTML =
+    `<b>Keresett szakma:</b> ${szakma}<br>
+     <small>A következő szakik érhetők el:</small>`;
+
+
+// ========================================
+// ÁLSZAKIK + VALÓDI SZAKIK
+// ========================================
+const realSzakik = [
+    { name: "Csabi", szakma: "Festő", phone:"+36 20 111 2233" },
+    { name: "Zsolti", szakma: "Villanyszerelő", phone:"+36 30 999 4455" }
+];
+
+const fakeNames = ["Péter", "Attila", "Jani", "Gábor", "Tamás"];
+const fakeSzakik = fakeNames.map(n => ({
+    name: n,
+    szakma: szakma,
+    phone: "+36 ** *** **"
+}));
+
+// teljes lista = 2 valódi + 5 álszaki
+let allWorkers = [...realSzakik, ...fakeSzakik];
+
+
+// ========================================
+// MEGOSZTÁSKORLÁT
+// ========================================
+let shareCount = Number(localStorage.getItem("shareCount") || 0);
+document.getElementById("shareCount").innerText = shareCount;
+
+document.getElementById("shareBtn").onclick = () => {
+    shareCount++;
+    localStorage.setItem("shareCount", shareCount);
+    document.getElementById("shareCount").innerText = shareCount;
+
+    alert("Köszönjük a megosztást!");
+
+    renderList();
+};
+
+
+// ========================================
+// SZAKI LISTA KIRAJZOLÁS
+// ========================================
+function renderList() {
+    const cont = document.getElementById("szakiLista");
+    cont.innerHTML = "";
+
+    allWorkers.forEach(sz => {
+        const box = document.createElement("div");
+        box.className = "box";
+
+        const locked = shareCount < 5;
+
+        box.innerHTML = `
+            <h3>${sz.name}</h3>
+            <div><b>Szakma:</b> ${sz.szakma}</div>
+
+            <div style="margin-top:8px;">
+                <b>Elérhetőség:</b>
+                ${locked ? "<span style='color:red;'>🗝 Zárolva</span>" : sz.phone}
+            </div>
+
+            <button class="btn" style="margin-top:12px;"
+                onclick="openChat('${sz.name}')">
+                Chat indítása
+            </button>
+        `;
+
+        cont.appendChild(box);
+    });
+}
+
+renderList();
+
+
+// ========================================
+// CHAT MEGNYITÁSA
+// ========================================
+function openChat(name) {
+    window.location.href =
+        "chat.html?partner=" + encodeURIComponent(name);
+}
+</script>
+
+</body>
+</html>
