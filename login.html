@@ -7,74 +7,23 @@
     <link rel="stylesheet" href="style.css">
 
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: #f4f4f4;
-            margin: 0;
-            padding: 0;
-            text-align: center;
-        }
-
+        body { font-family: Arial; background:#f4f4f4; text-align:center; margin:0; }
         .container {
-            max-width: 420px;
-            margin: 40px auto;
-            background: white;
-            padding: 25px;
-            border-radius: 12px;
-            box-shadow: 0 4px 14px rgba(0,0,0,0.1);
+            max-width:420px; margin:40px auto; background:white;
+            padding:28px; border-radius:12px;
+            box-shadow:0 4px 14px rgba(0,0,0,0.12);
         }
-
-        .box { text-align:left; margin-top:25px; }
-        h1 { color:#007aff; }
-
         input, select {
-            width:100%;
-            padding:12px;
-            border-radius:8px;
-            border:1px solid #ccc;
-            margin-top:8px;
-            font-size:16px;
+            width:100%; padding:12px; border:1px solid #ccc;
+            border-radius:8px; margin-top:10px; font-size:16px;
         }
-
         .btn {
-            width:100%;
-            padding:14px;
-            border:none;
-            border-radius:8px;
-            color:white;
-            font-size:18px;
-            font-weight:bold;
-            cursor:pointer;
-            margin-top:14px;
+            width:100%; padding:14px; border-radius:8px;
+            font-size:17px; font-weight:bold; color:white;
+            border:none; margin-top:12px; cursor:pointer;
         }
-
         .btn-login { background:#007aff; }
-        .btn-reg  { background:#28a745; }
-
-        #supportFloatingBtn {
-            position: fixed;
-            bottom: 22px;
-            right: 22px;
-            background: #ff2d55;
-            color: white;
-            padding: 14px 22px;
-            border-radius: 40px;
-            font-weight:bold;
-            cursor:pointer;
-            display:flex;
-            gap:10px;
-            align-items:center;
-            box-shadow: 0 4px 14px rgba(0,0,0,0.25);
-        }
-
-        @keyframes heartbeat {
-            0% { transform:scale(1); }
-            25%{ transform:scale(1.25); }
-            50%{ transform:scale(1); }
-            75%{ transform:scale(1.25); }
-            100%{ transform:scale(1); }
-        }
-        .heart { animation:heartbeat 1.3s infinite; }
+        .btn-reg { background:#28a745; }
     </style>
 </head>
 
@@ -84,40 +33,30 @@
 
     <h1>SzakiChat – Belépés</h1>
 
-    <div class="box">
-        <label><b>Ki vagy?</b></label>
-        <select id="roleSelect">
-            <option value="">Válassz:</option>
-            <option value="szaki">Szaki vagyok</option>
-            <option value="megrendelo">Megrendelő vagyok</option>
-        </select>
-    </div>
+    <h3>Ki vagy?</h3>
+    <select id="roleSelect">
+        <option value="">Válassz:</option>
+        <option value="szaki">Szaki vagyok</option>
+        <option value="megrendelo">Megrendelő vagyok</option>
+    </select>
 
-    <div class="box">
-        <label><b>Teljes név</b></label>
-        <input id="nameInput" type="text" placeholder="Add meg a neved">
-    </div>
+    <h3>Teljes név</h3>
+    <input id="nameInput" type="text" placeholder="Add meg a neved">
 
-    <div class="box">
-        <label><b>Email & Jelszó</b></label>
-        <input id="email" type="email" placeholder="Email">
-        <input id="pass" type="password" placeholder="Jelszó">
+    <h3>Email & Jelszó</h3>
+    <input id="email" type="email" placeholder="Email">
+    <input id="pass" type="password" placeholder="Jelszó">
 
-        <button class="btn btn-login" onclick="loginUser()">Belépés</button>
-        <button class="btn btn-reg" onclick="registerUser()">Regisztráció</button>
-    </div>
+    <button class="btn btn-login" onclick="loginUser()">Belépés</button>
+    <button class="btn btn-reg" onclick="registerUser()">Regisztráció</button>
 
-</div>
-
-<div id="supportFloatingBtn"
-     onclick="window.open('https://www.paypal.com/donate/?hosted_button_id=QGU3WXVSCH22A','_blank')">
-    <span class="heart">❤️</span> Támogasd a SzakiChat-et
 </div>
 
 
 <script type="module">
-/* FIREBASE IMPORT */
-import { app, db, auth } from "./firebase-config.js";
+
+// 🔥 FIREBASE IMPORT HELYES ÚTVONALLAL GITHUB PAGESHEZ
+import { app, db, auth } from "/szaki-app/firebase-config.js";
 
 import {
     signInWithEmailAndPassword,
@@ -129,16 +68,19 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 
+// -------------------------
+// Szerep lekérés
+// -------------------------
 function getRole() {
     const r = document.getElementById("roleSelect").value;
-    if (!r) { alert("Válaszd ki, hogy Szaki vagy Megrendelő!"); return null; }
+    if (!r) { alert("Válaszd ki: Szaki vagy Megrendelő!"); return null; }
     return r;
 }
 
 
-/* ======================================================
-   REGISZTRÁCIÓ
-====================================================== */
+// -------------------------
+// REGISZTRÁCIÓ
+// -------------------------
 window.registerUser = async function () {
 
     const role  = getRole();
@@ -152,8 +94,8 @@ window.registerUser = async function () {
     }
 
     try {
-        const userCred = await createUserWithEmailAndPassword(auth, email, pass);
-        const uid = userCred.user.uid;
+        const cred = await createUserWithEmailAndPassword(auth, email, pass);
+        const uid = cred.user.uid;
 
         await setDoc(doc(db, "users", uid), {
             uid,
@@ -179,24 +121,25 @@ window.registerUser = async function () {
 };
 
 
-/* ======================================================
-   BELÉPÉS
-====================================================== */
+// -------------------------
+// BELÉPÉS
+// -------------------------
 window.loginUser = async function () {
 
-    const role  = getRole();
     const email = document.getElementById("email").value.trim();
     const pass  = document.getElementById("pass").value.trim();
+    const role  = getRole();
 
     if (!email || !pass) {
-        alert("Add meg az emailt és a jelszót!");
+        alert("Add meg az emailt és jelszót!");
         return;
     }
 
     try {
-        const userCred = await signInWithEmailAndPassword(auth, email, pass);
-        const uid = userCred.user.uid;
+        const cred = await signInWithEmailAndPassword(auth, email, pass);
+        const uid = cred.user.uid;
 
+        // online státusz
         await setDoc(doc(db, "users", uid), { online: true }, { merge: true });
 
         localStorage.setItem("uid", uid);
@@ -209,6 +152,7 @@ window.loginUser = async function () {
         alert("Hibás email vagy jelszó!");
     }
 };
+
 </script>
 
 </body>
