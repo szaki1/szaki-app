@@ -5,6 +5,82 @@
     <title>Profil – SzakiChat</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" href="style.css">
+
+    <style>
+        header {
+            background: #007aff;
+            color: white;
+            padding: 16px;
+            font-size: 22px;
+            text-align: center;
+        }
+
+        .container {
+            max-width: 420px;
+            margin: 25px auto;
+            padding: 20px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.1);
+        }
+
+        .box {
+            margin-bottom: 28px;
+        }
+
+        .input {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            margin-top: 6px;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px;
+            margin-top: 10px;
+            background: #007aff;
+            color:white;
+            font-weight:bold;
+            border:none;
+            border-radius:8px;
+            cursor:pointer;
+        }
+
+        .btn:hover {
+            transform: scale(1.03);
+        }
+
+        /* ❤️ Pulzáló szív gomb */
+        @keyframes heartbeat {
+            0%{transform:scale(1);}
+            25%{transform:scale(1.25);}
+            40%{transform:scale(1);}
+            60%{transform:scale(1.25);}
+            100%{transform:scale(1);}
+        }
+
+        #supportFloatingBtn {
+            position: fixed;
+            bottom: 22px;
+            right: 22px;
+            background: #ff2d55;
+            padding: 14px 22px;
+            border-radius: 40px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+        }
+
+        .heart {
+            animation: heartbeat 1.4s infinite;
+        }
+    </style>
 </head>
 
 <body>
@@ -20,7 +96,7 @@
         <button class="btn" id="saveNameBtn">Mentés</button>
     </div>
 
-    <!-- SZEREP VÁLASZTÁS -->
+    <!-- SZEREP -->
     <div class="box">
         <label><b>Szerep:</b></label><br>
         <select id="roleSelect" class="input">
@@ -30,7 +106,7 @@
         <button class="btn" id="saveRoleBtn">Mentés</button>
     </div>
 
-    <!-- MEGOSZTÁS -->
+    <!-- MEGOSZTÁSOK -->
     <div class="box">
         <b>Megosztások száma:</b>
         <div id="shareCountBox" style="font-size:18px; margin:8px 0;"></div>
@@ -39,9 +115,7 @@
 
         <p id="unlockInfo" style="margin-top:10px; font-size:14px;"></p>
     </div>
-
 </div>
-
 
 <!-- ❤️ Lebegő támogatás gomb -->
 <div id="supportFloatingBtn"
@@ -50,67 +124,100 @@
 </div>
 
 
-<script>
+<script type="module">
 /* ======================================================
-   LOCALSTORAGE ADATOK
+   FIREBASE IMPORT
 ====================================================== */
-let userName = localStorage.getItem("chatUser") || "";
-let shareCount = Number(localStorage.getItem("shareCount") || 0);
-let role = localStorage.getItem("role") || "megrendelo";
+import { db, auth } from "./firebase-config.js";
+import {
+    doc, getDoc, updateDoc, setDoc
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-
-/* ======================================================
-   FELÜLET KITÖLTÉSE
-====================================================== */
-document.getElementById("nameInput").value = userName;
-document.getElementById("roleSelect").value = role;
-updateShareUI();
+import {
+    onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 
 /* ======================================================
-   NÉV MENTÉSE
+   USER ADATOK BETÖLTÉSE FIREBASE-BŐL
 ====================================================== */
-document.getElementById("saveNameBtn").onclick = () => {
+let uid = null;
+let userData = null;
+
+onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+        window.location.href = "login.html";
+        return;
+    }
+
+    uid = user.uid;
+
+    const ref = doc(db, "users", uid);
+    const snap = await getDoc(ref);
+
+    if (!snap.exists()) {
+        await setDoc(ref, { shareCount: 0 }, { merge: true });
+    }
+
+    userData = snap.data();
+
+    document.getElementById("nameInput").value = userData.name || "";
+    document.getElementById("roleSelect").value = userData.role || "megrendelo";
+
+    updateShareUI();
+});
+
+
+/* ======================================================
+   NÉV MENTÉSE FIRESTORE-BA
+====================================================== */
+document.getElementById("saveNameBtn").onclick = async () => {
     const name = document.getElementById("nameInput").value.trim();
     if (!name) return alert("Írd be a neved!");
 
-    localStorage.setItem("chatUser", name);
+    await updateDoc(doc(db, "users", uid), { name });
     alert("Név elmentve!");
 };
 
 
 /* ======================================================
-   SZEREP MENTÉSE
+   SZEREP MENTÉSE FIRESTORE-BA
 ====================================================== */
-document.getElementById("saveRoleBtn").onclick = () => {
-    const r = document.getElementById("roleSelect").value;
-    localStorage.setItem("role", r);
-    alert("Szerep mentve!");
+document.getElementById("saveRoleBtn").onclick = async () => {
+    const role = document.getElementById("roleSelect").value;
+
+    await updateDoc(doc(db, "users", uid), { role });
+
+    alert("Szerep elmentve!");
 };
 
 
 /* ======================================================
    MEGOSZTÁS +1
 ====================================================== */
-function addShare() {
-    shareCount++;
-    if (shareCount > 5) shareCount = 5;
+async function addShare() {
+    if (!userData.shareCount) userData.shareCount = 0;
 
-    localStorage.setItem("shareCount", shareCount);
+    if (userData.shareCount < 5) userData.shareCount++;
+    else userData.shareCount = 5;
+
+    await updateDoc(doc(db, "users", uid), { shareCount: userData.shareCount });
+
     updateShareUI();
 }
 
 
 /* ======================================================
-   FELÜLET FRISSÍTÉSE
+   UI FRISSÍTÉS
 ====================================================== */
 function updateShareUI() {
-    document.getElementById("shareCountBox").innerHTML =
-        `<b>${shareCount} / 5</b>`;
+    const count = userData?.shareCount || 0;
 
-    if (shareCount < 5) {
+    document.getElementById("shareCountBox").innerHTML = `<b>${count} / 5</b>`;
+
+    if (count < 5) {
         document.getElementById("unlockInfo").innerHTML =
-            "Elérhetőség-küldés jelenleg zárolva.";
+            "Elérhetőség küldése jelenleg <b>zárolva</b>.";
     } else {
         document.getElementById("unlockInfo").innerHTML =
             "<span style='color:green; font-weight:bold;'>Feloldva! A chaten már küldhetsz elérhetőséget.</span>";
