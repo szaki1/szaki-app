@@ -1,65 +1,56 @@
 <!DOCTYPE html>
 <html lang="hu">
 <head>
-    <meta charset="UTF-8" />
-    <title>Belépés – SzakiChat</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet" href="style.css" />
+    <meta charset="UTF-8">
+    <title>SzakiChat – Belépés</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
 
     <style>
         body {
-            background:#f4f4f4;
-            margin:0;
-            padding:0;
-            text-align:center;
             font-family: Arial, sans-serif;
+            background: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            text-align: center;
         }
+
         .container {
-            max-width:420px;
-            margin:40px auto;
-            background:white;
-            padding:25px;
-            border-radius:12px;
-            box-shadow:0 4px 14px rgba(0,0,0,0.1);
+            max-width: 420px;
+            margin: 40px auto;
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.1);
         }
-        .box {
-            margin-top:24px;
-            text-align:left;
-        }
-        h1 {
-            color:#007aff;
-            font-size:26px;
-        }
-        .input {
+
+        .box { text-align:left; margin-top:25px; }
+        h1 { color:#007aff; }
+
+        input, select {
             width:100%;
             padding:12px;
-            margin-top:8px;
             border-radius:8px;
             border:1px solid #ccc;
+            margin-top:8px;
             font-size:16px;
         }
+
         .btn {
             width:100%;
-            padding:12px;
-            border-radius:8px;
-            font-size:17px;
-            font-weight:bold;
-            color:white;
-            background:#007aff;
+            padding:14px;
             border:none;
+            border-radius:8px;
+            color:white;
+            font-size:18px;
+            font-weight:bold;
             cursor:pointer;
-            margin-top:12px;
+            margin-top:14px;
         }
-        .btn:hover { transform:scale(1.03); }
 
-        /* ❤️ Pulzáló szív animáció */
-        @keyframes heartbeat {
-            0%{transform:scale(1);}
-            25%{transform:scale(1.25);}
-            40%{transform:scale(1);}
-            60%{transform:scale(1.25);}
-            100%{transform:scale(1);}
-        }
+        .btn-login { background:#007aff; }
+        .btn-reg  { background:#28a745; }
+
         #supportFloatingBtn {
             position: fixed;
             bottom: 22px;
@@ -68,95 +59,95 @@
             color: white;
             padding: 14px 22px;
             border-radius: 40px;
-            font-size: 17px;
-            font-weight: bold;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 10px;
+            font-weight:bold;
+            cursor:pointer;
+            display:flex;
+            gap:10px;
+            align-items:center;
             box-shadow: 0 4px 14px rgba(0,0,0,0.25);
         }
-        #supportFloatingBtn:hover { transform:scale(1.08); }
-        .heart { animation: heartbeat 1.4s infinite; }
+
+        @keyframes heartbeat {
+            0% { transform:scale(1); }
+            25%{ transform:scale(1.25); }
+            50%{ transform:scale(1); }
+            75%{ transform:scale(1.25); }
+            100%{ transform:scale(1); }
+        }
+        .heart { animation:heartbeat 1.3s infinite; }
     </style>
 </head>
 
 <body>
 
 <div class="container">
+
     <h1>SzakiChat – Belépés</h1>
 
-    <!-- SZEREPKÖR -->
     <div class="box">
-        <h3>Ki vagy?</h3>
-        <select id="roleSelect" class="input">
+        <label><b>Ki vagy?</b></label>
+        <select id="roleSelect">
             <option value="">Válassz:</option>
             <option value="szaki">Szaki vagyok</option>
             <option value="megrendelo">Megrendelő vagyok</option>
         </select>
     </div>
 
-    <!-- NÉV -->
     <div class="box">
-        <h3>Teljes név</h3>
-        <input id="nameInput" class="input" type="text" placeholder="Add meg a neved">
+        <label><b>Teljes név</b></label>
+        <input id="nameInput" type="text" placeholder="Add meg a neved">
     </div>
 
-    <!-- EMAIL & JELSZÓ -->
     <div class="box">
-        <h3>Email & Jelszó</h3>
-        <input id="email" class="input" type="email" placeholder="Email">
-        <input id="pass" class="input" type="password" placeholder="Jelszó">
+        <label><b>Email & Jelszó</b></label>
+        <input id="email" type="email" placeholder="Email">
+        <input id="pass" type="password" placeholder="Jelszó">
 
-        <button onclick="loginUser()" class="btn">Belépés</button>
-        <button onclick="registerUser()" class="btn" style="background:#28a745;">Regisztráció</button>
+        <button class="btn btn-login" onclick="loginUser()">Belépés</button>
+        <button class="btn btn-reg" onclick="registerUser()">Regisztráció</button>
     </div>
+
 </div>
 
-<!-- ❤️ Lebegő támogatás gomb -->
 <div id="supportFloatingBtn"
-    onclick="window.open('https://www.paypal.com/donate/?hosted_button_id=QGU3WXVSCH22A','_blank')">
+     onclick="window.open('https://www.paypal.com/donate/?hosted_button_id=QGU3WXVSCH22A','_blank')">
     <span class="heart">❤️</span> Támogasd a SzakiChat-et
 </div>
 
 
-<!-- FIREBASE -->
 <script type="module">
-import { auth, db } from "./firebase-config.js";
+/* FIREBASE IMPORT */
+import { app, db, auth } from "./firebase-config.js";
+
 import {
     signInWithEmailAndPassword,
     createUserWithEmailAndPassword
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 import {
-    doc, setDoc, getDoc, updateDoc, serverTimestamp
+    doc, setDoc
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 
-/* ============================================================
-   SZEREP LEKÉRÉSE
-============================================================ */
 function getRole() {
-    const r = roleSelect.value;
-    if (!r) {
-        alert("Kérlek válaszd ki a szereped!");
-        return null;
-    }
+    const r = document.getElementById("roleSelect").value;
+    if (!r) { alert("Válaszd ki, hogy Szaki vagy Megrendelő!"); return null; }
     return r;
 }
 
 
-/* ============================================================
-   REGISZTRÁCIÓ – TELJES ADATMODELL
-============================================================ */
-window.registerUser = async function() {
-    const email = emailInput.value.trim();
-    const pass  = passInput.value.trim();
-    const name  = nameInput.value.trim();
-    const role  = getRole();
+/* ======================================================
+   REGISZTRÁCIÓ
+====================================================== */
+window.registerUser = async function () {
 
-    if (!email || !pass || !name || !role) {
-        alert("Minden mezőt ki kell tölteni!");
+    const role  = getRole();
+    const name  = document.getElementById("nameInput").value.trim();
+    const email = document.getElementById("email").value.trim();
+    const pass  = document.getElementById("pass").value.trim();
+
+    if (!role || !name || !email || !pass) {
+        alert("Minden mezőt tölts ki!");
         return;
     }
 
@@ -164,40 +155,38 @@ window.registerUser = async function() {
         const userCred = await createUserWithEmailAndPassword(auth, email, pass);
         const uid = userCred.user.uid;
 
-        // TELJES USER ADATMODELL LÉTREHOZÁSA
         await setDoc(doc(db, "users", uid), {
             uid,
-            email,
             name,
+            email,
             role,
-            szakma: "",
-            preferredSzakma: "",
-            shareCount: 0,
-            phoneUnlocked: false,
             online: true,
-            lastSeen: serverTimestamp(),
-            createdAt: serverTimestamp(),
-            avatar: ""
+            shareCount: 0,
+            szakma: "",
+            phone: "",
+            createdAt: Date.now()
         });
 
         localStorage.setItem("uid", uid);
+        localStorage.setItem("role", role);
 
-        // SZEREPKÖR ALAPJÁN IRÁNYÍTÁS
         if (role === "szaki") window.location.href = "szaki-panel.html";
         else window.location.href = "megrendelo-profil.html";
 
     } catch (e) {
-        alert("Regisztrációs hiba: " + e.message);
+        alert("Hiba: " + e.message);
     }
 };
 
 
-/* ============================================================
-   BELÉPÉS – FIRESTORE ALAPÚ LOGIKA
-============================================================ */
-window.loginUser = async function() {
-    const email = emailInput.value.trim();
-    const pass  = passInput.value.trim();
+/* ======================================================
+   BELÉPÉS
+====================================================== */
+window.loginUser = async function () {
+
+    const role  = getRole();
+    const email = document.getElementById("email").value.trim();
+    const pass  = document.getElementById("pass").value.trim();
 
     if (!email || !pass) {
         alert("Add meg az emailt és a jelszót!");
@@ -208,26 +197,12 @@ window.loginUser = async function() {
         const userCred = await signInWithEmailAndPassword(auth, email, pass);
         const uid = userCred.user.uid;
 
-        const userRef = doc(db, "users", uid);
-        const snap = await getDoc(userRef);
-
-        if (!snap.exists()) {
-            alert("Hiba: nincs felhasználói adat!");
-            return;
-        }
-
-        const user = snap.data();
-
-        // ONLINE FRISSÍTÉS
-        await updateDoc(userRef, {
-            online: true,
-            lastSeen: serverTimestamp()
-        });
+        await setDoc(doc(db, "users", uid), { online: true }, { merge: true });
 
         localStorage.setItem("uid", uid);
+        localStorage.setItem("role", role);
 
-        // FIRESTORE SZEREPKÖR ALAPJÁN IRÁNYÍTÁS
-        if (user.role === "szaki") window.location.href = "szaki-panel.html";
+        if (role === "szaki") window.location.href = "szaki-panel.html";
         else window.location.href = "megrendelo-profil.html";
 
     } catch (e) {
