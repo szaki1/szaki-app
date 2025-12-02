@@ -3,8 +3,89 @@
 <head>
     <meta charset="UTF-8">
     <title>Szakma választás – SzakiChat</title>
-    <link rel="stylesheet" href="style.css">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+
+    <style>
+        header {
+            background:#007aff;
+            color:white;
+            padding:16px;
+            font-size:22px;
+            text-align:center;
+        }
+
+        .container {
+            max-width:450px;
+            margin:25px auto;
+            background:white;
+            padding:20px;
+            border-radius:12px;
+            box-shadow:0 4px 14px rgba(0,0,0,0.08);
+        }
+
+        .box {
+            margin-bottom:28px;
+        }
+
+        .input {
+            width:100%;
+            padding:12px;
+            border-radius:8px;
+            border:1px solid #ccc;
+            margin-top:6px;
+            font-size:16px;
+        }
+
+        .btn {
+            width:100%;
+            padding:12px;
+            background:#007aff;
+            border:none;
+            border-radius:8px;
+            color:white;
+            font-weight:bold;
+            cursor:pointer;
+        }
+
+        .btn:disabled {
+            background:#999;
+            cursor:not-allowed;
+        }
+
+        .ads-box {
+            background:#f1f1f1;
+            padding:14px;
+            border-radius:8px;
+            text-align:center;
+            color:#777;
+        }
+
+        /* ❤️ Pulzáló gomb */
+        @keyframes heartbeat {
+            0%{transform:scale(1);}
+            25%{transform:scale(1.25);}
+            40%{transform:scale(1);}
+            60%{transform:scale(1.25);}
+            100%{transform:scale(1);}
+        }
+        #supportFloatingBtn {
+            position:fixed;
+            bottom:22px;
+            right:22px;
+            background:#ff2d55;
+            color:white;
+            padding:14px 22px;
+            border-radius:40px;
+            display:flex;
+            align-items:center;
+            gap:10px;
+            font-weight:bold;
+            cursor:pointer;
+            box-shadow:0 4px 15px rgba(0,0,0,0.25);
+        }
+        .heart { animation:heartbeat 1.4s infinite; }
+    </style>
 </head>
 
 <body>
@@ -27,61 +108,116 @@
             <option value="Víz / Gáz / Fűtés">Víz / Gáz / Fűtés</option>
         </select>
 
-        <button id="nextBtn" class="btn" style="margin-top:16px; width:100%;" disabled>
+        <button id="nextBtn" class="btn" style="margin-top:16px;" disabled>
             Tovább
         </button>
     </div>
 
-
-    <!-- FIGYELMEZTETÉS A MEGOSZTÁSRA -->
-    <div class="box" style="background:#fff4e6;">
+    <div class="box" style="background:#fff4e6; padding:14px; border-radius:10px;">
         <b>Az oldal használata ingyenes!</b><br><br>
         A szakik elérhetőségének feloldásához oszd meg az oldalt legalább <b>5 helyen</b>.
     </div>
 
-    <!-- REKLÁMHELY -->
     <div class="ads-box">
         🔶 Reklám hely – Google Ads vagy céges banner
     </div>
 
 </div>
 
-<!-- ❤️ LEBEGŐ TÁMOGATÁS GOMB -->
+<!-- ❤️ Lebegő gomb -->
 <div id="supportFloatingBtn"
      onclick="window.open('https://www.paypal.com/donate/?hosted_button_id=QGU3WXVSCH22A','_blank')">
     <span class="heart">❤️</span> Támogasd a SzakiChat-et
 </div>
 
 
-<script>
-// ================================
-// Elmentjük a választott szakmát
-// ================================
+<script type="module">
+/* ============================================
+   Firebase import
+============================================ */
+import { auth, db } from "./firebase-config.js";
+import {
+    onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import {
+    doc,
+    updateDoc,
+    getDoc
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+/* ============================================
+   Belépés-ellenőrzés
+============================================ */
+let uid = null;
+let userData = null;
+
+onAuthStateChanged(auth, async (user) => {
+    if (!user) return window.location.href = "login.html";
+
+    uid = user.uid;
+
+    const ref = doc(db, "users", uid);
+    const snap = await getDoc(ref);
+
+    if (!snap.exists()) {
+        window.location.href = "profil.html";
+        return;
+    }
+
+    userData = snap.data();
+
+    // Ha szaki próbál itt lenni → visszadobjuk
+    if (userData.role !== "megrendelo") {
+        window.location.href = "szaki-panel.html";
+        return;
+    }
+
+    loadDefault();
+});
+
+
+/* ============================================
+   Funkció: mentett szakma visszatöltése
+============================================ */
+function loadDefault() {
+    const szakmaSel = document.getElementById("szakma");
+
+    if (userData.preferredSzakma) {
+        szakmaSel.value = userData.preferredSzakma;
+        document.getElementById("nextBtn").disabled = false;
+    }
+}
+
+
+/* ============================================
+   Választás kezelése
+============================================ */
 const szakmaSelect = document.getElementById("szakma");
 const nextBtn = document.getElementById("nextBtn");
 
-// ha van mentve, töltsük vissza
-const saved = localStorage.getItem("mr_szakma");
-if (saved) {
-    szakmaSelect.value = saved;
-    nextBtn.disabled = false;
-}
+szakmaSelect.onchange = async () => {
+    const value = szakmaSelect.value.trim();
 
-// engedélyezés
-szakmaSelect.onchange = () => {
-    const v = szakmaSelect.value.trim();
-    nextBtn.disabled = v === "";
-    if (v) localStorage.setItem("mr_szakma", v);
+    nextBtn.disabled = value === "";
+
+    if (value) {
+        // mentjük Firestore-ba
+        await updateDoc(doc(db, "users", uid), {
+            preferredSzakma: value
+        });
+    }
 };
 
-// ================================
-// Tovább kattintás
-// ================================
-nextBtn.onclick = () => {
-    const szakma = szakmaSelect.value.trim();
-    if (!szakma) return;
 
-    window.location.href = "szaki-valasztas.html?szakma=" + encodeURIComponent(szakma);
+/* ============================================
+   Tovább gomb
+============================================ */
+nextBtn.onclick = () => {
+    const v = szakmaSelect.value.trim();
+    if (!v) return;
+
+    window.location.href =
+        "szaki-valasztas.html?szakma=" + encodeURIComponent(v);
 };
 </script>
 
