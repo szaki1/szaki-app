@@ -1,149 +1,83 @@
-<!DOCTYPE html>
-<html lang="hu">
-<head>
-    <meta charset="UTF-8">
-    <title>Chat lista – SzakiChat</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="style.css">
+// ==========================================================
+//  SzakiChat – chat-list.js
+//  Chatlista valós idejű megjelenítése Firestore-ból
+// ==========================================================
 
-    <style>
-        .chat-item {
-            background:white;
-            padding:16px;
-            border-radius:12px;
-            box-shadow:0 2px 10px rgba(0,0,0,0.08);
-            margin-bottom:14px;
-            display:flex;
-            justify-content:space-between;
-            align-items:center;
-            cursor:pointer;
-        }
-
-        .chat-title {
-            font-size:17px;
-            font-weight:bold;
-        }
-
-        .online {
-            color:#22bb33;
-            font-size:13px;
-        }
-        .offline {
-            color:#777;
-            font-size:13px;
-        }
-    </style>
-</head>
-
-<body>
-
-<header>Chat beszélgetések</header>
-
-<div class="container">
-    <div id="chatList">Betöltés...</div>
-</div>
-
-<!-- ❤️ Lebegő támogatás gomb -->
-<div id="supportFloatingBtn"
-     onclick="window.open('https://www.paypal.com/donate/?hosted_button_id=QGU3WXVSCH22A','_blank')">
-    <span class="heart">❤️</span> Támogasd a SzakiChat-et
-</div>
-
-<script type="module">
-/* ============================================================
-   FIREBASE IMPORT
-============================================================ */
-import { auth, db } from "./firebase-config.js";
-
+import { db } from "./firebase-config.js";
 import {
-    onAuthStateChanged
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-
-import {
-    collection,
-    query,
-    where,
-    getDocs,
     doc,
-    getDoc
+    getDoc,
+    onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-let uid = null;
-let userData = null;
-
-/* ============================================================
-   BELÉPÉS ELLENŐRZÉS
-============================================================ */
-onAuthStateChanged(auth, async (user) => {
-    if (!user) return (window.location.href = "login.html");
-
-    uid = user.uid;
-
-    const meRef = doc(db, "users", uid);
-    const meSnap = await getDoc(meRef);
-    userData = meSnap.data();
-
-    loadChatList();
-});
+import { getPartnerData } from "./messages.js";
 
 
-/* ============================================================
-   CHAT LISTA BEOLVASÁSA
-============================================================ */
-async function loadChatList() {
-    const listBox = document.getElementById("chatList");
-    listBox.innerHTML = "Betöltés...";
-
-    const q = query(
-        collection(db, "chats"),
-        where("participants", "array-contains", uid)
-    );
-
-    const snap = await getDocs(q);
-
-    if (snap.empty) {
-        listBox.innerHTML = "<p>Még nincs beszélgetés.</p>";
+// ==========================================================
+// CHAT LISTA BETÖLTÉSE
+// ==========================================================
+export function startChatList() {
+    const uid = localStorage.getItem("uid");
+    if (!uid) {
+        alert("Nincs bejelentkezett felhasználó!");
+        window.location.href = "login.html";
         return;
     }
 
-    listBox.innerHTML = "";
+    const userRef = doc(db, "users", uid);
 
-    snap.forEach(async (chatDoc) => {
-        const chat = chatDoc.data();
-        const chatID = chatDoc.id;
+    // Valós idejű figyelés
+    onSnapshot(userRef, async (snap) => {
+        if (!snap.exists()) return;
 
-        const partnerID = chat.participants.find(p => p !== uid);
+        const data = snap.data();
+        const chatList = data.chatList || {};
 
-        // Partner adatainak lekérése
-        const partnerRef = doc(db, "users", partnerID);
-        const partnerSnap = await getDoc(partnerRef);
+        const container = document.getElementById("chatListContainer");
+        container.innerHTML = "";
 
-        if (!partnerSnap.exists()) return;
+        const entries = Object.entries(chatList);
 
-        const partner = partnerSnap.data();
+        if (entries.length === 0) {
+            container.innerHTML = `<p style="color:#777; text-align:center;">
+                Nincsenek beszélgetéseid.
+            </p>`;
+            return;
+        }
 
-        const div = document.createElement("div");
-        div.className = "chat-item";
+        // chat elemek megjelenítése
+        for (const [chatId, info] of entries) {
 
-        div.innerHTML = `
-            <div>
-                <div class="chat-title">${partner.name || partner.email}</div>
-                <div class="${partner.online ? 'online' : 'offline'}">
-                    ${partner.online ? "🟢 Online" : "⚪ Offline"}
+            const partnerUid = info.uid;
+            const partner = await getPartnerData(partnerUid);
+
+            const row = document.createElement("div");
+            row.className = "chat-row";
+
+            const unread = info.unread > 0
+                ? `<span class="unread">${info.unread}</span>`
+                : "";
+
+            row.innerHTML = `
+                <div class="chat-left">
+                    <div class="chat-name">${partner.name}</div>
+                    <div class="chat-last">${info.lastMessage || "Nincs üzenet"}</div>
                 </div>
-            </div>
 
-            <div style="font-size:22px;">➡</div>
-        `;
+                <div class="chat-right">
+                    <div class="chat-status">
+                        ${partner.online ? "🟢" : "⚪"}
+                    </div>
+                    ${unread}
+                </div>
+            `;
 
-        div.onclick = () => {
-            window.location.href = `chat.html?chatID=${chatID}&partner=${partnerID}`;
-        };
+            row.onclick = () => {
+                window.location.href =
+                    `chat.html?chatId=${chatId}&partner=${encodeURIComponent(partner.name)}`;
+            };
 
-        listBox.appendChild(div);
+            container.appendChild(row);
+        }
     });
 }
-</script>
-
-</body>
-</html>
