@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8" />
+    <title>Profil – SzakiChat</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<header>Profil beállítások</header>
+
+<div class="container">
+
+    <!-- NÉV -->
+    <div class="box">
+        <label><b>Neved:</b></label><br>
+        <input type="text" id="nameInput" class="input" placeholder="Add meg a neved">
+        <button class="btn" id="saveNameBtn">Mentés</button>
+    </div>
+
+    <!-- SZEREP VÁLASZTÁS -->
+    <div class="box">
+        <label><b>Szerep:</b></label><br>
+        <select id="roleSelect" class="input">
+            <option value="megrendelo">Megrendelő</option>
+            <option value="szaki">Szaki</option>
+        </select>
+        <button class="btn" id="saveRoleBtn">Mentés</button>
+    </div>
+
+    <!-- MEGOSZTÁS -->
+    <div class="box">
+        <b>Megosztások száma:</b>
+        <div id="shareCountBox" style="font-size:18px; margin:8px 0;"></div>
+
+        <button class="btn" onclick="addShare()">Megosztottam! (+1)</button>
+
+        <p id="unlockInfo" style="margin-top:10px; font-size:14px;"></p>
+    </div>
+
+</div>
+
+
+<!-- ❤️ Lebegő támogatás gomb -->
+<div id="supportFloatingBtn"
+     onclick="window.open('https://www.paypal.com/donate/?hosted_button_id=QGU3WXVSCH22A','_blank')">
+     <span class="heart">❤️</span> Támogasd a SzakiChat-et
+</div>
+
+
+<script>
+/* ======================================================
+   LOCALSTORAGE ADATOK
+====================================================== */
+let userName = localStorage.getItem("chatUser") || "";
+let shareCount = Number(localStorage.getItem("shareCount") || 0);
+let role = localStorage.getItem("role") || "megrendelo";
+
+
+/* ======================================================
+   FELÜLET KITÖLTÉSE
+====================================================== */
+document.getElementById("nameInput").value = userName;
+document.getElementById("roleSelect").value = role;
+updateShareUI();
+
+
+/* ======================================================
+   NÉV MENTÉSE
+====================================================== */
+document.getElementById("saveNameBtn").onclick = () => {
+    const name = document.getElementById("nameInput").value.trim();
+    if (!name) return alert("Írd be a neved!");
+
+    localStorage.setItem("chatUser", name);
+    alert("Név elmentve!");
+};
+
+
+/* ======================================================
+   SZEREP MENTÉSE
+====================================================== */
+document.getElementById("saveRoleBtn").onclick = () => {
+    const r = document.getElementById("roleSelect").value;
+    localStorage.setItem("role", r);
+    alert("Szerep mentve!");
+};
+
+
+/* ======================================================
+   MEGOSZTÁS +1
+====================================================== */
+function addShare() {
+    shareCount++;
+    if (shareCount > 5) shareCount = 5;
+
+    localStorage.setItem("shareCount", shareCount);
+    updateShareUI();
+}
+
+
+/* ======================================================
+   FELÜLET FRISSÍTÉSE
+====================================================== */
+function updateShareUI() {
+    document.getElementById("shareCountBox").innerHTML =
+        `<b>${shareCount} / 5</b>`;
+
+    if (shareCount < 5) {
+        document.getElementById("unlockInfo").innerHTML =
+            "Elérhetőség-küldés jelenleg zárolva.";
+    } else {
+        document.getElementById("unlockInfo").innerHTML =
+            "<span style='color:green; font-weight:bold;'>Feloldva! A chaten már küldhetsz elérhetőséget.</span>";
+    }
+}
+</script>
+
+</body>
+</html>
