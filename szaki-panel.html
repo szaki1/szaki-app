@@ -3,119 +3,203 @@
 <head>
     <meta charset="UTF-8">
     <title>Szaki Panel – SzakiChat</title>
-    <link rel="stylesheet" href="style.css">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+
+    <style>
+        header {
+            background:#007aff;
+            color:white;
+            padding:16px;
+            font-size:22px;
+            text-align:center;
+        }
+
+        .container {
+            max-width:420px;
+            margin:25px auto;
+            background:white;
+            padding:20px;
+            border-radius:12px;
+            box-shadow:0 4px 14px rgba(0,0,0,0.08);
+        }
+
+        .box {
+            margin-bottom:28px;
+        }
+
+        .btn {
+            width:100%;
+            padding:12px;
+            background:#007aff;
+            border:none;
+            color:white;
+            font-weight:bold;
+            border-radius:8px;
+            cursor:pointer;
+        }
+
+        .btn:hover { transform:scale(1.03); }
+
+        .ads-box {
+            background:#f1f1f1;
+            padding:12px;
+            text-align:center;
+            border-radius:8px;
+            color:#888;
+            font-size:14px;
+            margin-top:18px;
+        }
+
+        /* ❤️ pulzáló szív */
+        @keyframes heartbeat {
+            0%{transform:scale(1);}
+            25%{transform:scale(1.25);}
+            40%{transform:scale(1);}
+            60%{transform:scale(1.25);}
+            100%{transform:scale(1);}
+        }
+        #supportFloatingBtn {
+            position:fixed;
+            bottom:22px;
+            right:22px;
+            background:#ff2d55;
+            color:white;
+            padding:14px 22px;
+            border-radius:40px;
+            font-weight:bold;
+            cursor:pointer;
+            display:flex;
+            align-items:center;
+            gap:10px;
+            box-shadow:0 4px 14px rgba(0,0,0,0.25);
+            z-index:9999;
+        }
+        .heart { animation:heartbeat 1.4s infinite; }
+    </style>
 </head>
 
 <body>
 
-<header>
-    SzakiChat – Szaki Panel
-</header>
+<header>SzakiChat – Szaki Panel</header>
 
 <div class="container">
 
     <div class="box" id="userBox">
-        Betöltés…
+        <div style="text-align:center; padding:10px; color:#777;">Betöltés...</div>
     </div>
 
     <div class="box">
         <h3>Állapot</h3>
         <p><b>Online státusz:</b> <span id="status">–</span></p>
-        <button id="toggleOnline" class="btn">Online váltás</button>
+        <button id="toggleOnline" class="btn">Online állapot váltása</button>
     </div>
 
     <div class="box">
         <h3>Chat</h3>
-        <button onclick="window.location.href='chat-list.html'" class="btn" style="width:100%;">Chat megnyitása</button>
+        <button onclick="window.location.href='chat-list.html'" class="btn">Chat megnyitása</button>
     </div>
 
     <!-- REKLÁMHELY -->
     <div class="ads-box">
-        🔶 Itt jelennek majd meg a hirdetések
+        🔶 Hirdetések helye (automatikus betöltés később)
     </div>
 
-    <button id="logoutBtn" class="btn" style="background:#c00; width:100%; margin-top:20px;">
+    <button id="logoutBtn" class="btn" style="background:#c00; margin-top:20px;">
         Kijelentkezés
     </button>
 
 </div>
 
-
-<!-- ❤️ LEBEGŐ TÁMOGATÁS GOMB -->
+<!-- ❤️ Lebegő Támogatás gomb -->
 <div id="supportFloatingBtn"
      onclick="window.open('https://www.paypal.com/donate/?hosted_button_id=QGU3WXVSCH22A','_blank')">
     <span class="heart">❤️</span> Támogasd a SzakiChat-et
 </div>
 
 
-<!-- FIREBASE -->
+<!-- FIREBASE LOGIKA -->
 <script type="module">
+import { auth, db } from "./firebase-config.js";
 
-import { app, db, auth } from "./firebase-config.js";
 import {
-    onAuthStateChanged, signOut
+    onAuthStateChanged,
+    signOut
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 import {
-    doc, getDoc, updateDoc, setDoc
+    doc,
+    getDoc,
+    updateDoc,
+    setDoc
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
+let uid = null;
+let userData = null;
 
-// ===============================
-// BELÉPÉS ELLENŐRZÉS
-// ===============================
-const uid = localStorage.getItem("uid");
-const role = localStorage.getItem("role");
-
-if (!uid) {
-    window.location.href = "login.html";
-}
-
+/* ===============================
+   BELÉPÉS ELLENŐRZÉS + ADAT BETÖLTÉS
+=============================== */
 onAuthStateChanged(auth, async (user) => {
     if (!user) {
         window.location.href = "login.html";
         return;
     }
 
-    const ref = doc(db, "users", user.uid);
+    uid = user.uid;
+
+    const ref = doc(db, "users", uid);
     const snap = await getDoc(ref);
 
     if (!snap.exists()) {
-        document.getElementById("userBox").innerHTML = "Hiba: nincs user adat!";
+        // ha nincs user dokumentum, létrehozzuk
+        await setDoc(ref, {
+            email: user.email,
+            name: "Ismeretlen",
+            role: "szaki",
+            online: false
+        });
+    }
+
+    userData = snap.data();
+
+    // Ha NEM szaki, visszadobjuk
+    if (userData.role !== "szaki") {
+        window.location.href = "megrendelo-profil.html";
         return;
     }
 
-    const data = snap.data();
-
     document.getElementById("userBox").innerHTML = `
-        <h3>Üdv, ${data.email}</h3>
-        <p><b>Szerep:</b> ${data.role === "szaki" ? "Szaki" : "Megrendelő"}</p>
+        <h3>Üdv, ${userData.name || userData.email}</h3>
+        <p><b>Email:</b> ${userData.email}</p>
+        <p><b>Szerep:</b> Szaki</p>
     `;
 
     document.getElementById("status").innerText =
-        data.online ? "🟢 Online" : "⚪ Offline";
+        userData.online ? "🟢 Online" : "⚪ Offline";
 });
 
 
-// ===============================
-// ONLINE / OFFLINE VÁLTÁS
-// ===============================
+/* ===============================
+   ONLINE / OFFLINE VÁLTÁS
+=============================== */
 document.getElementById("toggleOnline").onclick = async () => {
+    if (!uid) return;
+
     const ref = doc(db, "users", uid);
     const snap = await getDoc(ref);
-    const act = snap.data().online;
+    const current = snap.data().online;
 
-    await updateDoc(ref, { online: !act });
+    await updateDoc(ref, { online: !current });
 
     document.getElementById("status").innerText =
-        !act ? "🟢 Online" : "⚪ Offline";
+        !current ? "🟢 Online" : "⚪ Offline";
 };
 
 
-// ===============================
-// KIJELENTKEZÉS
-// ===============================
+/* ===============================
+   KIJELENTKEZÉS
+=============================== */
 document.getElementById("logoutBtn").onclick = async () => {
     if (uid) {
         await updateDoc(doc(db, "users", uid), { online: false });
@@ -123,10 +207,8 @@ document.getElementById("logoutBtn").onclick = async () => {
 
     await signOut(auth);
     localStorage.clear();
-
     window.location.href = "login.html";
 };
-
 </script>
 
 </body>
