@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <title>Szakma választás – SzakiChat</title>
+    <link rel="stylesheet" href="style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+
+<body>
+
+<header>Szakma választás</header>
+
+<div class="container">
+
+    <div class="box">
+        <h3>Válassz szakmát</h3>
+        <p>Válaszd ki, milyen szakembert keresel.</p>
+
+        <select id="szakma" class="input">
+            <option value="">– Válassz szakmát –</option>
+            <option value="Burkoló">Burkoló</option>
+            <option value="Festő">Festő</option>
+            <option value="Gipszkarton szerelő">Gipszkarton szerelő</option>
+            <option value="Villanyszerelő">Villanyszerelő</option>
+            <option value="Kőműves">Kőműves</option>
+            <option value="Víz / Gáz / Fűtés">Víz / Gáz / Fűtés</option>
+        </select>
+
+        <button id="nextBtn" class="btn" style="margin-top:16px; width:100%;" disabled>
+            Tovább
+        </button>
+    </div>
+
+
+    <!-- FIGYELMEZTETÉS A MEGOSZTÁSRA -->
+    <div class="box" style="background:#fff4e6;">
+        <b>Az oldal használata ingyenes!</b><br><br>
+        A szakik elérhetőségének feloldásához oszd meg az oldalt legalább <b>5 helyen</b>.
+    </div>
+
+    <!-- REKLÁMHELY -->
+    <div class="ads-box">
+        🔶 Reklám hely – Google Ads vagy céges banner
+    </div>
+
+</div>
+
+<!-- ❤️ LEBEGŐ TÁMOGATÁS GOMB -->
+<div id="supportFloatingBtn"
+     onclick="window.open('https://www.paypal.com/donate/?hosted_button_id=QGU3WXVSCH22A','_blank')">
+    <span class="heart">❤️</span> Támogasd a SzakiChat-et
+</div>
+
+
+<script>
+// ================================
+// Elmentjük a választott szakmát
+// ================================
+const szakmaSelect = document.getElementById("szakma");
+const nextBtn = document.getElementById("nextBtn");
+
+// ha van mentve, töltsük vissza
+const saved = localStorage.getItem("mr_szakma");
+if (saved) {
+    szakmaSelect.value = saved;
+    nextBtn.disabled = false;
+}
+
+// engedélyezés
+szakmaSelect.onchange = () => {
+    const v = szakmaSelect.value.trim();
+    nextBtn.disabled = v === "";
+    if (v) localStorage.setItem("mr_szakma", v);
+};
+
+// ================================
+// Tovább kattintás
+// ================================
+nextBtn.onclick = () => {
+    const szakma = szakmaSelect.value.trim();
+    if (!szakma) return;
+
+    window.location.href = "szaki-valasztas.html?szakma=" + encodeURIComponent(szakma);
+};
+</script>
+
+</body>
+</html>
