@@ -55,6 +55,121 @@
 
 <script type="module">
 
+/* 🔥 FIREBASE helyes import útvonal GITHUB-ra! */
+import { app, db, auth } from "./firebase-config.js";
+
+import {
+    signInWithEmailAndPassword,
+    createUserWithEmailAndPassword
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+import {
+    doc, setDoc
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+
+/* -------------------------
+   SZEREP VÁLASZTÁS
+------------------------- */
+function getRole() {
+    const r = document.getElementById("roleSelect").value;
+    if (!r) { alert("Válaszd ki: Szaki vagy Megrendelő!"); return null; }
+    return r;
+}
+
+
+/* -------------------------
+     REGISZTRÁCIÓ
+------------------------- */
+window.registerUser = async function () {
+
+    const role  = getRole();
+    const name  = document.getElementById("nameInput").value.trim();
+    const email = document.getElementById("email").value.trim();
+    const pass  = document.getElementById("pass").value.trim();
+
+    if (!role || !name || !email || !pass) {
+        alert("Minden mezőt tölts ki!");
+        return;
+    }
+
+    try {
+        const cred = await createUserWithEmailAndPassword(auth, email, pass);
+        const uid = cred.user.uid;
+
+        await setDoc(doc(db, "users", uid), {
+            uid,
+            name,
+            email,
+            role,
+            online: true,
+            shareCount: 0,
+            szakma: "",
+            phone: "",
+            createdAt: Date.now()
+        });
+
+        if (role === "szaki") window.location.href = "szaki-panel.html";
+        else window.location.href = "megrendelo-profil.html";
+
+    } catch (e) {
+        alert("Hiba: " + e.message);
+    }
+};
+
+
+/* -------------------------
+        BELÉPÉS
+------------------------- */
+window.loginUser = async function () {
+
+    const email = document.getElementById("email").value.trim();
+    const pass  = document.getElementById("pass").value.trim();
+    const role  = getRole();
+
+    if (!email || !pass) {
+        alert("Add meg az emailt és jelszót!");
+        return;
+    }
+
+    try {
+        const cred = await signInWithEmailAndPassword(auth, email, pass);
+        const uid = cred.user.uid;
+
+        await setDoc(doc(db, "users", uid), { online: true }, { merge: true });
+
+        if (role === "szaki") window.location.href = "szaki-panel.html";
+        else window.location.href = "megrendelo-profil.html";
+
+    } catch (e) {
+        alert("Hibás email vagy jelszó!");
+    }
+};
+
+</script>
+
+</body>
+</html>    <select id="roleSelect">
+        <option value="">Válassz:</option>
+        <option value="szaki">Szaki vagyok</option>
+        <option value="megrendelo">Megrendelő vagyok</option>
+    </select>
+
+    <h3>Teljes név</h3>
+    <input id="nameInput" type="text" placeholder="Add meg a neved">
+
+    <h3>Email & Jelszó</h3>
+    <input id="email" type="email" placeholder="Email">
+    <input id="pass" type="password" placeholder="Jelszó">
+
+    <button class="btn btn-login" onclick="loginUser()">Belépés</button>
+    <button class="btn btn-reg" onclick="registerUser()">Regisztráció</button>
+
+</div>
+
+
+<script type="module">
+
 // 🔥 FIREBASE IMPORT HELYES ÚTVONALLAL GITHUB PAGESHEZ
 import { app, db, auth } from "/szaki-app/firebase-config.js";
 
