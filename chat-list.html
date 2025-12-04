@@ -7,34 +7,116 @@
     <link rel="stylesheet" href="style.css">
 
     <style>
-        body {
-            background:#f4f4f4;
-            margin:0;
-            font-family:Arial, sans-serif;
-        }
-
+        body { background:#f4f4f4; margin:0; font-family:Arial; }
         header {
-            background:#007aff;
-            color:white;
-            padding:16px;
-            text-align:center;
-            font-size:20px;
-            font-weight:bold;
+            background:#007aff; color:white; padding:16px;
+            text-align:center; font-size:20px; font-weight:bold;
         }
-
         .chatItem {
-            background:white;
-            padding:16px;
-            border-radius:12px;
+            background:white; padding:16px; border-radius:12px;
             box-shadow:0 2px 10px rgba(0,0,0,0.08);
-            margin:12px;
-            display:flex;
-            justify-content:space-between;
-            align-items:center;
+            margin:12px; display:flex;
+            justify-content:space-between; align-items:center;
             cursor:pointer;
         }
+        .chatName { font-size:17px; font-weight:bold; }
+        .lastMsg { color:#666; font-size:14px; margin-top:4px; }
+        .statusIcon { font-size:22px; }
+    </style>
+</head>
 
-        .chatName {
+<body>
+
+<header>Beszélgetések</header>
+
+<div id="chatList">Betöltés...</div>
+
+
+<script type="module">
+
+import { auth, db } from "./firebase-config.js";
+
+import {
+    onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+import {
+    doc, getDoc
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+let uid = null;
+
+onAuthStateChanged(auth, async (user) => {
+    if (!user) return window.location.href = "login.html";
+    uid = user.uid;
+    loadChatList();
+});
+
+
+/* ============================================================
+   CHAT LISTA BETÖLTÉSE A USERS → chatList BÓL
+============================================================ */
+async function loadChatList() {
+    const listDiv = document.getElementById("chatList");
+    listDiv.innerHTML = "Betöltés...";
+
+    const userRef = doc(db, "users", uid);
+    const userSnap = await getDoc(userRef);
+
+    if (!userSnap.exists()) {
+        listDiv.innerHTML = "<p>Nincs adat.</p>";
+        return;
+    }
+
+    const data = userSnap.data();
+    const chatList = data.chatList || {};
+
+    if (Object.keys(chatList).length === 0) {
+        listDiv.innerHTML = "<p style='text-align:center;margin-top:30px;'>Nincs még beszélgetés.</p>";
+        return;
+    }
+
+    listDiv.innerHTML = "";
+
+    // chatList objektum → tömb
+    for (const chatId of Object.keys(chatList)) {
+        const entry = chatList[chatId];
+
+        const partnerUid = entry.uid;
+        const partnerName = entry.name;
+
+        // chat session lekérése a lastMessage miatt
+        const sessionRef = doc(db, "chatSessions", chatId);
+        const sessionSnap = await getDoc(sessionRef);
+
+        const session = sessionSnap.exists()
+            ? sessionSnap.data()
+            : { lastMessage: "", lastTime: null };
+
+        const div = document.createElement("div");
+        div.className = "chatItem";
+
+        div.onclick = () => {
+            window.location.href =
+                `chat.html?chatId=${chatId}&partner=${encodeURIComponent(partnerName)}`;
+        };
+
+        div.innerHTML = `
+            <div>
+                <div class="chatName">${partnerName}</div>
+                <div class="lastMsg">${session.lastMessage || "Nincs üzenet"}</div>
+            </div>
+            <div class="statusIcon">${entry.online ? "🟢" : "⚪"}</div>
+        `;
+
+        listDiv.appendChild(div);
+    }
+}
+
+</script>
+
+</body>
+</html>        .chatName {
             font-size:17px;
             font-weight:bold;
         }
