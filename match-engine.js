@@ -1,5 +1,5 @@
 // =======================================================
-// MATCH ENGINE – Szaki kiválasztó logika (Végleges verzió)
+// MATCH ENGINE – Szaki kiválasztó logika (VÉGLEGES VERZIÓ)
 // =======================================================
 
 import { db } from "./firebase-config.js";
@@ -14,22 +14,26 @@ import {
 
 
 // -------------------------------------------------------
-// 1) Szakma alapján összes szaki lekérése
+// 1) Szakma + város alapján szakik lekérése
 // -------------------------------------------------------
-export async function getWorkersByProfession(profession) {
+export async function getWorkersByProfession(profession, city = "Budapest") {
+
     const q = query(
         collection(db, "users"),
         where("role", "==", "szaki"),
-        where("szakma", "==", profession.toLowerCase())
+        where("szakma", "==", profession.toLowerCase()),
+        where("city", "==", city.toLowerCase())
     );
 
     const snap = await getDocs(q);
 
     const results = [];
     snap.forEach(docu => {
+        const data = docu.data();
         results.push({
             id: docu.id,
-            ...docu.data()
+            ...data,
+            chatCount: data.chatCount || 0   // TERHELTSÉG
         });
     });
 
@@ -38,19 +42,25 @@ export async function getWorkersByProfession(profession) {
 
 
 // -------------------------------------------------------
-// 2) Első kör: online szakik prioritása
+// 2) Online szakik előre
 // -------------------------------------------------------
 export function filterOnlineFirst(workers) {
     const online = workers.filter(w => w.online);
     const offline = workers.filter(w => !w.online);
-
     return [...online, ...offline];
 }
 
 
 // -------------------------------------------------------
-// 3) Második kör: naptár (később bővítjük)
-// Most placeholder: egyszerűen visszaad 3 szakembert
+// 3) Terheltség ellenőrzés – max 3 chat
+// -------------------------------------------------------
+export function filterAvailable(workers) {
+    return workers.filter(w => w.chatCount < 3);
+}
+
+
+// -------------------------------------------------------
+// 4) Legjobb 3 szaki kiválasztása
 // -------------------------------------------------------
 export function pickBest3(workers) {
     if (workers.length <= 3) return workers;
@@ -59,20 +69,24 @@ export function pickBest3(workers) {
 
 
 // -------------------------------------------------------
-// 4) Match engine fő logika
+// 5) Match engine fő logika
 // -------------------------------------------------------
-export async function matchWorkers(profession) {
+export async function matchWorkers(profession, city = "Budapest") {
 
-    // szakemberek szűrése
-    const allWorkers = await getWorkersByProfession(profession);
+    // szakik lekérése
+    let allWorkers = await getWorkersByProfession(profession, city);
+    if (allWorkers.length === 0) return [];
+
+    // online első
+    allWorkers = filterOnlineFirst(allWorkers);
+
+    // terheltség szűrés (max 3 chat)
+    allWorkers = filterAvailable(allWorkers);
 
     if (allWorkers.length === 0) return [];
 
-    // online → majd offline
-    const sorted = filterOnlineFirst(allWorkers);
+    // top 3
+    const best = pickBest3(allWorkers);
 
-    // top 3 kiválasztása
-    const best = pickBest3(sorted);
-
-    return best;  // [{id, name, online, szakma, ...}, ...]
+    return best;
 }
