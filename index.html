@@ -2,7 +2,7 @@
 <html lang="hu">
 <head>
     <meta charset="UTF-8">
-    <title>SzakiChat – Gyors szakember kapcsolat</title>
+    <title>SzakiChat – Üdvözlünk!</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="style.css">
 
@@ -10,96 +10,73 @@
         body {
             margin:0;
             font-family:Arial, sans-serif;
-            background:#f4f4f4;
+            background:#f2f2f2;
         }
 
         header {
             background:#007aff;
             color:white;
-            padding:20px;
+            padding:22px;
             text-align:center;
             font-size:26px;
             font-weight:bold;
         }
 
-        .hero {
-            text-align:center;
-            padding:30px 20px;
+        .container {
+            max-width:480px;
+            margin:40px auto;
             background:white;
-            box-shadow:0 2px 12px rgba(0,0,0,0.1);
+            padding:28px;
+            border-radius:14px;
+            text-align:center;
+            box-shadow:0 4px 16px rgba(0,0,0,0.12);
         }
 
-        .hero h1 {
-            font-size:30px;
-            margin-bottom:10px;
+        h1 {
             color:#007aff;
+            font-size:28px;
+            margin-bottom:16px;
         }
 
-        .hero p {
-            color:#444;
+        p {
             font-size:17px;
-            line-height:1.4;
+            color:#444;
+            line-height:1.5;
         }
 
-        .btnMain {
-            margin-top:20px;
-            padding:14px 22px;
-            background:#007aff;
-            color:white;
-            font-size:18px;
+        .btn {
+            width:100%;
+            padding:16px;
+            margin-top:18px;
+            font-size:19px;
             border:none;
             border-radius:10px;
             cursor:pointer;
             font-weight:bold;
         }
 
-        .btnMain:hover {
+        .btn-szaki {
+            background:#007aff;
+            color:white;
+        }
+
+        .btn-user {
+            background:#ff9500;
+            color:white;
+        }
+
+        .btn:hover {
             transform:scale(1.03);
         }
 
-        .section {
-            background:white;
-            margin:20px;
-            padding:22px;
-            border-radius:12px;
-            box-shadow:0 2px 12px rgba(0,0,0,0.08);
-        }
-
-        .section h2 {
-            color:#007aff;
-            margin-bottom:12px;
-        }
-
-        .feature {
-            margin:10px 0;
-            font-size:16px;
-        }
-
         footer {
+            margin-top:40px;
             text-align:center;
-            padding:18px;
             color:#666;
             font-size:14px;
-            margin-top:30px;
         }
 
-        .quickLinks button {
-            width:100%;
-            margin-top:12px;
-            padding:12px;
-            font-size:17px;
-            background:#007aff;
-            color:white;
-            border:none;
-            border-radius:8px;
-            cursor:pointer;
-        }
-
-        .quickLinks button:hover {
-            transform:scale(1.02);
-        }
-
-        /* Támogatás gomb */
+        /* ❤️ Támogatás gomb */
         #supportFloatingBtn {
             position: fixed;
             bottom: 22px;
@@ -134,177 +111,27 @@
 
 <header>SzakiChat.hu</header>
 
-<!-- HERO SZEKCIÓ -->
-<div class="hero">
-    <h1>Üdvözöl a SzakiChat!</h1>
+<div class="container">
+
+    <h1>Üdvözlünk a SzakiChat-en!</h1>
+
     <p>
-        A legegyszerűbb chat alapú szakember–megrendelő rendszer.  
-        Gyors regisztráció után már indulhat is a beszélgetés!
+        A legegyszerűbb módja, hogy szakemberrel vagy megrendelővel  
+        <b>azonnal kapcsolatba lépj</b>.
     </p>
 
-    <button class="btnMain" onclick="window.location.href='login.html'">
-        Belépés / Regisztráció
+    <button class="btn btn-szaki" onclick="window.location.href='szaki-login.html'">
+        👷‍♂️ Szakember vagyok – Belépek
     </button>
-</div>
 
-<!-- FUNKCIÓK -->
-<div class="section">
-    <h2>Miért a SzakiChat?</h2>
+    <button class="btn btn-user" onclick="window.location.href='user-register.html'">
+        🧑‍💼 Megrendelő vagyok – szakembert keresek
+    </button>
 
-    <div class="feature">💬 Azonnali chat szakival</div>
-    <div class="feature">🟢 Valós idejű online státusz</div>
-    <div class="feature">🔒 Telefonszám zárolva, amíg mindketten nem osztotok 5×</div>
-    <div class="feature">⚡ Firestore alapú gyors adatbázis</div>
-    <div class="feature">📱 Mobilon és tableten is tökéletes</div>
-</div>
-
-<!-- GYORS MENÜ -->
-<div class="section quickLinks">
-    <h2>Gyors menü</h2>
-
-    <button onclick="window.location.href='login.html'">Belépés a fiókba</button>
-    <button onclick="window.location.href='chat-list.html'">Chat lista</button>
-</div>
-
-<!-- REKLÁMHELY -->
-<div class="section" style="text-align:center; color:#444;">
-    🔶 Hirdetési felület (Google Ads)
 </div>
 
 <footer>
-    SzakiChat.hu – 2025  
-    <br> Magyar fejlesztés, magyar szakiknak és megrendelőknek.
-</footer>
-
-<!-- ❤️ TÁMOGATÁS GOMB -->
-<div id="supportFloatingBtn"
-     onclick="window.open('https://www.paypal.com/donate/?hosted_button_id=QGU3WXVSCH22A','_blank')">
-    <span class="heart">❤️</span> Támogasd a SzakiChat-et
-</div>
-
-</body>
-</html>
-        .hero p {
-            color:#444;
-            font-size:17px;
-            line-height:1.4;
-        }
-
-        .btnMain {
-            margin-top:20px;
-            padding:14px 22px;
-            background:#007aff;
-            color:white;
-            font-size:18px;
-            border:none;
-            border-radius:10px;
-            cursor:pointer;
-            font-weight:bold;
-        }
-
-        .btnMain:hover {
-            transform:scale(1.03);
-        }
-
-        .section {
-            background:white;
-            margin:20px;
-            padding:22px;
-            border-radius:12px;
-            box-shadow:0 2px 12px rgba(0,0,0,0.08);
-        }
-
-        .section h2 {
-            color:#007aff;
-            margin-bottom:12px;
-        }
-
-        .feature {
-            margin:10px 0;
-            font-size:16px;
-        }
-
-        footer {
-            text-align:center;
-            padding:18px;
-            color:#666;
-            font-size:14px;
-            margin-top:30px;
-        }
-
-        .quickLinks button {
-            width:100%;
-            margin-top:12px;
-            padding:12px;
-            font-size:17px;
-            background:#007aff;
-            color:white;
-            border:none;
-            border-radius:8px;
-            cursor:pointer;
-        }
-
-        .quickLinks button:hover {
-            transform:scale(1.02);
-        }
-
-    </style>
-</head>
-
-<body>
-
-<header>SzakiChat.hu</header>
-
-<!-- HERO SZEKCIÓ -->
-<div class="hero">
-    <h1>Üdvözöl a SzakiChat!</h1>
-    <p>
-        A legegyszerűbb és leggyorsabb online megoldás szakember keresésre  
-        és azonnali kapcsolatfelvételre.  
-        Ingyenes, gyors és magyar fejlesztés.
-    </p>
-
-    <button class="btnMain" onclick="window.location.href='login.html'">
-        Belépés / Regisztráció
-    </button>
-</div>
-
-
-<!-- FUNKCIÓK -->
-<div class="section">
-    <h2>Miért a SzakiChat?</h2>
-
-    <div class="feature">🔧 Valós szakemberek profiljai</div>
-    <div class="feature">💬 Azonnali chat indítás</div>
-    <div class="feature">🟢 Online státusz kijelzés</div>
-    <div class="feature">📍 Szakma választás pár kattintással</div>
-    <div class="feature">🔒 Telefonszámok zárolva, amíg nem osztasz meg 5 helyen</div>
-    <div class="feature">⚡ Gyors Firestore adatbázis</div>
-    <div class="feature">📱 Mobilra optimalizált felület</div>
-</div>
-
-
-<!-- GYORS LINKEK -->
-<div class="section quickLinks">
-    <h2>Gyors menü</h2>
-
-    <button onclick="window.location.href='login.html'">Belépés a fiókba</button>
-    <button onclick="window.location.href='szakma-valasztas.html'">Szakma választása</button>
-    <button onclick="window.location.href='chat-list.html'">Chat lista</button>
-    <button onclick="window.location.href='megrendelo-profil.html'">Megrendelő profil</button>
-    <button onclick="window.location.href='szaki-profil.html'">Szaki profil</button>
-</div>
-
-
-<!-- REKLÁMHELY -->
-<div class="section" style="text-align:center; color:#444;">
-    🔶 Ide kerülnek majd a hirdetések (Google Ads, bannerek)
-</div>
-
-
-<footer>
-    SzakiChat.hu – 2025  
-    <br> Magyar fejlesztés, magyar szakiknak és megrendelőknek.
+    SzakiChat.hu – 2025 • Magyar fejlesztés
 </footer>
 
 <!-- ❤️ Lebegő támogatás -->
