@@ -4,16 +4,16 @@
     <meta charset="UTF-8">
     <title>Chat – SzakiChat</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <link rel="stylesheet" href="style.css">
 
     <style>
         body {
             margin:0;
-            height:100vh;
+            background:#f5f5f5;
+            font-family:Arial, sans-serif;
             display:flex;
             flex-direction:column;
-            background:#f2f2f2;
+            height:100vh;
         }
 
         #chatHeader {
@@ -46,10 +46,10 @@
         .other { background:white; color:black; margin-right:auto; }
 
         #inputBar {
-            display:flex;
             padding:10px;
             background:white;
             border-top:1px solid #ddd;
+            display:flex;
         }
 
         #msgInput {
@@ -57,7 +57,6 @@
             padding:10px;
             border:1px solid #ccc;
             border-radius:8px;
-            margin-right:10px;
         }
 
         #sendBtn {
@@ -66,15 +65,15 @@
             padding:10px 16px;
             border:none;
             border-radius:8px;
-            cursor:pointer;
+            margin-left:8px;
         }
 
         #lockWarning {
             display:none;
-            background:#ffd4d4;
-            color:#8b0000;
-            padding:10px;
             text-align:center;
+            background:#ffe5e5;
+            padding:8px;
+            color:#a10000;
             font-weight:bold;
         }
     </style>
@@ -87,7 +86,7 @@
     <div id="partnerStatus">⚪</div>
 </div>
 
-<div id="lockWarning">🔒 Telefonszám küldése zárolva! (Legalább 5 megosztás kell)</div>
+<div id="lockWarning">🔒 Elérhetőség küldése zárolva 5 megosztás alatt!</div>
 
 <div id="messages">Betöltés...</div>
 
@@ -96,122 +95,145 @@
     <button id="sendBtn">Küldés</button>
 </div>
 
-
-<!-- ❤️ Lebegő támogatás gomb -->
+<!-- ❤️ Támogatás -->
 <div id="supportFloatingBtn"
      onclick="window.open('https://www.paypal.com/donate/?hosted_button_id=QGU3WXVSCH22A','_blank')">
-    <span class="heart">❤️</span> Támogasd a SzakiChat-et
+     <span class="heart">❤️</span> Támogasd a SzakiChat-et
 </div>
-
 
 <script type="module">
 
-/* ============================================================
-   IMPORTOK
-============================================================ */
-import { db } from "./firebase-config.js";
+/* FIREBASE */
+import { db, auth } from "./firebase-config.js";
 
 import {
-    doc,
-    getDoc
+    onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+import {
+    doc, getDoc, setDoc, updateDoc,
+    collection, addDoc, query, orderBy, onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-import {
-    sendMessage,
-    subscribeToMessages,
-    getPartnerData
-} from "./messages.js";
 
-
-/* ============================================================
-   URL PARAMÉTEREK
-============================================================ */
+// ----------------------------------------------------------------
+// URL PARAMÉTEREK
+// ----------------------------------------------------------------
 const params = new URLSearchParams(window.location.search);
-const chatId = params.get("chatId");
-const partner = params.get("partner");
+const chatID = params.get("chatID");
+const partnerID = params.get("partner");
 
-if (!chatId) {
-    alert("Chat hiba: nincs chatId!");
-    window.location.href = "chat-list.html";
-}
-
-document.getElementById("partnerName").innerText = partner;
-
-
-/* ============================================================
-   ALAP ADATOK BETÖLTÉSE
-============================================================ */
-const myUid = localStorage.getItem("uid");
-if (!myUid) window.location.href = "login.html";
-
-let myData = null;
+let uid = null;
+let userData = null;
 let partnerData = null;
 
-// partner adatok beolvasása
-const partnerSnap = await getPartnerDataFromFirestore(partner);
-if (partnerSnap) {
-    partnerData = partnerSnap;
+
+// ----------------------------------------------------------------
+// AUTH → BETÖLTJÜK A SAJÁT ADATOKAT FIRESTOREBŐL
+// ----------------------------------------------------------------
+onAuthStateChanged(auth, async (user) => {
+    if (!user) return window.location.href = "login.html";
+
+    uid = user.uid;
+
+    const meRef = doc(db, "users", uid);
+    const meSnap = await getDoc(meRef);
+    userData = meSnap.data();
+
+    const pRef = doc(db, "users", partnerID);
+    const pSnap = await getDoc(pRef);
+    partnerData = pSnap.data();
+
+    // Fejléc frissítése
+    document.getElementById("partnerName").innerText =
+        partnerData.displayName || partnerData.name || partnerData.email;
+
     document.getElementById("partnerStatus").innerText =
         partnerData.online ? "🟢" : "⚪";
-}
 
-// saját user adatok
-const meRef = doc(db, "users", myUid);
-const meSnap = await getDoc(meRef);
-myData = meSnap.data();
+    loadMessages();
+});
 
 
-async function getPartnerDataFromFirestore(nameOrUid) {
-    // partner uid URL-ben van → gyorsabb
-    const pRef = doc(db, "users", nameOrUid);
-    const pSnap = await getDoc(pRef);
-    return pSnap.data();
-}
+// ----------------------------------------------------------------
+// ÜZENETEK REALTIME BETÖLTÉSE FIRESTORE-BÓL
+// ----------------------------------------------------------------
+function loadMessages() {
+    const msgBox = document.getElementById("messages");
+    msgBox.innerHTML = "Betöltés...";
 
+    const q = query(
+        collection(db, "chats", chatID, "messages"),
+        orderBy("timestamp", "asc")
+    );
 
-/* ============================================================
-   ÜZENETEK BETÖLTÉSE (VALÓS IDŐBEN)
-============================================================ */
-const msgBox = document.getElementById("messages");
+    onSnapshot(q, (snap) => {
+        msgBox.innerHTML = "";
 
-subscribeToMessages(chatId, (messages) => {
-    msgBox.innerHTML = "";
+        snap.forEach((d) => {
+            const m = d.data();
 
-    messages.forEach((m) => {
-        const div = document.createElement("div");
-        div.className = "msg " + (m.sender === myUid ? "me" : "other");
-        div.innerText = m.text;
-        msgBox.appendChild(div);
+            const div = document.createElement("div");
+            div.className = "msg " + (m.sender === uid ? "me" : "other");
+            div.innerText = m.text;
+
+            msgBox.appendChild(div);
+        });
+
+        msgBox.scrollTop = msgBox.scrollHeight;
     });
-
-    msgBox.scrollTop = msgBox.scrollHeight;
-});
+}
 
 
-/* ============================================================
-   ÜZENET KÜLDÉSE
-============================================================ */
-document.getElementById("sendBtn").onclick = send;
+// ----------------------------------------------------------------
+// ÜZENET KÜLDÉSE
+// ----------------------------------------------------------------
+document.getElementById("sendBtn").onclick = sendMessage;
+
 document.getElementById("msgInput").addEventListener("keypress", (e) => {
-    if (e.key === "Enter") send();
+    if (e.key === "Enter") sendMessage();
 });
 
-async function send() {
+async function sendMessage() {
     const input = document.getElementById("msgInput");
     const text = input.value.trim();
     if (!text) return;
 
-    // Telefonszám védelem
-    if (myData.shareCount < 5 && /[0-9]{7,}/.test(text)) {
+    // 5 MEGOSZTÁS ALATT TILTJUK A TELEFON / EMAIL FORMÁKAT
+    if (userData?.shareCount < 5 && looksLikeContact(text)) {
         document.getElementById("lockWarning").style.display = "block";
         return;
     }
 
-    await sendMessage(chatId, myUid, text);
+    await addDoc(collection(db, "chats", chatID, "messages"), {
+        text,
+        sender: uid,
+        timestamp: Date.now()
+    });
+
+    await updateDoc(doc(db, "chats", chatID), {
+        lastMessage: text,
+        lastTimestamp: Date.now()
+    });
 
     input.value = "";
 }
 
+
+// ----------------------------------------------------------------
+// TELEFON / EMAIL minták
+// ----------------------------------------------------------------
+function looksLikeContact(text) {
+    // telefonszám
+    if (/[0-9]{6,}/.test(text)) return true;
+
+    // email cím
+    if (text.includes("@")) return true;
+
+    return false;
+}
+
 </script>
+
 </body>
 </html>
