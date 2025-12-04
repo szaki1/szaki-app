@@ -19,8 +19,7 @@ import {
 
 
 // =========================================================
-// CHAT ID GENERÁLÁS (2 user azonosítása)
-// Mindig ugyanaz legyen: ABC sorrend!
+// CHAT ID GENERÁLÁS (ABC sorrend, mindenkihez ugyanaz)
 // =========================================================
 export function generateChatId(uid1, uid2) {
     return uid1 < uid2 ? `${uid1}_${uid2}` : `${uid2}_${uid1}`;
@@ -28,8 +27,7 @@ export function generateChatId(uid1, uid2) {
 
 
 // =========================================================
-// CHAT LÉTREHOZÁSA (ha még nincs)
-// Mindkét fél chatlistájába beírjuk
+// CHAT LÉTREHOZÁSA – ha még nincs
 // =========================================================
 export async function initChatIfNeeded(uid, partnerUid) {
     const chatId = generateChatId(uid, partnerUid);
@@ -38,12 +36,16 @@ export async function initChatIfNeeded(uid, partnerUid) {
     const snap = await getDoc(chatRef);
 
     if (!snap.exists()) {
-        // partner adatok lekérése
-        const partnerRef = doc(db, "users", partnerUid);
-        const partner = (await getDoc(partnerRef)).data();
 
+        // partner adatok
+        const partnerRef = doc(db, "users", partnerUid);
+        const partnerSnap = await getDoc(partnerRef);
+        const partner = partnerSnap.exists() ? partnerSnap.data() : { name: "Ismeretlen" };
+
+        // saját adatok
         const meRef = doc(db, "users", uid);
-        const me = (await getDoc(meRef)).data();
+        const meSnap = await getDoc(meRef);
+        const me = meSnap.exists() ? meSnap.data() : { name: "Felhasználó" };
 
         // chat létrehozása
         await setDoc(chatRef, {
@@ -54,24 +56,37 @@ export async function initChatIfNeeded(uid, partnerUid) {
             lastTime: serverTimestamp()
         });
 
-        // chat-lista létrehozása mindkét félnek
-        await updateDoc(doc(db, "users", uid), {
-            [`chatList.${chatId}`]: {
-                uid: partnerUid,
-                name: partner.name,
-                lastMessage: "",
-                unread: 0
-            }
-        });
+        // saját chatlista bővítése
+        await setDoc(
+            doc(db, "users", uid),
+            {
+                chatList: {
+                    [chatId]: {
+                        uid: partnerUid,
+                        name: partner.name || "Ismeretlen",
+                        lastMessage: "",
+                        unread: 0
+                    }
+                }
+            },
+            { merge: true }
+        );
 
-        await updateDoc(doc(db, "users", partnerUid), {
-            [`chatList.${chatId}`]: {
-                uid,
-                name: me.name,
-                lastMessage: "",
-                unread: 0
-            }
-        });
+        // partner chatlista bővítése
+        await setDoc(
+            doc(db, "users", partnerUid),
+            {
+                chatList: {
+                    [chatId]: {
+                        uid,
+                        name: me.name || "Felhasználó",
+                        lastMessage: "",
+                        unread: 0
+                    }
+                }
+            },
+            { merge: true }
+        );
     }
 
     return chatId;
@@ -84,14 +99,14 @@ export async function initChatIfNeeded(uid, partnerUid) {
 export async function sendMessage(chatId, senderUid, text) {
     if (!text.trim()) return;
 
-    // Üzenet mentése
+    // üzenet mentése
     await addDoc(collection(db, "messages", chatId, "items"), {
         sender: senderUid,
         text,
         time: serverTimestamp()
     });
 
-    // ChatSession frissítése
+    // chat session frissítése
     await updateDoc(doc(db, "chatSessions", chatId), {
         lastMessage: text,
         lastSender: senderUid,
@@ -101,8 +116,7 @@ export async function sendMessage(chatId, senderUid, text) {
 
 
 // =========================================================
-// VALÓS IDEJŰ ÜZENETFIGYELÉS
-// callback(messagesList)
+// VALÓS IDEJŰ ÜZENET FIGYELÉS
 // =========================================================
 export function subscribeToMessages(chatId, callback) {
     const q = query(
@@ -121,7 +135,7 @@ export function subscribeToMessages(chatId, callback) {
 
 
 // =========================================================
-// PARTNER ADATAINAK LEKÉRÉSE
+// PARTNER ADATOK
 // =========================================================
 export async function getPartnerData(uid) {
     const ref = doc(db, "users", uid);
