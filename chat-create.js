@@ -1,9 +1,9 @@
 // =========================================================
-//  SzakiChat – chat-create.js
+//  SzakiChat – chat-create.js (Firebase Auth verzió)
 //  Chat létrehozása megrendelő és szaki között
 // =========================================================
 
-import { db } from "./firebase-config.js";
+import { db, auth } from "./firebase-config.js";
 import {
     doc,
     getDoc,
@@ -21,17 +21,22 @@ import {
 // CHAT INDÍTÁSA (megrendelő -> szaki)
 // =========================================================
 export async function startChatWithSzaki(szakiUid) {
-    const myUid = localStorage.getItem("uid");
 
-    if (!myUid) {
-        alert("Hiba: nincs bejelentkezett felhasználó!");
+    // --- 1. Bejelentkezett felhasználó lekérése Firebase Authból ---
+    const user = auth.currentUser;
+
+    if (!user) {
+        alert("Hiba: nem vagy bejelentkezve!");
+        window.location.href = "szaki-login.html";
         return;
     }
 
-    // Chat létrehozása, ha még nincs
+    const myUid = user.uid;
+
+    // --- 2. Chat létrehozása, ha nem létezik ---
     const chatId = await initChatIfNeeded(myUid, szakiUid);
 
-    // partner adatainak lekérése redirect előtt
+    // --- 3. Partner nevének lekérése (szaki neve) ---
     const partnerSnap = await getDoc(doc(db, "users", szakiUid));
     let partnerName = "Partner";
 
@@ -39,13 +44,13 @@ export async function startChatWithSzaki(szakiUid) {
         partnerName = partnerSnap.data().name || "Partner";
     }
 
-    // első üzenet létrehozása: csak ha új a chat
+    // --- 4. Első üzenet chatSession-be ---
     await updateDoc(doc(db, "chatSessions", chatId), {
         lastMessage: "Chat elindult",
         lastSender: myUid,
         lastTime: serverTimestamp()
     });
 
-    // átirányítás
+    // --- 5. Átirányítás a chat oldalra ---
     window.location.href = `chat.html?chatId=${chatId}&partner=${encodeURIComponent(partnerName)}`;
 }
