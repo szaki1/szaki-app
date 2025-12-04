@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<title>Szaki regisztráció – SzakiChat</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+    body { font-family: Arial; background:#f2f2f2; margin:0; }
+    header {
+        background:#ff8c00; color:white; text-align:center;
+        padding:18px; font-size:22px; font-weight:bold;
+    }
+    .box {
+        max-width:480px; background:white; margin:20px auto;
+        padding:18px; border-radius:12px;
+        box-shadow:0 4px 14px rgba(0,0,0,0.1);
+    }
+    label { font-weight:bold; margin-top:10px; display:block; }
+    input {
+        width:100%; padding:10px; margin-top:6px;
+        border-radius:8px; border:1px solid #ccc;
+        font-size:16px;
+    }
+    .btn {
+        width:100%; padding:12px; margin-top:18px;
+        background:#ff8c00; color:white;
+        border:none; border-radius:8px;
+        font-size:18px; cursor:pointer; font-weight:bold;
+    }
+    .warn { font-size:13px; color:#777; margin-top:4px; }
+</style>
+</head>
+
+<body>
+
+<header>Szaki regisztráció</header>
+
+<div class="box">
+
+    <label>Név (pl.: K. Lajos)</label>
+    <input id="name" type="text" placeholder="Keresztnév vagy monogram">
+
+    <div class="warn">⚠️ Telefonszám, email, FB/Viber/Instagram név beírása TILOS.</div>
+
+    <label style="margin-top:20px;">Szakmáid (több is lehet, vesszővel!)</label>
+    <input id="skills" type="text" placeholder="pl.: festő, burkoló, kőműves">
+
+    <label style="margin-top:20px;">Hol vállalsz munkát?</label>
+    <input id="city" type="text" placeholder="pl.: Budapest">
+
+    <label style="margin-top:20px;">Email</label>
+    <input id="email" type="email" placeholder="Email cím">
+
+    <label>Jelszó</label>
+    <input id="pass1" type="password" placeholder="Jelszó">
+
+    <label>Jelszó ismét</label>
+    <input id="pass2" type="password" placeholder="Jelszó újra">
+
+    <label style="margin-top:20px;">Telefonszám</label>
+    <input id="phone" type="text" placeholder="+36...">
+
+    <button class="btn" onclick="registerSzaki()">Regisztráció</button>
+</div>
+
+<!-- ❤️ Adomány gomb -->
+<div id="supportFloatingBtn"
+     onclick="window.open('https://www.paypal.com/donate/?hosted_button_id=QGU3WXVSCH22A','_blank')"
+     style="
+        position: fixed; bottom: 22px; right: 22px;
+        background:#ff2d55; padding:14px 22px; border-radius:40px;
+        color:white; font-weight:bold; cursor:pointer;
+        display:flex; gap:10px; align-items:center;
+        box-shadow:0 4px 14px rgba(0,0,0,0.25);">
+    ❤️ Támogasd a SzakiChat-et
+</div>
+
+<script type="module">
+import { app, auth, db } from "./firebase.js";
+import {
+    createUserWithEmailAndPassword
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+import {
+    setDoc, doc
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+// tiltott minták
+const blocked = [
+    /\d{6,}/,
+    /@/,
+    /(facebook|fb|messenger|viber|whatsapp|instagram|insta)/i,
+    /\+\d{2}/,
+    /www\./i
+];
+
+function containsBlocked(t) {
+    return blocked.some(r => r.test(t));
+}
+
+window.registerSzaki = async function() {
+
+    const name = document.getElementById("name").value.trim();
+    const skills = document.getElementById("skills").value.trim();
+    const city = document.getElementById("city").value.trim();
+    const email = document.getElementById("email").value.trim();
+    const pass1 = document.getElementById("pass1").value;
+    const pass2 = document.getElementById("pass2").value;
+    const phone = document.getElementById("phone").value.trim();
+
+    if (!name || !skills || !city || !email || !pass1 || !pass2 || !phone) {
+        alert("Minden mező kötelező!");
+        return;
+    }
+
+    if (containsBlocked(name) || containsBlocked(city)) {
+        alert("Név/Város mezőben nem lehet telefonszám, email vagy FB/Viber név!");
+        return;
+    }
+
+    if (pass1 !== pass2) {
+        alert("A jelszavak nem egyeznek!");
+        return;
+    }
+
+    try {
+        const userCred = await createUserWithEmailAndPassword(auth, email, pass1);
+        const uid = userCred.user.uid;
+
+        await setDoc(doc(db, "users", uid), {
+            role: "szaki",
+            name,
+            skills: skills.split(",").map(s => s.trim()),
+            city,
+            phone,
+            shareCount: 0,
+            online: false,
+            activeChats: [],
+            blockedUsers: []
+        });
+
+        alert("Sikeres regisztráció! Átirányítás…");
+        window.location.href = "szaki-panel.html";
+
+    } catch (err) {
+        console.error(err);
+        alert("Hiba történt: " + err.message);
+    }
+}
+</script>
+
+</body>
+</html>
