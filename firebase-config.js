@@ -4,9 +4,7 @@
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import {
-    getAuth,
-    browserLocalPersistence,
-    setPersistence
+    getAuth
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 import {
@@ -15,7 +13,7 @@ import {
 
 
 /* ============================================================
-   SAJÁT FIREBASE KONFIG – EZT MÁSOLTAD KI
+   SAJÁT FIREBASE KONFIG
 ============================================================ */
 
 const firebaseConfig = {
@@ -35,6 +33,12 @@ const firebaseConfig = {
 export const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
+
+/* ============================================================
+   NINCS TARTÓSÍTÁS – NEM HASZNÁLUNK LOCALSTORAGE-ET
+============================================================ */
+
+// setPersistence(auth, browserLocalPersistence);  ❌ TÖRÖLVEexport const db = getFirestore(app);
 
 
 /* ============================================================
