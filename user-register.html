@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <title>Megrendelő gyors regisztráció – SzakiChat</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="stylesheet" href="style.css">
+
+    <style>
+        body {
+            background:#f4f4f4;
+            font-family:Arial, sans-serif;
+            margin:0;
+        }
+
+        header {
+            background:#007aff;
+            color:white;
+            padding:18px;
+            text-align:center;
+            font-size:24px;
+            font-weight:bold;
+        }
+
+        .box {
+            max-width:480px;
+            margin:25px auto;
+            background:white;
+            padding:24px;
+            border-radius:12px;
+            box-shadow:0 4px 14px rgba(0,0,0,0.12);
+        }
+
+        label {
+            font-weight:bold;
+            display:block;
+            margin-top:14px;
+        }
+
+        input, select {
+            width:100%;
+            padding:12px;
+            margin-top:6px;
+            border:1px solid #ccc;
+            border-radius:8px;
+            font-size:16px;
+        }
+
+        button {
+            width:100%;
+            margin-top:20px;
+            padding:14px;
+            background:#007aff;
+            color:white;
+            border:none;
+            font-size:18px;
+            border-radius:10px;
+            cursor:pointer;
+            font-weight:bold;
+        }
+
+        button:hover {
+            transform:scale(1.03);
+        }
+
+        .supportBtn {
+            position: fixed;
+            bottom: 22px;
+            right: 22px;
+            background: #ff2d55;
+            padding: 14px 22px;
+            border-radius: 40px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+        }
+
+        .supportBtn .heart {
+            animation: heartbeat 1.4s infinite;
+        }
+
+        @keyframes heartbeat {
+            0%{transform:scale(1);}
+            25%{transform:scale(1.25);}
+            40%{transform:scale(1);}
+            60%{transform:scale(1.25);}
+            100%{transform:scale(1);}
+        }
+    </style>
+</head>
+
+<body>
+
+<header>Megrendelő gyors regisztráció</header>
+
+<div class="box">
+
+    <label>Név (pl.: Nagy Zoltán)</label>
+    <input id="fullName" placeholder="Írd be a neved">
+
+    <label>Milyen szakembert keresel?</label>
+    <input id="skillsInput" placeholder="Pl.: festő, burkoló, vízszerelő">
+
+    <label>Hol keresel szakembert?</label>
+    <input id="cityInput" placeholder="Pl.: Budapest vagy Eger">
+
+    <hr style="margin:25px 0; border:none; border-top:1px solid #ccc;">
+
+    <label>Email cím</label>
+    <input id="emailInput" type="email" placeholder="pl.: nagyzol@gmail.com">
+
+    <label>Jelszó</label>
+    <input id="pass1" type="password" placeholder="Min. 6 karakter">
+
+    <label>Jelszó újra</label>
+    <input id="pass2" type="password">
+
+    <label>Telefonszám</label>
+    <input id="phoneInput" placeholder="+3630xxxxxxx">
+
+    <button onclick="registerUser()">Regisztráció</button>
+
+</div>
+
+<!-- ❤️ PayPal támogatás -->
+<div class="supportBtn"
+     onclick="window.open('https://www.paypal.com/donate/?hosted_button_id=QGU3WXVSCH22A','_blank')">
+    <span class="heart">❤️</span> Támogasd a SzakiChat-et
+</div>
+
+
+<script type="module">
+    import { auth, db } from "./firebase-config.js";
+    import {
+        createUserWithEmailAndPassword
+    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+    import {
+        doc, setDoc
+    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    window.registerUser = async function () {
+
+        const name = document.getElementById("fullName").value.trim();
+        const skillsRaw = document.getElementById("skillsInput").value.trim();
+        const city = document.getElementById("cityInput").value.trim();
+        const email = document.getElementById("emailInput").value.trim();
+        const pass1 = document.getElementById("pass1").value;
+        const pass2 = document.getElementById("pass2").value;
+        const phone = document.getElementById("phoneInput").value.trim();
+
+        if (!name || !skillsRaw || !city || !email || !pass1 || !pass2 || !phone) {
+            alert("Minden mező kitöltése kötelező!");
+            return;
+        }
+
+        if (pass1 !== pass2) {
+            alert("A két jelszó nem egyezik!");
+            return;
+        }
+
+        // név feldarabolása → Vezetéknév első betű + teljes keresztnév
+        let parts = name.split(" ");
+        let lastName = parts[0];
+        let firstName = parts.slice(1).join(" ");
+
+        let displayName = lastName[0] + ". " + firstName;
+
+        // több szakma → tömb
+        const skills = skillsRaw.split(",").map(s => s.trim());
+
+        try {
+            // Firebase Auth regisztráció
+            const cred = await createUserWithEmailAndPassword(auth, email, pass1);
+            const uid = cred.user.uid;
+
+            // Firestore mentés
+            await setDoc(doc(db, "users", uid), {
+                uid,
+                name: displayName,
+                fullName: name,
+                role: "megrendelo",
+                skillsWanted: skills,
+                city,
+                phone,
+                createdAt: Date.now(),
+                chats: []
+            });
+
+            alert("Sikeres regisztráció!");
+            window.location.href = "chat-list.html";
+
+        } catch (err) {
+            console.error(err);
+            alert("Hiba történt: " + err.message);
+        }
+    }
+</script>
+
+</body>
+</html>
