@@ -109,9 +109,9 @@
 <script type="module">
 
 /* ===================================================
-   FIREBASE IMPORT
+   FIREBASE IMPORT – JAVÍTVA!!!
 =================================================== */
-import { auth, db } from "./firebase.js";
+import { auth, db } from "./firebase-config.js";
 
 import {
     onAuthStateChanged
@@ -140,7 +140,7 @@ let partnerOnline = false;
 
 
 /* ===================================================
-   BELÉPÉS ELLENŐRZÉSE + ADATOK
+   BELÉPÉS ELLENŐRZÉSE
 =================================================== */
 onAuthStateChanged(auth, async (user) => {
     if (!user) return window.location.href = "login.html";
@@ -173,7 +173,7 @@ function watchPartnerOnline() {
 
 
 /* ===================================================
-   CHAT BETÖLTÉSE REALTIME
+   CHAT BETÖLTÉSE
 =================================================== */
 function loadChat() {
     const box = document.getElementById("chatBox");
@@ -181,8 +181,7 @@ function loadChat() {
     onSnapshot(chatRef, (snap) => {
         if (!snap.exists()) return;
 
-        const data = snap.data();
-        const msgs = data.messages || [];
+        const msgs = snap.data().messages || [];
 
         box.innerHTML = "";
 
@@ -230,7 +229,7 @@ window.sendMessage = async function() {
 
 
 /* ===================================================
-   KÉP KÜLDÉSE (előnézet + későbbi Storage kompatibilis)
+   KÉP KÜLDÉSE
 =================================================== */
 window.sendImage = async function() {
     const file = document.getElementById("imgUpload").files[0];
@@ -251,9 +250,9 @@ window.sendImage = async function() {
 
 
 /* ===================================================
-   DIKTÁLÁS – 🎤 Hang → Szöveg
+   DIKTÁLÁS
 =================================================== */
-window.startDictation = function () {
+window.startDictation = function() {
     if (!("webkitSpeechRecognition" in window)) {
         alert("A böngésző nem támogatja a diktálást.");
         return;
