@@ -1,205 +1,119 @@
 <!DOCTYPE html>
 <html lang="hu">
 <head>
-    <meta charset="UTF-8">
-    <title>Megrendelő gyors regisztráció – SzakiChat</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8">
+<title>Megrendelő regisztráció – SzakiChat</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <link rel="stylesheet" href="style.css">
-
-    <style>
-        body {
-            background:#f4f4f4;
-            font-family:Arial, sans-serif;
-            margin:0;
-        }
-
-        header {
-            background:#007aff;
-            color:white;
-            padding:18px;
-            text-align:center;
-            font-size:24px;
-            font-weight:bold;
-        }
-
-        .box {
-            max-width:480px;
-            margin:25px auto;
-            background:white;
-            padding:24px;
-            border-radius:12px;
-            box-shadow:0 4px 14px rgba(0,0,0,0.12);
-        }
-
-        label {
-            font-weight:bold;
-            display:block;
-            margin-top:14px;
-        }
-
-        input, select {
-            width:100%;
-            padding:12px;
-            margin-top:6px;
-            border:1px solid #ccc;
-            border-radius:8px;
-            font-size:16px;
-        }
-
-        button {
-            width:100%;
-            margin-top:20px;
-            padding:14px;
-            background:#007aff;
-            color:white;
-            border:none;
-            font-size:18px;
-            border-radius:10px;
-            cursor:pointer;
-            font-weight:bold;
-        }
-
-        button:hover {
-            transform:scale(1.03);
-        }
-
-        .supportBtn {
-            position: fixed;
-            bottom: 22px;
-            right: 22px;
-            background: #ff2d55;
-            padding: 14px 22px;
-            border-radius: 40px;
-            color: white;
-            font-weight: bold;
-            cursor: pointer;
-            display: flex;
-            gap: 10px;
-            align-items: center;
-            box-shadow: 0 4px 14px rgba(0,0,0,0.25);
-        }
-
-        .supportBtn .heart {
-            animation: heartbeat 1.4s infinite;
-        }
-
-        @keyframes heartbeat {
-            0%{transform:scale(1);}
-            25%{transform:scale(1.25);}
-            40%{transform:scale(1);}
-            60%{transform:scale(1.25);}
-            100%{transform:scale(1);}
-        }
-    </style>
+<style>
+    body { font-family: Arial; background:#f2f2f2; margin:0; }
+    header {
+        background:#007aff; color:white; text-align:center;
+        padding:18px; font-size:22px; font-weight:bold;
+    }
+    .box {
+        max-width:480px; background:white; margin:20px auto;
+        padding:18px; border-radius:12px;
+        box-shadow:0 4px 14px rgba(0,0,0,0.1);
+    }
+    label { font-weight:bold; margin-top:10px; display:block; }
+    input, select {
+        width:100%; padding:10px; margin-top:6px;
+        border-radius:8px; border:1px solid #ccc;
+        font-size:16px;
+    }
+    .btn {
+        width:100%; padding:12px; margin-top:18px;
+        background:#007aff; color:white;
+        border:none; border-radius:8px;
+        font-size:18px; cursor:pointer; font-weight:bold;
+    }
+    .warn { font-size:13px; color:#777; margin-top:4px; }
+</style>
 </head>
 
 <body>
 
-<header>Megrendelő gyors regisztráció</header>
+<header>Megrendelő regisztráció</header>
 
 <div class="box">
 
     <label>Név (pl.: Nagy Zoltán)</label>
-    <input id="fullName" placeholder="Írd be a neved">
+    <input id="name" type="text" placeholder="Keresztnév vagy monogram" autocomplete="off">
 
-    <label>Milyen szakembert keresel?</label>
-    <input id="skillsInput" placeholder="Pl.: festő, burkoló, vízszerelő">
+    <div class="warn">⚠️ Telefonszám, email, FB/Viber/Instagram név beírása TILOS a név mezőbe!</div>
 
-    <label>Hol keresel szakembert?</label>
-    <input id="cityInput" placeholder="Pl.: Budapest vagy Eger">
+    <label style="margin-top:20px;">Milyen szakembert keresel?</label>
+    <input id="profession" type="text" placeholder="pl.: festő, burkoló, vízvezeték-szerelő" autocomplete="off">
 
-    <hr style="margin:25px 0; border:none; border-top:1px solid #ccc;">
+    <label style="margin-top:20px;">Hol keresel szakembert?</label>
+    <input id="city" type="text" placeholder="pl.: Budapest" autocomplete="off">
 
-    <label>Email cím</label>
-    <input id="emailInput" type="email" placeholder="pl.: nagyzol@gmail.com">
+    <label style="margin-top:20px;">Email</label>
+    <input id="email" type="email" placeholder="Email cím" autocomplete="off">
 
     <label>Jelszó</label>
-    <input id="pass1" type="password" placeholder="Min. 6 karakter">
+    <input id="pass1" type="password" placeholder="Jelszó" autocomplete="new-password">
 
     <label>Jelszó újra</label>
-    <input id="pass2" type="password">
+    <input id="pass2" type="password" placeholder="Jelszó ismét" autocomplete="new-password">
 
-    <label>Telefonszám</label>
-    <input id="phoneInput" placeholder="+3630xxxxxxx">
+    <label style="margin-top:20px;">Telefonszám</label>
+    <input id="phone" type="text" placeholder="+36..." autocomplete="off">
 
-    <button onclick="registerUser()">Regisztráció</button>
-
+    <button class="btn" onclick="registerUser()">Regisztráció</button>
 </div>
-
-<!-- ❤️ PayPal támogatás -->
-<div class="supportBtn"
-     onclick="window.open('https://www.paypal.com/donate/?hosted_button_id=QGU3WXVSCH22A','_blank')">
-    <span class="heart">❤️</span> Támogasd a SzakiChat-et
-</div>
-
 
 <script type="module">
-    import { auth, db } from "./firebase-config.js";
-    import {
-        createUserWithEmailAndPassword
-    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { app, auth, db } from "./firebase-config.js";
+import {
+    createUserWithEmailAndPassword
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
-    import {
-        doc, setDoc
-    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import {
+    setDoc, doc
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-    window.registerUser = async function () {
+window.registerUser = async function() {
+    const name = nameInput.value.trim();
+    const job = profession.value.trim();
+    const cityValue = city.value.trim();
+    const emailValue = email.value.trim();
+    const passA = pass1.value;
+    const passB = pass2.value;
+    const phoneValue = phone.value.trim();
 
-        const name = document.getElementById("fullName").value.trim();
-        const skillsRaw = document.getElementById("skillsInput").value.trim();
-        const city = document.getElementById("cityInput").value.trim();
-        const email = document.getElementById("emailInput").value.trim();
-        const pass1 = document.getElementById("pass1").value;
-        const pass2 = document.getElementById("pass2").value;
-        const phone = document.getElementById("phoneInput").value.trim();
-
-        if (!name || !skillsRaw || !city || !email || !pass1 || !pass2 || !phone) {
-            alert("Minden mező kitöltése kötelező!");
-            return;
-        }
-
-        if (pass1 !== pass2) {
-            alert("A két jelszó nem egyezik!");
-            return;
-        }
-
-        // név feldarabolása → Vezetéknév első betű + teljes keresztnév
-        let parts = name.split(" ");
-        let lastName = parts[0];
-        let firstName = parts.slice(1).join(" ");
-
-        let displayName = lastName[0] + ". " + firstName;
-
-        // több szakma → tömb
-        const skills = skillsRaw.split(",").map(s => s.trim());
-
-        try {
-            // Firebase Auth regisztráció
-            const cred = await createUserWithEmailAndPassword(auth, email, pass1);
-            const uid = cred.user.uid;
-
-            // Firestore mentés
-            await setDoc(doc(db, "users", uid), {
-                uid,
-                name: displayName,
-                fullName: name,
-                role: "megrendelo",
-                skillsWanted: skills,
-                city,
-                phone,
-                createdAt: Date.now(),
-                chats: []
-            });
-
-            alert("Sikeres regisztráció!");
-            window.location.href = "chat-list.html";
-
-        } catch (err) {
-            console.error(err);
-            alert("Hiba történt: " + err.message);
-        }
+    if (!name || !job || !cityValue || !emailValue || !passA || !passB || !phoneValue) {
+        alert("Minden mező kötelező!");
+        return;
     }
+
+    if (passA !== passB) {
+        alert("A két jelszó nem egyezik!");
+        return;
+    }
+
+    try {
+        const cred = await createUserWithEmailAndPassword(auth, emailValue, passA);
+
+        await setDoc(doc(db, "users", cred.user.uid), {
+            role: "user",
+            name,
+            profession: job,
+            city: cityValue,
+            phone: phoneValue,
+            shareCount: 0,
+            favorites: [],
+            created: Date.now()
+        });
+
+        alert("Sikeres regisztráció!");
+        window.location.href = "user-chat-list.html";
+
+    } catch (e) {
+        alert("Hiba: " + e.message);
+    }
+}
 </script>
 
 </body>
