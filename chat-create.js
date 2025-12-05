@@ -53,11 +53,15 @@ export async function startChatWithSzaki(szakiUid) {
         });
     } catch (e) {
         // ha updateDoc hibázik (pl. doc nem létezik), akkor létrehozzuk/merge-eljük
-        await setDoc(doc(db, "chatSessions", chatId), {
-            lastMessage: "Chat elindult",
-            lastSender: myUid,
-            lastTime: serverTimestamp()
-        }, { merge: true });
+        if (e.code === 'not-found') {
+            await setDoc(doc(db, "chatSessions", chatId), {
+                lastMessage: "Chat elindult",
+                lastSender: myUid,
+                lastTime: serverTimestamp()
+            }, { merge: true });
+        } else {
+            throw e;
+        }
     }
 
     // --- 5. Átirányítás a chat oldalra ---
