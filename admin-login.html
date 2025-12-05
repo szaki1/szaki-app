@@ -2,7 +2,7 @@
 <html lang="hu">
 <head>
     <meta charset="UTF-8">
-    <title>Admin Belépés – SzakiChat</title>
+    <title>Admin belépés – SzakiChat</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <style>
@@ -13,108 +13,136 @@
             font-family:Arial, sans-serif;
         }
 
-        .login-box {
-            max-width:480px;
-            margin:50px auto;
-            background:white;
-            padding:30px;
-            border-radius:14px;
-            box-shadow:0 4px 18px rgba(0,0,0,0.1);
+        header {
+            background:#d60000;
+            color:white;
+            padding:18px;
             text-align:center;
+            font-size:22px;
+            font-weight:bold;
         }
 
-        h1 {
-            color:#007aff;
-            margin-bottom:20px;
-            font-size:28px;
+        .container {
+            max-width:480px;
+            margin:30px auto;
+            padding:20px;
+            background:white;
+            border-radius:12px;
+            box-shadow:0 4px 14px rgba(0,0,0,0.1);
+        }
+
+        label {
+            font-weight:bold;
+            margin-top:14px;
+            display:block;
         }
 
         input {
             width:100%;
-            padding:14px;
-            margin-top:12px;
-            border-radius:8px;
+            padding:12px;
+            margin-top:6px;
             border:1px solid #ccc;
-            background:#eef4ff;
+            border-radius:8px;
             font-size:16px;
+            background:#ffecec;
         }
 
-        button {
+        .btn {
             width:100%;
-            padding:16px;
+            padding:14px;
             margin-top:20px;
-            background:#007aff;
+            background:#d60000;
             color:white;
             border:none;
-            border-radius:10px;
-            cursor:pointer;
+            border-radius:8px;
             font-size:18px;
+            cursor:pointer;
             font-weight:bold;
         }
 
-        button:hover {
-            transform:scale(1.03);
+        #supportFloatingBtn {
+            position: fixed;
+            bottom: 22px;
+            right: 22px;
+            padding:14px 22px;
+            border-radius:40px;
+            background:#ff2d55;
+            color:white;
+            font-weight:bold;
+            cursor:pointer;
+            box-shadow:0 4px 14px rgba(0,0,0,0.25);
         }
     </style>
 </head>
 
 <body>
 
-<div class="login-box">
-    <h1>Admin Belépés</h1>
+<header>Admin belépés</header>
 
-    <input id="email" type="email" placeholder="Email cím">
+<div class="container">
+
+    <label>Admin email</label>
+    <input id="email" type="email" placeholder="admin@szakichat.hu">
+
+    <label>Jelszó</label>
     <input id="password" type="password" placeholder="Jelszó">
 
-    <button onclick="adminLogin()">Belépés</button>
+    <button class="btn" onclick="adminLogin()">Belépés</button>
+
 </div>
 
-<!-- Firebase alapkonfig -->
+<!-- ❤️ ADOMÁNY GOMB -->
+<div id="supportFloatingBtn"
+     onclick="window.open('https://www.paypal.com/donate/?hosted_button_id=QGU3WXVSCH22A','_blank')">
+    ❤️ Támogasd a SzakiChat-et
+</div>
+
+<!-- 🔥 FIREBASE ALAPKONFIG -->
 <script type="module" src="firebase-config.js"></script>
 
-<!-- Admin beléptető logika -->
+<!-- 🔥 ADMIN LOGIN SCRIPT -->
 <script type="module">
-    import { auth, db } from "./firebase-config.js";
+import { auth, db } from "./firebase-config.js";
 
-    import {
-        signInWithEmailAndPassword
-    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { 
+    signInWithEmailAndPassword 
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
-    import {
-        doc,
-        getDoc
-    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import {
+    doc,
+    getDoc
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 
-    window.adminLogin = async function () {
-        const email = document.getElementById("email").value.trim();
-        const pass = document.getElementById("password").value.trim();
+window.adminLogin = async function () {
+    const email = document.getElementById("email").value.trim();
+    const pass = document.getElementById("password").value.trim();
 
-        if (!email || !pass) {
-            alert("Add meg az emailt és a jelszót!");
+    if (!email || !pass) {
+        alert("Add meg az emailt és jelszót!");
+        return;
+    }
+
+    try {
+        // Auth belépés
+        const cred = await signInWithEmailAndPassword(auth, email, pass);
+        const uid = cred.user.uid;
+
+        // Admin jogosultság ellenőrzése Firestore-ból
+        const snap = await getDoc(doc(db, "users", uid));
+
+        if (!snap.exists() || snap.data().role !== "admin") {
+            alert("Nincs admin jogosultság!");
             return;
         }
 
-        try {
-            const cred = await signInWithEmailAndPassword(auth, email, pass);
-            const uid = cred.user.uid;
+        // SIKER
+        window.location.href = "admin.html";
 
-            // Ellenőrzés: admin-e?
-            const userRef = doc(db, "users", uid);
-            const snap = await getDoc(userRef);
-
-            if (!snap.exists() || snap.data().role !== "admin") {
-                alert("Nincs admin jogosultság!");
-                return;
-            }
-
-            // Siker!
-            window.location.href = "admin.html";
-
-        } catch (err) {
-            alert("Hiba: " + err.message);
-        }
-    };
+    } catch (err) {
+        alert("Hiba: " + err.message);
+    }
+};
 </script>
 
 </body>
