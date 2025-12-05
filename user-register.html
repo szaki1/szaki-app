@@ -6,35 +6,28 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-    body { font-family: Arial, sans-serif; background:#f2f2f2; margin:0; }
+    body { font-family: Arial; background:#f2f2f2; margin:0; }
     header {
         background:#007aff; color:white; text-align:center;
-        padding:18px; font-size:24px; font-weight:bold;
+        padding:20px; font-size:26px; font-weight:bold;
     }
     .box {
-        max-width:520px; background:white; margin:25px auto;
+        max-width:520px; background:white; margin:20px auto;
         padding:22px; border-radius:14px;
-        box-shadow:0 4px 14px rgba(0,0,0,0.12);
+        box-shadow:0 4px 16px rgba(0,0,0,0.12);
     }
-    label { font-weight:bold; margin-top:12px; display:block; }
+    label { font-weight:bold; margin-top:14px; display:block; font-size:16px; }
     input {
         width:100%; padding:12px; margin-top:6px;
-        border-radius:8px; border:1px solid #ccc;
-        font-size:16px;
-        background:#eef3ff;
-    }
-    select {
-        width:100%; padding:12px; margin-top:6px;
-        border-radius:8px; border:1px solid #ccc;
-        font-size:16px; background:white;
+        border-radius:8px; border:1px solid #cfcfcf;
+        background:#eef4ff; font-size:16px;
     }
     .btn {
-        width:100%; padding:14px; margin-top:25px;
+        width:100%; padding:14px; margin-top:22px;
         background:#007aff; color:white;
         border:none; border-radius:10px;
         font-size:20px; cursor:pointer; font-weight:bold;
     }
-    .btn:hover { opacity:0.9; }
     .warn { font-size:13px; color:#777; margin-top:4px; }
 </style>
 </head>
@@ -46,32 +39,31 @@
 <div class="box">
 
     <label>Név (pl.: Nagy Zoltán)</label>
-    <input id="name" type="text" placeholder="Add meg neved">
-
+    <input id="name" type="text" placeholder="Csak keresztnév vagy monogram">
     <div class="warn">⚠️ Telefonszám, email, FB/Viber/Instagram név beírása TILOS a név mezőbe!</div>
 
-    <label style="margin-top:20px;">Milyen szakembert keresel?</label>
-    <input id="profession" type="text" placeholder="pl.: festő, burkoló, gipszkarton">
+    <label>Milyen szakembert keresel?</label>
+    <input id="profession" type="text" placeholder="pl.: festő, burkoló, kőműves">
 
-    <label style="margin-top:20px;">Hol keresel szakembert?</label>
-    <input id="city" type="text" placeholder="pl.: Budapest, Eger, Győr">
+    <label>Hol keresel szakembert?</label>
+    <input id="city" type="text" placeholder="pl.: Budapest">
 
-    <label style="margin-top:20px;">Email</label>
+    <label>Email</label>
     <input id="email" type="email" placeholder="Email cím">
 
     <label>Jelszó</label>
     <input id="pass1" type="password" placeholder="Jelszó">
 
     <label>Jelszó újra</label>
-    <input id="pass2" type="password" placeholder="Jelszó ismét">
+    <input id="pass2" type="password" placeholder="Jelszó újra">
 
-    <label style="margin-top:20px;">Telefonszám</label>
+    <label>Telefonszám</label>
     <input id="phone" type="text" placeholder="+36...">
 
     <button class="btn" onclick="registerUser()">Regisztráció</button>
 </div>
 
-<!-- ❤️ Lebegő adomány gomb -->
+<!-- ❤️ Adomány gomb -->
 <div id="supportFloatingBtn"
      onclick="window.open('https://www.paypal.com/donate/?hosted_button_id=QGU3WXVSCH22A','_blank')"
      style="
@@ -84,7 +76,7 @@
 </div>
 
 <script type="module">
-import { app, auth, db } from "./firebase.js";
+import { auth, db } from "./firebase-config.js";
 import {
     createUserWithEmailAndPassword
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
@@ -93,54 +85,56 @@ import {
     setDoc, doc
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-// Tiltott minták
+// tiltott minták
 const blocked = [
-    /\d{6,}/, 
-    /@/, 
+    /\d{6,}/,
+    /@/,
     /(facebook|fb|messenger|viber|whatsapp|instagram|insta)/i,
+    /\+\d{2}/,
     /www\./i
 ];
 
-function containsBlocked(text) {
-    return blocked.some(r => r.test(text));
+function containsBlocked(t) {
+    return blocked.some(r => r.test(t));
 }
 
 window.registerUser = async function() {
 
-    const nameValue = document.getElementById("name").value.trim();
-    const professionValue = document.getElementById("profession").value.trim();
-    const cityValue = document.getElementById("city").value.trim();
-    const emailValue = document.getElementById("email").value.trim();
-    const passA = document.getElementById("pass1").value;
-    const passB = document.getElementById("pass2").value;
-    const phoneValue = document.getElementById("phone").value.trim();
+    const name = nameInput.value.trim();
+    const job = profession.value.trim();
+    const city = cityInput.value.trim();
+    const email = emailInput.value.trim();
+    const pass1 = pass1Input.value;
+    const pass2 = pass2Input.value;
+    const phone = phoneInput.value.trim();
 
-    if (!nameValue || !professionValue || !cityValue || !emailValue || !passA || !passB || !phoneValue) {
+    if (!name || !job || !city || !email || !pass1 || !pass2 || !phone) {
         alert("Minden mező kötelező!");
         return;
     }
 
-    if (containsBlocked(nameValue)) {
-        alert("A név mezőbe nem írható telefonszám, email vagy közösségi azonosító!");
+    if (containsBlocked(name)) {
+        alert("A név mezőben TILOS telefonszám/email/FB név!");
         return;
     }
 
-    if (passA !== passB) {
+    if (pass1 !== pass2) {
         alert("A két jelszó nem egyezik!");
         return;
     }
 
     try {
-        const user = await createUserWithEmailAndPassword(auth, emailValue, passA);
+        const userCred = await createUserWithEmailAndPassword(auth, email, pass1);
+        const uid = userCred.user.uid;
 
-        await setDoc(doc(db, "users", user.user.uid), {
+        await setDoc(doc(db, "users", uid), {
             role: "user",
-            name: nameValue,
-            profession: professionValue,
-            city: cityValue,
-            phone: phoneValue,
+            name,
+            profession: job,
+            city,
+            phone,
             shareCount: 0,
-            created: Date.now()
+            online: false
         });
 
         alert("Sikeres regisztráció!");
