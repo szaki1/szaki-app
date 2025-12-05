@@ -1,293 +1,130 @@
-/* ============================================
-   GLOBAL ALAPBEÁLLÍTÁSOK
-============================================ */
-html, body {
-    margin: 0;
-    padding: 0;
-    font-family: Arial, sans-serif;
-    background: #f4f4f4;
-    color: #222;
-    scroll-behavior: smooth;
-}
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <title>Bejelentkezés – SzakiChat</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-.container {
-    max-width: 480px;
-    margin: 25px auto;
-    padding: 0 18px;
-}
+    <style>
+        body {
+            margin:0;
+            padding:0;
+            background:#f2f2f2;
+            font-family:Arial, sans-serif;
+        }
 
-/* ============================================
-   FEJLEC
-============================================ */
-header {
-    background:#007aff;
-    color:white;
-    padding:16px;
-    font-size:22px;
-    font-weight:bold;
-    text-align:center;
-    box-shadow:0 2px 10px rgba(0,0,0,0.10);
-}
+        header {
+            background:#007aff;
+            color:white;
+            padding:18px;
+            text-align:center;
+            font-size:22px;
+            font-weight:bold;
+        }
 
-/* ============================================
-   CÍMEK
-============================================ */
-h1, h2, h3 {
-    color:#222;
-    margin-top:0;
-}
+        .container {
+            max-width:480px;
+            margin:30px auto;
+            padding:20px;
+            background:white;
+            border-radius:12px;
+            box-shadow:0 4px 14px rgba(0,0,0,0.1);
+        }
 
-h3 {
-    margin-bottom:8px;
-}
+        label {
+            font-weight:bold;
+            margin-top:14px;
+            display:block;
+        }
 
-/* ============================================
-   LINK
-============================================ */
-a {
-    color:#007aff;
-    text-decoration:none;
-}
-a:hover {
-    text-decoration:underline;
-}
+        input {
+            width:100%;
+            padding:12px;
+            margin-top:6px;
+            border:1px solid #ccc;
+            border-radius:8px;
+            font-size:16px;
+        }
 
-/* ============================================
-   GOMBOK
-============================================ */
-button, .btn {
-    padding:12px;
-    background:#007aff;
-    color:white;
-    border:none;
-    border-radius:10px;
-    width:100%;
-    cursor:pointer;
-    font-size:17px;
-    font-weight:bold;
-    transition:0.25s;
-}
+        .btn {
+            width:100%;
+            padding:14px;
+            margin-top:20px;
+            background:#007aff;
+            color:white;
+            border:none;
+            border-radius:8px;
+            font-size:18px;
+            cursor:pointer;
+            font-weight:bold;
+        }
 
-button:hover, .btn:hover {
-    transform:scale(1.04);
-}
+        .btn-secondary {
+            background:#ff8c00;
+            margin-top:10px;
+        }
 
-/* LETILTOTT GOMB */
-button:disabled, .btn:disabled {
-    background:#999;
-    cursor:not-allowed;
-    transform:none;
-}
+        #supportFloatingBtn {
+            position: fixed;
+            bottom: 22px;
+            right: 22px;
+            padding:14px 22px;
+            border-radius:40px;
+            background:#ff2d55;
+            color:white;
+            font-weight:bold;
+            cursor:pointer;
+            box-shadow:0 4px 14px rgba(0,0,0,0.25);
+        }
+    </style>
+</head>
 
-/* PIROS GOMB */
-.btn-danger {
-    background:#d60000 !important;
-}
-.btn-danger:hover {
-    transform:scale(1.04);
-    background:#b30000 !important;
-}
+<body>
 
-/* ============================================
-   DOBOZOK
-============================================ */
-.box {
-    background:white;
-    padding:18px;
-    border-radius:12px;
-    margin-bottom:20px;
-    box-shadow:0 2px 12px rgba(0,0,0,0.08);
-}
+<header>Bejelentkezés</header>
 
-/* Információs doboz (narancs) */
-.box-info {
-    background:#fff4e6;
-    border-left:5px solid #ff9c33;
-}
+<div class="container">
 
-/* ============================================
-   INPUTOK
-============================================ */
-.input, input, select, textarea {
-    width:100%;
-    padding:12px;
-    margin-top:6px;
-    border-radius:8px;
-    border:1px solid #ccc;
-    font-size:16px;
-    box-sizing:border-box;
-}
+    <label>Email cím</label>
+    <input id="email" type="email" placeholder="Add meg az email címed">
 
-/* ============================================
-   REKLÁMHELY
-============================================ */
-.ads-box {
-    background:#f1f1f1;
-    padding:14px;
-    text-align:center;
-    border-radius:10px;
-    color:#777;
-    font-size:14px;
-    margin:20px 0;
-}
+    <label>Jelszó</label>
+    <input id="password" type="password" placeholder="Jelszó">
 
-/* ============================================
-   ❤️ LEBEGŐ TÁMOGATÓ GOMB
-============================================ */
-#supportFloatingBtn {
-    position: fixed;
-    right: 22px;
-    bottom: 22px;
-    background:#ff2d55;
-    color:white;
-    padding:14px 26px;
-    border-radius:40px;
-    font-size:18px;
-    font-weight:bold;
-    display:flex;
-    align-items:center;
-    column-gap:10px;
-    cursor:pointer;
-    box-shadow:0 6px 20px rgba(0,0,0,0.25);
-    z-index:9999;
-    transition:transform 0.20s ease;
-}
+    <button class="btn" onclick="login()">Belépés</button>
 
-#supportFloatingBtn:hover {
-    transform:scale(1.07);
-}
-
-.heart {
-    animation:heartbeat 1.3s infinite;
-}
-
-@keyframes heartbeat {
-    0% { transform:scale(1); }
-    25% { transform:scale(1.25); }
-    40% { transform:scale(1); }
-    60% { transform:scale(1.25); }
-    100% { transform:scale(1); }
-}
-
-/* ============================================
-   MOBIL OPTIMALIZÁLÁS
-============================================ */
-@media (max-width: 600px) {
-    #supportFloatingBtn {
-        padding:10px 18px;
-        font-size:16px;
-        right:12px;
-        bottom:12px;
-    }
-
-    header {
-        font-size:20px;
-        padding:14px;
-    }
-}    <select id="roleSelect">
-        <option value="">Válassz:</option>
-        <option value="szaki">Szaki vagyok</option>
-        <option value="megrendelo">Megrendelő vagyok</option>
-    </select>
-
-    <h3>Teljes név</h3>
-    <input id="nameInput" type="text" placeholder="Add meg a neved">
-
-    <h3>Email & Jelszó</h3>
-    <input id="email" type="email" placeholder="Email">
-    <input id="pass" type="password" placeholder="Jelszó">
-
-    <button class="btn btn-login" onclick="loginUser()">Belépés</button>
-    <button class="btn btn-reg" onclick="registerUser()">Regisztráció</button>
-
+    <button class="btn btn-secondary" onclick="window.location.href='user-register.html'">
+        Regisztráció
+    </button>
 </div>
 
+<!-- ❤️ ADOMÁNY GOMB -->
+<div id="supportFloatingBtn"
+     onclick="window.open('https://www.paypal.com/donate/?hosted_button_id=QGU3WXVSCH22A','_blank')">
+    ❤️ Támogasd a SzakiChat-et
+</div>
 
 <script type="module">
+    import { auth } from "./firebase.js";
+    import { signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
-import { app, db, auth } from "./firebase-config.js";
+    window.login = async function() {
+        const email = document.getElementById("email").value.trim();
+        const pass = document.getElementById("password").value;
 
-import {
-    signInWithEmailAndPassword,
-    createUserWithEmailAndPassword
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+        if (!email || !pass) {
+            alert("Email és jelszó kötelező!");
+            return;
+        }
 
-import {
-    doc, setDoc
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
-
-// SZEREP
-function getRole() {
-    const r = document.getElementById("roleSelect").value;
-    if (!r) { alert("Válaszd ki: Szaki vagy Megrendelő!"); return null; }
-    return r;
-}
-
-
-// REGISZTRÁCIÓ
-window.registerUser = async function () {
-
-    const role  = getRole();
-    const name  = document.getElementById("nameInput").value.trim();
-    const email = document.getElementById("email").value.trim();
-    const pass  = document.getElementById("pass").value.trim();
-
-    if (!role || !name || !email || !pass) {
-        alert("Minden mezőt tölts ki!");
-        return;
+        try {
+            await signInWithEmailAndPassword(auth, email, pass);
+            alert("Sikeres bejelentkezés!");
+            window.location.href = "user-chat-list.html";
+        } catch (err) {
+            alert("Hiba: " + err.message);
+        }
     }
-
-    try {
-        const cred = await createUserWithEmailAndPassword(auth, email, pass);
-        const uid = cred.user.uid;
-
-        await setDoc(doc(db, "users", uid), {
-            uid,
-            name,
-            email,
-            role,
-            online: true,
-            shareCount: 0,
-            createdAt: Date.now()
-        });
-
-        if (role === "szaki") window.location.href = "chat-list.html";
-        else window.location.href = "chat-list.html";
-
-    } catch (e) {
-        alert("Hiba: " + e.message);
-    }
-};
-
-
-// BELÉPÉS
-window.loginUser = async function () {
-
-    const email = document.getElementById("email").value.trim();
-    const pass  = document.getElementById("pass").value.trim();
-    const role  = getRole();
-
-    if (!email || !pass) {
-        alert("Add meg az emailt és jelszót!");
-        return;
-    }
-
-    try {
-        const cred = await signInWithEmailAndPassword(auth, email, pass);
-        const uid = cred.user.uid;
-
-        await setDoc(doc(db, "users", uid), {
-            online: true
-        }, { merge: true });
-
-        window.location.href = "chat-list.html";
-
-    } catch (e) {
-        alert("Hibás email vagy jelszó!");
-    }
-};
-
 </script>
 
 </body>
