@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<title>Chat lista – Megrendelő</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+    body { font-family:Arial; background:#f2f2f2; margin:0; }
+    header {
+        background:#007aff; color:white;
+        text-align:center; padding:16px;
+        font-size:22px; font-weight:bold;
+    }
+    .box {
+        max-width:480px; margin:20px auto;
+        background:white; padding:18px;
+        border-radius:14px;
+        box-shadow:0 4px 13px rgba(0,0,0,0.12);
+    }
+    .chatItem {
+        background:#fafafa; padding:14px;
+        border-radius:10px; margin-bottom:12px;
+        border:1px solid #ddd;
+        cursor:pointer;
+    }
+    .chatItem:hover { background:#f0f8ff; }
+    .online { color:green; font-weight:bold; }
+    .btn {
+        width:100%; padding:12px;
+        margin-top:10px; border:none;
+        background:#007aff; color:white;
+        border-radius:8px; font-size:17px;
+        cursor:pointer;
+    }
+    .btnExit {
+        background:#ff3b30;
+        margin-top:16px;
+    }
+
+    /* ❤️ Támogatás gomb */
+    #supportFloatingBtn {
+        position: fixed; bottom:22px; right:22px;
+        background:#ff2d55; padding:14px 22px;
+        border-radius:40px; color:white;
+        font-weight:bold; cursor:pointer;
+        display:flex; align-items:center;
+        gap:10px; box-shadow:0 4px 14px rgba(0,0,0,0.25);
+    }
+    .heart { animation: heartbeat 1.4s infinite; }
+    @keyframes heartbeat {
+        0%{transform:scale(1);}
+        25%{transform:scale(1.25);}
+        40%{transform:scale(1);}
+        60%{transform:scale(1.25);}
+        100%{transform:scale(1);}
+    }
+</style>
+</head>
+
+<body>
+
+<header>Chat lista – Megrendelő</header>
+
+<div class="box">
+    <h3>A szakik, akikkel beszélsz:</h3>
+    <div id="chatList">Betöltés…</div>
+
+    <button class="btn" onclick="window.location.href='szakma-valasztas.html'">
+        Új szakember keresése
+    </button>
+
+    <button class="btn btnExit" onclick="logout()">Kijelentkezés</button>
+</div>
+
+<!-- ❤️ Adomány -->
+<div id="supportFloatingBtn"
+     onclick="window.open('https://www.paypal.com/donate/?hosted_button_id=QGU3WXVSCH22A','_blank')">
+    <span class="heart">❤️</span> Támogasd a SzakiChat-et
+</div>
+
+
+<script type="module">
+
+/* ===========================================
+   FIREBASE IMPORT
+=========================================== */
+import { auth, db } from "./firebase.js";
+
+import {
+    onAuthStateChanged,
+    signOut
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+import {
+    collection, query, where,
+    getDocs, getDoc, doc
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+
+/* ===========================================
+   BELÉPÉS ELLENŐRZÉSE
+=========================================== */
+let uid = null;
+
+onAuthStateChanged(auth, async user => {
+    if (!user) {
+        window.location.href = "login.html";
+        return;
+    }
+
+    uid = user.uid;
+    loadChats();
+});
+
+
+/* ===========================================
+   SAJÁT CHATLISTA BETÖLTÉSE
+=========================================== */
+async function loadChats() {
+    const box = document.getElementById("chatList");
+    box.innerHTML = "Betöltés…";
+
+    // Megrendelő chatjei
+    const q = query(
+        collection(db, "chats"),
+        where("userID", "==", uid)
+    );
+
+    const snap = await getDocs(q);
+
+    if (snap.empty) {
+        box.innerHTML = "<i>Még nem beszélsz egy szakival sem.</i>";
+        return;
+    }
+
+    box.innerHTML = "";
+
+    snap.forEach(async docu => {
+        const c = docu.data();
+        const chatID = docu.id;
+
+        // Szaki adatai
+        const sRef = doc(db, "users", c.szakiID);
+        const sSnap = await getDoc(sRef);
+        const szaki = sSnap.data();
+
+        const online = szaki.online ? `<span class='online'>🟢 Online</span>`
+                                    : `<span>⚪ Offline</span>`;
+
+        box.innerHTML += `
+            <div class="chatItem" onclick="openChat('${chatID}', '${c.szakiID}')">
+                <b>${szaki.name}</b><br>
+                Szakma: ${szaki.profession}<br>
+                Város: ${szaki.city}<br>
+                ${online}
+            </div>
+        `;
+    });
+}
+
+
+/* ===========================================
+   CHAT MEGNYITÁSA
+=========================================== */
+window.openChat = function(chatID, szakiID) {
+    window.location.href =
+        `chat.html?chatID=${chatID}&partner=${szakiID}&role=megrendelo`;
+};
+
+
+/* ===========================================
+   KIJELENTKEZÉS
+=========================================== */
+window.logout = function() {
+    signOut(auth).then(() => {
+        window.location.href = "login.html";
+    });
+};
+
+</script>
+
+</body>
+</html>
