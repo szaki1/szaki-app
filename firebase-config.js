@@ -105,14 +105,16 @@
     ❤️ Támogasd a SzakiChat-et
 </div>
 
-<!-- 🔥 1. Firebase alapkonfig betöltése -->
+<!-- 🔥 Firebase base config -->
 <script type="module" src="firebase-config.js"></script>
 
-<!-- 🔥 2. LOGIN SCRIPT (Firebase Auth használata) -->
+<!-- 🔥 LOGIN SCRIPT – szerepkör alapján irányít -->
 <script type="module">
-    import { auth } from "./firebase-config.js";
+    import { auth, db } from "./firebase-config.js";
     import { signInWithEmailAndPassword } 
         from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import { doc, getDoc }
+        from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
     window.login = async function () {
         const email = document.getElementById("email").value.trim();
@@ -124,8 +126,27 @@
         }
 
         try {
-            await signInWithEmailAndPassword(auth, email, pass);
-            window.location.href = "user-chat-list.html";
+            // Bejelentkezés
+            const userCred = await signInWithEmailAndPassword(auth, email, pass);
+            const uid = userCred.user.uid;
+
+            // Firestore profil lekérése
+            const snap = await getDoc(doc(db, "users", uid));
+            if (!snap.exists()) {
+                alert("Hiba: a felhasználói profil nem található!");
+                return;
+            }
+
+            const data = snap.data();
+            const role = data.role || "user";
+
+            // 🔥 Szerepkör alapú átirányítás
+            if (role === "szaki") {
+                window.location.href = "szaki-dashboard.html";
+            } else {
+                window.location.href = "user-chat-list.html";
+            }
+
         } catch (err) {
             alert("Hiba: " + err.message);
         }
