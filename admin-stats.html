@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<title>Admin – Statisztika</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body { font-family:Arial; margin:0; background:#f2f2f2; }
+header {
+    background:#222; color:white; padding:18px;
+    text-align:center; font-size:22px;
+}
+.box {
+    max-width:480px; margin:20px auto;
+    padding:18px; background:white;
+    border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.15);
+}
+h3 { margin:0 0 10px 0; color:#007aff; }
+</style>
+</head>
+
+<body>
+
+<header>Admin – Statisztikák</header>
+
+<div class="box" id="statsBox">Betöltés…</div>
+
+<script type="module">
+import { db } from "./firebase-config.js";
+import {
+    collection, onSnapshot
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const box = document.getElementById("statsBox");
+
+onSnapshot(collection(db, "users"), (snap) => {
+    let szakik = 0;
+    let userek = 0;
+    let online = 0;
+
+    snap.forEach(docu => {
+        const d = docu.data();
+
+        if (d.role === "szaki") szakik++;
+        else userek++;
+
+        if (d.online) online++;
+    });
+
+    box.innerHTML = `
+        <h3>Aktív statisztikák</h3>
+        Szakik száma: <b>${szakik}</b><br>
+        Megrendelők száma: <b>${userek}</b><br>
+        Online felhasználók: <b>${online}</b>
+    `;
+});
+</script>
+
+</body>
+</html>
