@@ -18,7 +18,7 @@
         box-shadow:0 4px 12px rgba(0,0,0,0.15);
     }
     label { font-weight:bold; margin-top:12px; display:block; }
-    input, select {
+    input {
         width:100%; padding:12px; margin-top:6px;
         border-radius:8px; border:1px solid #ccc;
         font-size:17px; background:#eef3ff;
@@ -45,12 +45,12 @@
     <div class="warn">⚠️ Telefonszám, email, FB/Viber/Instagram név beírása TILOS a név mezőbe!</div>
 
     <label style="margin-top:20px;">Milyen szakembert keresel?</label>
-    <input id="profession" type="text" placeholder="Pl.: festő, burkoló, vízszerelő">
+    <input id="profession" type="text" placeholder="Pl.: festő, burkoló">
 
     <label style="margin-top:20px;">Hol keresel szakembert?</label>
     <input id="city" type="text" placeholder="pl.: Budapest">
 
-    <label style="margin-top:20px;">Email</label>
+    <label>Email</label>
     <input id="email" type="email" placeholder="Email cím">
 
     <label>Jelszó</label>
@@ -65,8 +65,7 @@
     <button class="btn" onclick="registerUser()">Regisztráció</button>
 </div>
 
-
-<!-- ❤️ Adomány gomb -->
+<!-- ❤️ PayPal gomb -->
 <div id="supportFloatingBtn"
      onclick="window.open('https://www.paypal.com/donate/?hosted_button_id=QGU3WXVSCH22A','_blank')"
      style="
@@ -80,48 +79,34 @@
 </div>
 
 
-
 <!-- ================================
-        FIREBASE + REGISTER LOGIKA
+        FIREBASE + REGISZTRÁCIÓ
 ================================ -->
 <script type="module">
 
-import { app, auth, db } from "./firebase.js";
+import { auth, db } from "./firebase-config.js";
+import { createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { setDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-import {
-    createUserWithEmailAndPassword
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-
-import {
-    setDoc, doc
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
-
-// TILTOTT minták – telefonszám, email, fb név
 const blocked = [
     /\d{6,}/,
     /@/,
     /(facebook|fb|messenger|viber|whatsapp|instagram|insta)/i,
-    /\+\d{2}/,
     /www\./i
 ];
 
-function containsBlocked(t) {
-    return blocked.some(r => r.test(t));
+function containsBlocked(text) {
+    return blocked.some(r => r.test(text));
 }
 
-
-// =============================
-//   REGISZTRÁCIÓ MEGRENDELŐ
-// =============================
 window.registerUser = async function() {
 
-    const name = document.getElementById("name").value.trim();
-    const job  = document.getElementById("profession").value.trim();
-    const city = document.getElementById("city").value.trim();
+    const name  = document.getElementById("name").value.trim();
+    const job   = document.getElementById("profession").value.trim();
+    const city  = document.getElementById("city").value.trim();
     const email = document.getElementById("email").value.trim();
-    const pass1 = document.getElementById("pass1").value;
-    const pass2 = document.getElementById("pass2").value;
+    const pass1 = document.getElementById("pass1").value.trim();
+    const pass2 = document.getElementById("pass2").value.trim();
     const phone = document.getElementById("phone").value.trim();
 
     if (!name || !job || !city || !email || !pass1 || !pass2 || !phone) {
@@ -138,7 +123,6 @@ window.registerUser = async function() {
         alert("A két jelszó nem egyezik!");
         return;
     }
-
 
     try {
         const userCred = await createUserWithEmailAndPassword(auth, email, pass1);
@@ -162,6 +146,7 @@ window.registerUser = async function() {
         alert("Hiba történt: " + err.message);
     }
 };
+
 </script>
 
 </body>
