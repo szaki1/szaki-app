@@ -1,35 +1,121 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Belépés – SzakiChat</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <style>
+        body {
+            margin:0;
+            padding:0;
+            background:#f2f2f2;
+            font-family:Arial, sans-serif;
+        }
+
+        .login-box {
+            max-width:480px;
+            margin:50px auto;
+            background:white;
+            padding:30px;
+            border-radius:14px;
+            box-shadow:0 4px 18px rgba(0,0,0,0.1);
+            text-align:center;
+        }
+
+        h1 {
+            color:#007aff;
+            margin-bottom:20px;
+            font-size:28px;
+        }
+
+        input {
+            width:100%;
+            padding:14px;
+            margin-top:12px;
+            border-radius:8px;
+            border:1px solid #ccc;
+            background:#eef4ff;
+            font-size:16px;
+        }
+
+        button {
+            width:100%;
+            padding:16px;
+            margin-top:20px;
+            background:#007aff;
+            color:white;
+            border:none;
+            border-radius:10px;
+            cursor:pointer;
+            font-size:18px;
+            font-weight:bold;
+        }
+
+        button:hover {
+            transform:scale(1.03);
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="login-box">
+    <h1>Admin Belépés</h1>
+
+    <input id="email" type="email" placeholder="Email cím">
+    <input id="password" type="password" placeholder="Jelszó">
+
+    <button onclick="adminLogin()">Belépés</button>
+</div>
+
+<!-- Firebase alapkonfig -->
+<script type="module" src="firebase-config.js"></script>
+
+<!-- Admin beléptető logika -->
 <script type="module">
-import { auth } from "./firebase-config.js";
-import { signInWithEmailAndPassword } 
-    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import { auth, db } from "./firebase-config.js";
 
-window.adminLogin = async function () {
-    const email = document.getElementById("email").value.trim();
-    const pass = document.getElementById("password").value.trim();
+    import {
+        signInWithEmailAndPassword
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
-    if (!email || !pass) {
-        alert("Add meg az emailt és jelszót!");
-        return;
-    }
+    import {
+        doc,
+        getDoc
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-    try {
-        const cred = await signInWithEmailAndPassword(auth, email, pass);
 
-        // FIRESTORE-BÓL ELLENŐRIZZÜK HOGY ADMIN-E
-        const uid = cred.user.uid;
+    window.adminLogin = async function () {
+        const email = document.getElementById("email").value.trim();
+        const pass = document.getElementById("password").value.trim();
 
-        const userRef = doc(db, "users", uid);
-        const snap = await getDoc(userRef);
-
-        if (!snap.exists() || snap.data().role !== "admin") {
-            alert("Nincs admin jogosultság!");
+        if (!email || !pass) {
+            alert("Add meg az emailt és a jelszót!");
             return;
         }
 
-        window.location.href = "admin.html";
+        try {
+            const cred = await signInWithEmailAndPassword(auth, email, pass);
+            const uid = cred.user.uid;
 
-    } catch (err) {
-        alert("Hiba: " + err.message);
-    }
-}
+            // Ellenőrzés: admin-e?
+            const userRef = doc(db, "users", uid);
+            const snap = await getDoc(userRef);
+
+            if (!snap.exists() || snap.data().role !== "admin") {
+                alert("Nincs admin jogosultság!");
+                return;
+            }
+
+            // Siker!
+            window.location.href = "admin.html";
+
+        } catch (err) {
+            alert("Hiba: " + err.message);
+        }
+    };
 </script>
+
+</body>
+</html>
