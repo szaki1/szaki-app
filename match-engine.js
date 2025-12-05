@@ -7,10 +7,16 @@ import {
     collection,
     query,
     where,
-    getDocs,
-    doc,
-    getDoc
+    getDocs
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+
+// -------------------------------------------------------
+// SAJÁT NORMALIZÁLÓ FUNKCIÓ (biztonságos kisbetűsítés)
+// -------------------------------------------------------
+function norm(str) {
+    return String(str || "").trim().toLowerCase();
+}
 
 
 // -------------------------------------------------------
@@ -18,11 +24,16 @@ import {
 // -------------------------------------------------------
 export async function getWorkersByProfession(profession, city = "Budapest") {
 
+    const professionLower = norm(profession);
+    const cityLower = norm(city);
+
+    console.log("🔎 SZAKIK KERESÉSE:", professionLower, cityLower);
+
     const q = query(
         collection(db, "users"),
         where("role", "==", "szaki"),
-        where("szakma", "==", profession.toLowerCase()),
-        where("city", "==", city.toLowerCase())
+        where("szakmaLower", "==", professionLower),
+        where("cityLower", "==", cityLower)
     );
 
     const snap = await getDocs(q);
@@ -33,10 +44,12 @@ export async function getWorkersByProfession(profession, city = "Budapest") {
         results.push({
             id: docu.id,
             ...data,
-            chatCount: data.chatCount || 0   // TERHELTSÉG
+            chatCount: data.chatCount || 0,   // TERHELTSÉG
+            online: data.online || false
         });
     });
 
+    console.log("📌 Talált szakik száma:", results.length);
     return results;
 }
 
@@ -47,6 +60,8 @@ export async function getWorkersByProfession(profession, city = "Budapest") {
 export function filterOnlineFirst(workers) {
     const online = workers.filter(w => w.online);
     const offline = workers.filter(w => !w.online);
+    console.log("🟢 Online:", online.length, "⚪ Offline:", offline.length);
+
     return [...online, ...offline];
 }
 
@@ -55,7 +70,9 @@ export function filterOnlineFirst(workers) {
 // 3) Terheltség ellenőrzés – max 3 chat
 // -------------------------------------------------------
 export function filterAvailable(workers) {
-    return workers.filter(w => w.chatCount < 3);
+    const result = workers.filter(w => w.chatCount < 3);
+    console.log("📉 Terhelhető szakik:", result.length);
+    return result;
 }
 
 
@@ -73,9 +90,14 @@ export function pickBest3(workers) {
 // -------------------------------------------------------
 export async function matchWorkers(profession, city = "Budapest") {
 
+    console.log("🔥 MATCH FUT:", profession, city);
+
     // szakik lekérése
     let allWorkers = await getWorkersByProfession(profession, city);
-    if (allWorkers.length === 0) return [];
+    if (allWorkers.length === 0) {
+        console.log("❌ Nincs elérhető szaki.");
+        return [];
+    }
 
     // online első
     allWorkers = filterOnlineFirst(allWorkers);
@@ -83,10 +105,14 @@ export async function matchWorkers(profession, city = "Budapest") {
     // terheltség szűrés (max 3 chat)
     allWorkers = filterAvailable(allWorkers);
 
-    if (allWorkers.length === 0) return [];
+    if (allWorkers.length === 0) {
+        console.log("❌ Mindenki túlterhelt.");
+        return [];
+    }
 
     // top 3
     const best = pickBest3(allWorkers);
 
+    console.log("🏆 Kiválasztott szakik:", best.map(w => w.name));
     return best;
 }
