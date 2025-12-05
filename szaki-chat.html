@@ -12,7 +12,6 @@
         padding:16px; font-size:22px; font-weight:bold;
     }
 
-    /* Chat box */
     .chat-box {
         max-width:480px; height:68vh;
         overflow-y:auto; background:white;
@@ -20,7 +19,6 @@
         border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.1);
     }
 
-    /* BUBORÉKOK */
     .msg {
         padding:10px 14px; margin:8px 0;
         border-radius:10px; max-width:70%;
@@ -29,28 +27,28 @@
     .me { background:#d1ffd1; margin-left:auto; }
     .other { background:#eaeaea; margin-right:auto; }
 
-    /* Input sor */
     .input-area {
         max-width:480px; margin:10px auto;
         display:flex; gap:8px;
     }
+
     input {
         flex:1; padding:10px;
         border-radius:8px; border:1px solid #ccc;
     }
+
     button {
         padding:10px 12px; border:none;
         background:#ff8c00; color:white;
         border-radius:8px; cursor:pointer;
     }
+
     .mic-btn { background:#007aff; }
 
-    /* Kép előnézet */
     .img-thumb {
         max-width:160px; border-radius:8px; margin-top:6px;
     }
 
-    /* Támogatás gomb */
     #supportFloatingBtn {
         position: fixed;
         bottom: 22px;
@@ -83,20 +81,17 @@
 
 <div class="chat-box" id="chatBox">Betöltés…</div>
 
-<!-- ÜZENET KÜLDÉS -->
 <div class="input-area">
     <input id="msgInput" placeholder="Írj üzenetet…">
     <button onclick="sendMessage()">Küldés</button>
     <button class="mic-btn" onclick="startDictation()">🎤</button>
 </div>
 
-<!-- KÉPFELTÖLTÉS -->
 <div class="input-area">
     <input type="file" id="imgUpload">
     <button onclick="sendImage()">📸</button>
 </div>
 
-<!-- ❤️ ADOMÁNY -->
 <div id="supportFloatingBtn"
      onclick="window.open('https://www.paypal.com/donate/?hosted_button_id=QGU3WXVSCH22A','_blank')">
     <span class="heart">❤️</span> Támogasd a SzakiChat-et
@@ -105,12 +100,12 @@
 <script type="module">
 
 // ===============================
-// FIREBASE IMPORTÁLÁS
+// FIREBASE IMPORT – JAVÍTVA!!!
 // ===============================
-import { db, auth, storage } from "./firebase.js";
+import { db, auth, storage } from "./firebase-config.js";
 
 import {
-    doc, getDoc, updateDoc,
+    doc, getDoc, updateDoc, setDoc,
     onSnapshot, arrayUnion
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
@@ -122,52 +117,54 @@ import {
     onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
+
 // ===============================
 // CHAT KÖRNYEZET
 // ===============================
 let uid = null;
-let partnerID = null;
-let partnerName = "Partner";
-
-const params = new URLSearchParams(window.location.search);
-partnerID = params.get("partner");
-
-// CHAT DOKUMENTUM
-const chatID = uid < partnerID ? uid + "_" + partnerID : partnerID + "_" + uid;
+let partnerID = new URLSearchParams(window.location.search).get("partner");
+let chatID = null;
 let chatRef = null;
 
+
 // ===============================
-// BELÉPÉS ELLENŐRZÉS
+// BELÉPÉS ÉS CHAT AZONOSÍTÓ
 // ===============================
 onAuthStateChanged(auth, async (user) => {
-    if (!user) window.location.href = "login.html";
+    if (!user) return window.location.href = "login.html";
+
     uid = user.uid;
 
+    chatID = uid < partnerID ? uid + "_" + partnerID : partnerID + "_" + uid;
     chatRef = doc(db, "chats", chatID);
+
+    // chat dokumentum létrehozása, ha nem létezik
+    await setDoc(chatRef, { messages: [] }, { merge: true });
 
     await loadPartnerName();
     watchMessages();
 });
 
+
 // ===============================
-// PARTNER NEVÉNEK BETÖLTÉSE
+// PARTNER NEVE – JAVÍTVA
 // ===============================
 async function loadPartnerName() {
     const snap = await getDoc(doc(db, "users", partnerID));
     if (snap.exists()) {
-        partnerName = snap.data().displayName;
-        document.getElementById("headerTitle").innerText = partnerName;
+        const data = snap.data();
+        document.getElementById("headerTitle").innerText = data.name || "Partner";
     }
 }
 
+
 // ===============================
-// ÜZENETEK REALTIME
+// REALTIME ÜZENET FIGYELÉS
 // ===============================
 const chatBox = document.getElementById("chatBox");
 
 function watchMessages() {
     onSnapshot(chatRef, (snap) => {
-        if (!snap.exists()) return;
         const msgs = snap.data().messages || [];
 
         chatBox.innerHTML = "";
@@ -189,8 +186,9 @@ function watchMessages() {
     });
 }
 
+
 // ===============================
-// SZÖVEG KÜLDÉSE
+// SZÖVEG KÜLDÉS
 // ===============================
 window.sendMessage = async function() {
     const msg = document.getElementById("msgInput").value.trim();
@@ -208,8 +206,9 @@ window.sendMessage = async function() {
     document.getElementById("msgInput").value = "";
 };
 
+
 // ===============================
-// KÉP KÜLDÉSE (Storage)
+// KÉP KÜLDÉSE
 // ===============================
 window.sendImage = async function() {
     const file = document.getElementById("imgUpload").files[0];
@@ -229,13 +228,13 @@ window.sendImage = async function() {
     });
 };
 
+
 // ===============================
 // DIKTÁLÁS
 // ===============================
 window.startDictation = function() {
     if (!("webkitSpeechRecognition" in window)) {
-        alert("A böngésződ nem támogatja a hangfelismerést.");
-        return;
+        return alert("A böngésződ nem támogatja a hangfelismerést.");
     }
 
     const rec = new webkitSpeechRecognition();
@@ -246,6 +245,7 @@ window.startDictation = function() {
         document.getElementById("msgInput").value = e.results[0][0].transcript;
     };
 };
+
 </script>
 
 </body>
