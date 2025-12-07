@@ -50,19 +50,19 @@
             font-weight:bold;
         }
 
-        /* ❤️ ADOMÁNY GOMB – lebegő */
-        #donateBtn {
+        /* ❤️ Adomány gomb */
+        #supportBtn {
             position: fixed;
-            bottom: 24px;
-            right: 24px;
-            padding:14px 22px;
+            bottom: 20px;
+            right: 20px;
             background:#ff2d55;
             color:white;
-            font-weight:bold;
+            padding:14px 22px;
             border-radius:40px;
+            font-weight:bold;
             cursor:pointer;
-            box-shadow:0 4px 14px rgba(0,0,0,0.25);
-            font-size:16px;
+            box-shadow:0 4px 12px rgba(0,0,0,0.3);
+            z-index:999;
         }
     </style>
 </head>
@@ -74,70 +74,70 @@
 <div class="box">
     <input id="email" type="email" placeholder="admin@szakichat.hu">
     <input id="password" type="password" placeholder="Jelszó">
-    <button id="loginBtn">Belépés</button>
+    <button onclick="adminLogin()">Belépés</button>
 </div>
 
 <!-- ❤️ ADOMÁNY GOMB -->
-<div id="donateBtn" onclick="window.open('https://www.paypal.com/donate/?hosted_button_id=QGU3WXVSCH22A','_blank')">
+<div id="supportBtn"
+     onclick="window.open('https://www.paypal.com/donate/?hosted_button_id=QGU3WXVSCH22A','_blank')">
     ❤️ Támogasd a SzakiChat-et
 </div>
 
 <script type="module">
 
-/* --- FIREBASE IMPORTOK --- */
+// ---- FIREBASE IMPORT ----
 import { auth, db } from "./firebase-config.js";
 
-import { 
-    signInWithEmailAndPassword 
+import {
+    signInWithEmailAndPassword
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
-import { 
-    doc, 
-    getDoc 
+import {
+    doc,
+    getDoc
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 
-/* ---- ADMIN BELÉPÉS ---- */
-document.getElementById("loginBtn").addEventListener("click", adminLogin);
-
-async function adminLogin() {
+// ---- ADMIN BELÉPÉS ----
+window.adminLogin = async function () {
 
     const email = document.getElementById("email").value.trim();
     const pass  = document.getElementById("password").value.trim();
 
     if (!email || !pass) {
-        alert("Kérlek add meg az email címet és a jelszót!");
+        alert("Add meg az emailt és a jelszót!");
         return;
     }
 
     try {
-        // 1) Auth → bejelentkezés
-        const result = await signInWithEmailAndPassword(auth, email, pass);
-        const uid = result.user.uid;
+        // 1️⃣ Firebase Auth
+        const cred = await signInWithEmailAndPassword(auth, email, pass);
+        const uid = cred.user.uid;
 
-        // 2) Firestore → admin ellenőrzés
-        const ref = doc(db, "users", uid);
-        const snap = await getDoc(ref);
+        // 2️⃣ Firestore profil lekérés
+        const userRef = doc(db, "users", uid);
+        const snap = await getDoc(userRef);
 
         if (!snap.exists()) {
-            alert("Hiba: nincs Firestore profil ehhez a fiókhoz!");
+            alert("Hiba: nincs Firestore profil!");
             return;
         }
 
         const data = snap.data();
 
+        // 3️⃣ Admin jogosultság ellenőrzés
         if (data.role !== "admin") {
-            alert("Nincs admin jogosultságod!");
+            alert("Nincs admin jogosultság!");
             return;
         }
 
-        // 3) Siker → admin panel
+        // 4️⃣ OK → admin oldal
         window.location.href = "admin.html";
 
     } catch (err) {
-        alert("Hiba a bejelentkezés során: " + err.message);
+        alert("Hiba: " + err.message);
     }
-}
+};
 
 </script>
 
