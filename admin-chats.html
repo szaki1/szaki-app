@@ -91,7 +91,7 @@ onAuthStateChanged(auth, async (user) => {
 });
 
 /* ============================================================
-   🔥 CHAT LISTA BETÖLTÉSE REALTIME
+   💥 CHAT LISTA BETÖLTÉSE REALTIME
 ============================================================ */
 function loadChats() {
 
@@ -110,12 +110,13 @@ function loadChats() {
             const id = d.chatId || docu.id;
             const lastMsg = d.lastMessage ? d.lastMessage.slice(0, 80) : "-";
             const time = d.lastTime
-                ? new Date(d.lastTime.seconds * 1000).toLocaleString()
+                ? (d.lastTime.seconds ? new Date(d.lastTime.seconds * 1000).toLocaleString() : new Date(d.lastTime).toLocaleString())
                 : "-";
 
+            // FIGYELJük az URL param név egységességét: chatId (kis d)
             listDiv.innerHTML += `
                 <div class="chatItem"
-                    onclick="window.location.href='admin-chat-view.html?chatID=${id}'">
+                    onclick="window.location.href='admin-chat-view.html?chatId=${id}'">
                     <b>Chat azonosító:</b> ${id}<br>
                     <b>Utolsó üzenet:</b> ${lastMsg}<br>
                     <b>Idő:</b> ${time}
