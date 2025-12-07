@@ -43,10 +43,8 @@
 <script type="module">
 
 import { auth, db } from "./firebase-config.js";
-import { signInWithEmailAndPassword }
-    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { doc, getDoc }
-    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 window.login = async function () {
 
@@ -59,17 +57,11 @@ window.login = async function () {
     }
 
     try {
-        // 🔥 1) Firebase Auth belépés
+        // 1) Firebase Auth belépés
         const cred = await signInWithEmailAndPassword(auth, email, pass);
         const uid = cred.user.uid;
 
-        // 🔥 2) ADMIN? → egyből admin.html (Firestore nélkül)
-        if (email === "admin@szakichat.hu") {
-            window.location.href = "admin.html";
-            return;
-        }
-
-        // 🔥 3) Firestore user profil lekérése
+        // 2) Firestore user profil lekérése (MINDIG ellenőrizzük a role mezőt)
         const ref = doc(db, "users", uid);
         const snap = await getDoc(ref);
 
@@ -81,19 +73,24 @@ window.login = async function () {
         const data = snap.data();
         const role = data.role;
 
-        // 🔥 4) Irányítás szerepkör alapján
+        // 3) Irányítás szerepkör alapján (admin csak ha Firestore-ban is role: 'admin')
+        if (role === "admin") {
+            window.location.href = "admin.html";
+            return;
+        }
+
         if (role === "szaki") {
             window.location.href = "szaki-chat-list.html";
             return;
         }
 
-        if (role === "user") {
+        if (role === "user" || role === "megrendelő") {
             window.location.href = "user-chat-list.html";
             return;
         }
 
+        // Ha ismeretlen szerepkör
         alert("Ismeretlen szerepkör: " + role);
-
     } catch (err) {
         alert("Hiba: " + err.message);
     }
