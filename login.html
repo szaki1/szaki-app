@@ -59,11 +59,17 @@ window.login = async function () {
     }
 
     try {
-        // 1) Bejelentkezés Firebase Auth-tal
+        // 🔥 1) Firebase Auth belépés
         const cred = await signInWithEmailAndPassword(auth, email, pass);
         const uid = cred.user.uid;
 
-        // 2) Firestore profil lekérése
+        // 🔥 2) ADMIN? → egyből admin.html (Firestore nélkül)
+        if (email === "admin@szakichat.hu") {
+            window.location.href = "admin.html";
+            return;
+        }
+
+        // 🔥 3) Firestore user profil lekérése
         const ref = doc(db, "users", uid);
         const snap = await getDoc(ref);
 
@@ -75,12 +81,7 @@ window.login = async function () {
         const data = snap.data();
         const role = data.role;
 
-        // 3) IRÁNYÍTÁS SZEREPKÖR ALAPJÁN
-        if (role === "admin") {
-            window.location.href = "admin.html";
-            return;
-        }
-
+        // 🔥 4) Irányítás szerepkör alapján
         if (role === "szaki") {
             window.location.href = "szaki-chat-list.html";
             return;
