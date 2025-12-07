@@ -59,11 +59,11 @@ window.login = async function () {
     }
 
     try {
-        // 🔹 Firebase Auth beléptetés
+        // 1) Firebase Auth bejelentkezés
         const cred = await signInWithEmailAndPassword(auth, email, pass);
         const uid = cred.user.uid;
 
-        // 🔹 Firestore profil lekérése
+        // 2) Firestore user profil lekérése
         const ref = doc(db, "users", uid);
         const snap = await getDoc(ref);
 
@@ -74,32 +74,28 @@ window.login = async function () {
 
         const data = snap.data();
 
-        // 🔥 JAVÍTÁS: automatikus mezőfelismerés
-        const role = data.role || data.szerep || data.userRole || "";
+        // 🔥 KIÍRATJUK A SZEREPKÖRT / TESZT
+        const roleTest = data.role || data.szerep || "nincs mező";
+        alert("Bejelentkezett szerepkör: " + roleTest);
+        console.log("Firestore profil:", data);
 
-        console.log("Bejelentkezett szerepkör:", role);
-
-        // ======================
-        // 🔥 ADMIN → admin.html
-        // ======================
-        if (role === "admin") {
+        // 3) irányítás szerepkör alapján
+        if (data.role === "admin") {
             window.location.href = "admin.html";
             return;
         }
 
-        // SZAKI
-        if (role === "szaki") {
+        if (data.role === "szaki") {
             window.location.href = "szaki-chat-list.html";
             return;
         }
 
-        // FELHASZNÁLÓ / MEGRENDELŐ
-        if (role === "user" || role === "megrendelő") {
+        if (data.role === "user" || data.role === "megrendelő") {
             window.location.href = "user-chat-list.html";
             return;
         }
 
-        alert("Ismeretlen szerepkör: " + role);
+        alert("Ismeretlen szerepkör: " + data.role);
 
     } catch (err) {
         alert("Hiba: " + err.message);
