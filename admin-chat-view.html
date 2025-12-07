@@ -9,18 +9,42 @@
 body { font-family:Arial; margin:0; background:#f2f2f2; }
 header {
     background:#222; color:white; padding:16px;
-    font-size:20px; text-align:center;
+    font-size:20px; text-align:center; font-weight:bold;
 }
-.msgBox {
-    max-width:600px; margin:20px auto;
-    background:white; padding:14px;
+
+.chatBox {
+    max-width:700px; margin:20px auto;
+    background:white; padding:18px;
     border-radius:12px; box-shadow:0 4px 14px rgba(0,0,0,0.15);
 }
+
 .msg {
     padding:10px; margin-bottom:10px;
-    border-radius:8px; background:#ececec;
+    border-radius:10px; background:#ececec;
+    max-width:80%;
+    word-wrap:break-word;
 }
-.me { background:#c8e0ff; }
+.me { background:#c8e0ff; margin-left:auto; }
+
+.msg img {
+    max-width:250px;
+    border-radius:10px;
+    margin-top:6px;
+}
+
+/* ❤️ Donate gomb */
+#supportBtn {
+    position: fixed;
+    bottom: 22px;
+    right: 22px;
+    background:#ff2d55;
+    padding:14px 22px;
+    border-radius:40px;
+    color:white;
+    font-weight:bold;
+    cursor:pointer;
+    box-shadow:0 4px 12px rgba(0,0,0,0.25);
+}
 </style>
 </head>
 
@@ -28,38 +52,93 @@ header {
 
 <header>Admin – Chat tartalom</header>
 
-<div class="msgBox" id="msgBox">Betöltés…</div>
+<!-- DONATE -->
+<div id="supportBtn"
+     onclick="window.open('https://www.paypal.com/donate/?hosted_button_id=QGU3WXVSCH22A','_blank')">
+    ❤️ Támogasd a SzakiChat-et
+</div>
+
+<div class="chatBox" id="chatBox">Betöltés…</div>
 
 <script type="module">
-import { db } from "./firebase-config.js";
+import { auth, db } from "./firebase-config.js";
+
 import {
-    collection, query, orderBy, onSnapshot
+    onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+import {
+    doc, getDoc, onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const params = new URLSearchParams(window.location.search);
 const chatID = params.get("chatID");
 
-const msgDiv = document.getElementById("msgBox");
+const chatDiv = document.getElementById("chatBox");
 
-const q = query(
-    collection(db, "messages", chatID, "items"),
-    orderBy("time", "asc")
-);
+/* ============================================================
+   🔒 ADMIN ELLENŐRZÉS
+============================================================ */
+onAuthStateChanged(auth, async (user) => {
+    if (!user) return window.location.href = "admin-login.html";
 
-onSnapshot(q, (snap) => {
-    msgDiv.innerHTML = "";
+    const snap = await getDoc(doc(db, "users", user.uid));
+    if (!snap.exists() || snap.data().role !== "admin") {
+        alert("Nincs admin jogosultság!");
+        window.location.href = "admin-login.html";
+        return;
+    }
 
-    snap.forEach(m => {
-        const d = m.data();
-
-        msgDiv.innerHTML += `
-            <div class="msg ${d.sender === 'admin' ? 'me' : ''}">
-                <b>${d.sender}</b><br>
-                ${d.text || ""}
-            </div>
-        `;
-    });
+    loadChat();
 });
+
+/* ============================================================
+   🔥 CHAT TARTALOM BETÖLTÉSE (chats / chatID)
+============================================================ */
+function loadChat() {
+
+    const chatRef = doc(db, "chats", chatID);
+
+    onSnapshot(chatRef, (snap) => {
+
+        if (!snap.exists()) {
+            chatDiv.innerHTML = "Nincs ilyen chat ID.";
+            return;
+        }
+
+        const data = snap.data();
+        const msgs = data.messages || [];
+
+        chatDiv.innerHTML = "";
+
+        msgs.forEach(m => {
+
+            // Kép üzenet
+            if (m.type === "img") {
+                chatDiv.innerHTML += `
+                    <div class="msg ${m.from === 'admin' ? 'me' : ''}">
+                        <b>${m.from}</b><br>
+                        <img src="${m.url}">
+                    </div>
+                `;
+                return;
+            }
+
+            // Normál üzenet
+            chatDiv.innerHTML += `
+                <div class="msg ${m.from === 'admin' ? 'me' : ''}">
+                    <b>${m.from}</b><br>
+                    ${m.text}
+                </div>
+            `;
+        });
+
+        if (msgs.length === 0) {
+            chatDiv.innerHTML = "A chat még üres.";
+        }
+    });
+}
+
 </script>
 
 </body>
