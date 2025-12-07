@@ -59,9 +59,12 @@ window.login = async function () {
     }
 
     try {
-        // 1) Firebase Auth bejelentkezés
+        // 1) Firebase Auth belépés
         const cred = await signInWithEmailAndPassword(auth, email, pass);
         const uid = cred.user.uid;
+
+        // *** UID KIÍRATÁS – EZ KELL A DIAGNOSZTIKÁHOZ ***
+        alert("Firebase UID: " + uid);
 
         // 2) Firestore user profil lekérése
         const ref = doc(db, "users", uid);
@@ -73,29 +76,25 @@ window.login = async function () {
         }
 
         const data = snap.data();
+        const role = data.role;
 
-        // 🔥 KIÍRATJUK A SZEREPKÖRT / TESZT
-        const roleTest = data.role || data.szerep || "nincs mező";
-        alert("Bejelentkezett szerepkör: " + roleTest);
-        console.log("Firestore profil:", data);
-
-        // 3) irányítás szerepkör alapján
-        if (data.role === "admin") {
+        // 3) Irányítás szerepkör alapján
+        if (role === "admin") {
             window.location.href = "admin.html";
             return;
         }
 
-        if (data.role === "szaki") {
+        if (role === "szaki") {
             window.location.href = "szaki-chat-list.html";
             return;
         }
 
-        if (data.role === "user" || data.role === "megrendelő") {
+        if (role === "user" || role === "megrendelő") {
             window.location.href = "user-chat-list.html";
             return;
         }
 
-        alert("Ismeretlen szerepkör: " + data.role);
+        alert("Ismeretlen szerepkör: " + role);
 
     } catch (err) {
         alert("Hiba: " + err.message);
