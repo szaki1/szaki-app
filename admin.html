@@ -100,22 +100,20 @@ onclick="window.open('https://www.paypal.com/donate/?hosted_button_id=QGU3WXVSCH
 
 /* FIREBASE IMPORT */
 import { auth, db } from "./firebase-config.js";
-import { onAuthStateChanged }
-    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 import {
     collection, onSnapshot,
     doc, updateDoc, setDoc, getDoc
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-const ADMIN_EMAIL = "admin@szakichat.hu";
-
 const userList = document.getElementById("userList");
 const searchInput = document.getElementById("searchInput");
 let users = [];
 
 /* ===========================================================================================
-   🔒 ADMIN ELLENŐRZÉS – EMAIL ALAPÚ, EZ A HELYES!
+   🔒 ADMIN ELLENŐRZÉS – Firestore role alapú (MEGBÍZHATÓ)
+   Ha bármi hiba van, visszadobjuk az admin-login.html-re.
 =========================================================================================== */
 onAuthStateChanged(auth, async (user) => {
 
@@ -124,14 +122,21 @@ onAuthStateChanged(auth, async (user) => {
         return;
     }
 
-    if (user.email !== ADMIN_EMAIL) {
-        alert("Nincs admin jogosultság!");
-        window.location.href = "admin-login.html";
-        return;
-    }
+    try {
+        const snap = await getDoc(doc(db, "users", user.uid));
+        if (!snap.exists() || snap.data().role !== "admin") {
+            alert("Nincs admin jogosultság!");
+            window.location.href = "admin-login.html";
+            return;
+        }
 
-    // Itt már admin → tölthetjük az adatokat
-    loadUserList();
+        // Ha admin → tölthetjük az adatokat
+        loadUserList();
+    } catch (err) {
+        console.error("Admin ellenőrzés hiba:", err);
+        alert("Hiba történt az admin ellenőrzés során.");
+        window.location.href = "admin-login.html";
+    }
 });
 
 /* ===========================================================================================
@@ -151,7 +156,7 @@ function loadUserList() {
 searchInput.onkeyup = render;
 
 function render() {
-    const q = searchInput.value.toLowerCase();
+    const q = (searchInput.value || "").toLowerCase();
     userList.innerHTML = "";
 
     users
