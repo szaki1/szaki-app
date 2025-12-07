@@ -63,8 +63,8 @@ window.login = async function () {
         const cred = await signInWithEmailAndPassword(auth, email, pass);
         const uid = cred.user.uid;
 
-        // *** UID KIÍRATÁS – EZ KELL A DIAGNOSZTIKÁHOZ ***
-        alert("Firebase UID: " + uid);
+        // ❗ UID kiírás TÖRÖLVE — ez blokkolta a működést!
+        // alert("Firebase UID: " + uid);
 
         // 2) Firestore user profil lekérése
         const ref = doc(db, "users", uid);
