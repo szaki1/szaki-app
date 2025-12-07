@@ -2,130 +2,101 @@
 <html lang="hu">
 <head>
     <meta charset="UTF-8">
-    <title>Bejelentkezés – SzakiChat</title>
+    <title>Belépés – SzakiChat</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <style>
-        body {
-            margin:0;
-            padding:0;
-            background:#f2f2f2;
-            font-family:Arial, sans-serif;
-        }
-
+        body { margin:0; background:#f2f2f2; font-family:Arial; }
         header {
-            background:#007aff;
-            color:white;
-            padding:18px;
-            text-align:center;
-            font-size:22px;
-            font-weight:bold;
+            background:#007aff; color:white; padding:20px;
+            text-align:center; font-size:26px; font-weight:bold;
         }
-
-        .container {
-            max-width:480px;
-            margin:30px auto;
-            padding:20px;
-            background:white;
-            border-radius:12px;
-            box-shadow:0 4px 14px rgba(0,0,0,0.1);
+        .box {
+            max-width:450px; margin:40px auto;
+            background:white; padding:25px;
+            border-radius:14px; box-shadow:0 4px 12px rgba(0,0,0,0.15);
         }
-
-        label {
-            font-weight:bold;
-            margin-top:14px;
-            display:block;
-        }
-
         input {
-            width:100%;
-            padding:12px;
-            margin-top:6px;
-            border:1px solid #ccc;
-            border-radius:8px;
-            font-size:16px;
-            background:#e9f1ff;
+            width:100%; padding:12px; margin-top:10px;
+            border-radius:8px; border:1px solid #ccc;
+            font-size:16px; background:#eef5ff;
         }
-
-        .btn {
-            width:100%;
-            padding:14px;
-            margin-top:20px;
-            background:#007aff;
-            color:white;
-            border:none;
-            border-radius:8px;
-            font-size:18px;
+        button {
+            width:100%; padding:14px; margin-top:20px;
+            background:#007aff; color:white; border:none;
+            border-radius:8px; font-size:18px; font-weight:bold;
             cursor:pointer;
-            font-weight:bold;
-        }
-
-        .btn-secondary {
-            background:#ff8c00;
-            margin-top:10px;
-        }
-
-        #supportFloatingBtn {
-            position: fixed;
-            bottom: 22px;
-            right: 22px;
-            padding:14px 22px;
-            border-radius:40px;
-            background:#ff2d55;
-            color:white;
-            font-weight:bold;
-            cursor:pointer;
-            box-shadow:0 4px 14px rgba(0,0,0,0.25);
         }
     </style>
 </head>
 
 <body>
 
-<header>Bejelentkezés</header>
+<header>Belépés</header>
 
-<div class="container">
-
-    <label>Email cím</label>
-    <input id="email" type="email" placeholder="Add meg az email címed">
-
-    <label>Jelszó</label>
+<div class="box">
+    <input id="email" type="email" placeholder="Email cím">
     <input id="password" type="password" placeholder="Jelszó">
-
-    <button class="btn" onclick="login()">Belépés</button>
-
-    <button class="btn btn-secondary" onclick="window.location.href='user-register.html'">
-        Regisztráció
-    </button>
+    <button onclick="login()">Belépés</button>
 </div>
 
-<!-- ❤️ ADOMÁNY GOMB -->
-<div id="supportFloatingBtn"
-     onclick="window.open('https://www.paypal.com/donate/?hosted_button_id=QGU3WXVSCH22A','_blank')">
-    ❤️ Támogasd a SzakiChat-et
-</div>
-
-<!-- 🔥 JAVÍTOTT LOGIN SCRIPT -->
 <script type="module">
-    import { auth } from "./firebase-config.js";
-    import { signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
-    window.login = async function () {
-        const email = document.getElementById("email").value.trim();
-        const pass = document.getElementById("password").value;
+import { auth, db } from "./firebase-config.js";
+import { signInWithEmailAndPassword }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { doc, getDoc }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-        if (!email || !pass) {
-            alert("Email és jelszó kötelező!");
+window.login = async function () {
+
+    const email = document.getElementById("email").value.trim();
+    const pass  = document.getElementById("password").value.trim();
+
+    if (!email || !pass) {
+        alert("Add meg az emailt és jelszót!");
+        return;
+    }
+
+    try {
+        // 1) Bejelentkezés Firebase Auth-tal
+        const cred = await signInWithEmailAndPassword(auth, email, pass);
+        const uid = cred.user.uid;
+
+        // 2) Firestore profil lekérése
+        const ref = doc(db, "users", uid);
+        const snap = await getDoc(ref);
+
+        if (!snap.exists()) {
+            alert("Hiba: nincs Firestore profil!");
             return;
         }
 
-        try {
-            await signInWithEmailAndPassword(auth, email, pass);
-            window.location.href = "user-chat-list.html";
-        } catch (err) {
-            alert("Hiba: " + err.message);
+        const data = snap.data();
+        const role = data.role;
+
+        // 3) IRÁNYÍTÁS SZEREPKÖR ALAPJÁN
+        if (role === "admin") {
+            window.location.href = "admin.html";
+            return;
         }
-    };
+
+        if (role === "szaki") {
+            window.location.href = "szaki-chat-list.html";
+            return;
+        }
+
+        if (role === "user") {
+            window.location.href = "user-chat-list.html";
+            return;
+        }
+
+        alert("Ismeretlen szerepkör: " + role);
+
+    } catch (err) {
+        alert("Hiba: " + err.message);
+    }
+};
 </script>
 
 </body>
