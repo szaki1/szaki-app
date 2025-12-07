@@ -63,17 +63,13 @@ header {
 <script type="module">
 import { auth, db } from "./firebase-config.js";
 
-import {
-    onAuthStateChanged
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
-import {
-    doc, getDoc, onSnapshot
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { doc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const params = new URLSearchParams(window.location.search);
-const chatID = params.get("chatID");
-
+// Támogatjuk mindkét param nevet (chatId vagy chatID) a kompatibilitásért
+const chatID = params.get("chatId") || params.get("chatID");
 const chatDiv = document.getElementById("chatBox");
 
 /* ============================================================
@@ -82,10 +78,22 @@ const chatDiv = document.getElementById("chatBox");
 onAuthStateChanged(auth, async (user) => {
     if (!user) return window.location.href = "admin-login.html";
 
-    const snap = await getDoc(doc(db, "users", user.uid));
-    if (!snap.exists() || snap.data().role !== "admin") {
-        alert("Nincs admin jogosultság!");
+    try {
+        const snap = await getDoc(doc(db, "users", user.uid));
+        if (!snap.exists() || snap.data().role !== "admin") {
+            alert("Nincs admin jogosultság!");
+            window.location.href = "admin-login.html";
+            return;
+        }
+    } catch (err) {
+        console.error("Admin ellenőrzés hiba:", err);
+        alert("Hiba történt az admin ellenőrzés során.");
         window.location.href = "admin-login.html";
+        return;
+    }
+
+    if (!chatID) {
+        chatDiv.innerHTML = "Nincs chat ID megadva.";
         return;
     }
 
@@ -93,7 +101,7 @@ onAuthStateChanged(auth, async (user) => {
 });
 
 /* ============================================================
-   🔥 CHAT TARTALOM BETÖLTÉSE (chats / chatID)
+   💬 CHAT TARTALOM BETÖLTÉSE (chats / chatID)
 ============================================================ */
 function loadChat() {
 
