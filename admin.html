@@ -52,12 +52,32 @@ hr { margin:25px 0; }
     margin-right:10px; margin-bottom:10px;
     text-decoration:none;
 }
+
+/* ❤️ ADOMÁNY GOMB */
+#supportBtn {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background:#ff2d55;
+    color:white;
+    padding:14px 22px;
+    border-radius:40px;
+    font-weight:bold;
+    cursor:pointer;
+    box-shadow:0 4px 12px rgba(0,0,0,0.3);
+    z-index:999;
+}
 </style>
 </head>
 
 <body>
 
 <header>BŐVÍTETT ADMIN PANEL</header>
+
+<div id="supportBtn"
+onclick="window.open('https://www.paypal.com/donate/?hosted_button_id=QGU3WXVSCH22A','_blank')">
+❤️ Támogasd a SzakiChat-et
+</div>
 
 <div class="container">
 
@@ -79,10 +99,14 @@ hr { margin:25px 0; }
 <script type="module">
 
 /* FIREBASE IMPORT */
-import { db } from "./firebase-config.js";
+import { auth, db } from "./firebase-config.js";
+import {
+    onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
 import {
     collection, onSnapshot,
-    doc, updateDoc, setDoc
+    doc, updateDoc, setDoc, getDoc,
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 /* DOM elemek */
@@ -92,13 +116,38 @@ const searchInput = document.getElementById("searchInput");
 let users = [];
 
 /* ===========================================================================================
+   🔒 ADMIN ELLENŐRZÉS – nagyon fontos!
+=========================================================================================== */
+onAuthStateChanged(auth, async (user) => {
+
+    if (!user) {
+        window.location.href = "admin-login.html";
+        return;
+    }
+
+    const ref = doc(db, "users", user.uid);
+    const snap = await getDoc(ref);
+
+    if (!snap.exists() || snap.data().role !== "admin") {
+        alert("Nincs admin jogosultság!");
+        window.location.href = "admin-login.html";
+        return;
+    }
+
+    // Ha admin → indulhat a lista figyelése
+    loadUserList();
+});
+
+/* ===========================================================================================
    REALTIME FELHASZNÁLÓ LISTA
 =========================================================================================== */
-onSnapshot(collection(db, "users"), (snap) => {
-    users = [];
-    snap.forEach(d => users.push({ id: d.id, ...d.data() }));
-    render();
-});
+function loadUserList() {
+    onSnapshot(collection(db, "users"), (snap) => {
+        users = [];
+        snap.forEach(d => users.push({ id: d.id, ...d.data() }));
+        render();
+    });
+}
 
 /* ===========================================================================================
    KERESÉS
@@ -111,9 +160,9 @@ function render() {
 
     users
         .filter(u =>
-            u.name?.toLowerCase().includes(q) ||
-            u.email?.toLowerCase().includes(q) ||
-            u.city?.toLowerCase().includes(q)
+            (u.name || "").toLowerCase().includes(q) ||
+            (u.email || "").toLowerCase().includes(q) ||
+            (u.city || "").toLowerCase().includes(q)
         )
         .forEach(u => displayUser(u));
 }
@@ -128,9 +177,11 @@ function displayUser(u) {
 
     const premiumTag = u.premium ? `<span class="tagPremium">★ Prémium</span>` : "";
 
+    const roleLabel = u.role || "felhasználó";
+
     userList.innerHTML += `
         <div class="userCard">
-            <div class="row"><b>${u.name}</b> (${u.role}) ${premiumTag}</div>
+            <div class="row"><b>${u.name || "-"}</b> (${roleLabel}) ${premiumTag}</div>
             <div class="row">Email: ${u.email || "-"}</div>
             <div class="row">Város: ${u.city || "-"}</div>
             <div class="row">Szakma: ${u.szakma || "-"}</div>
@@ -138,7 +189,7 @@ function displayUser(u) {
 
             <div class="row">
                 <button class="btn-action btn-small"
-                    onclick="togglePremium('${u.id}', ${u.premium ? "true":"false"})">
+                    onclick="togglePremium('${u.id}', ${!!u.premium})">
                     ${u.premium ? "Prémium kikapcs" : "Prémium bekapcs"}
                 </button>
 
@@ -153,12 +204,11 @@ function displayUser(u) {
 }
 
 /* ===========================================================================================
-   PRÉMIUM ÁLLAPOT KEZELÉS
+   PRÉMIUM KEZELÉS
 =========================================================================================== */
 window.togglePremium = async function(uid, current) {
     const ref = doc(db, "users", uid);
     await updateDoc(ref, { premium: !current });
-
     logAction(uid, current ? "Prémium kikapcsolva" : "Prémium bekapcsolva");
 };
 
@@ -168,25 +218,22 @@ window.togglePremium = async function(uid, current) {
 window.resetChats = async function(uid) {
     const ref = doc(db, "users", uid);
     await updateDoc(ref, { chatCount: 0 });
-
     alert("Chat számláló nullázva!");
     logAction(uid, "Chat számláló nullázva");
 };
 
 /* ===========================================================================================
-   FELHASZNÁLÓ BLOKKOLÁSA
+   BLOKKOLÁS
 =========================================================================================== */
 window.banUser = async function(uid) {
     const ref = doc(db, "users", uid);
-
     await updateDoc(ref, { banned: true });
-
     alert("Felhasználó blokkolva!");
     logAction(uid, "Felhasználó blokkolva");
 };
 
 /* ===========================================================================================
-   ADMIN LOG – minden admin művelet rögzítése
+   ADMIN LOG
 =========================================================================================== */
 async function logAction(targetUid, actionText) {
     await setDoc(
@@ -198,7 +245,6 @@ async function logAction(targetUid, actionText) {
         }
     );
 }
-
 </script>
 
 </body>
