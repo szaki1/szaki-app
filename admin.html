@@ -100,23 +100,22 @@ onclick="window.open('https://www.paypal.com/donate/?hosted_button_id=QGU3WXVSCH
 
 /* FIREBASE IMPORT */
 import { auth, db } from "./firebase-config.js";
-import {
-    onAuthStateChanged
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { onAuthStateChanged }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 import {
     collection, onSnapshot,
-    doc, updateDoc, setDoc, getDoc,
+    doc, updateDoc, setDoc, getDoc
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-/* DOM elemek */
+const ADMIN_EMAIL = "admin@szakichat.hu";
+
 const userList = document.getElementById("userList");
 const searchInput = document.getElementById("searchInput");
-
 let users = [];
 
 /* ===========================================================================================
-   🔒 ADMIN ELLENŐRZÉS – nagyon fontos!
+   🔒 ADMIN ELLENŐRZÉS – EMAIL ALAPÚ, EZ A HELYES!
 =========================================================================================== */
 onAuthStateChanged(auth, async (user) => {
 
@@ -125,16 +124,13 @@ onAuthStateChanged(auth, async (user) => {
         return;
     }
 
-    const ref = doc(db, "users", user.uid);
-    const snap = await getDoc(ref);
-
-    if (!snap.exists() || snap.data().role !== "admin") {
+    if (user.email !== ADMIN_EMAIL) {
         alert("Nincs admin jogosultság!");
         window.location.href = "admin-login.html";
         return;
     }
 
-    // Ha admin → indulhat a lista figyelése
+    // Itt már admin → tölthetjük az adatokat
     loadUserList();
 });
 
@@ -172,10 +168,13 @@ function render() {
 =========================================================================================== */
 function displayUser(u) {
 
-    const onlineTag = u.online ? `<span class="tagOnline">🟢 Online</span>`
-                               : `<span class="tagOffline">⚪ Offline</span>`;
+    const onlineTag = u.online
+        ? `<span class="tagOnline">🟢 Online</span>`
+        : `<span class="tagOffline">⚪ Offline</span>`;
 
-    const premiumTag = u.premium ? `<span class="tagPremium">★ Prémium</span>` : "";
+    const premiumTag = u.premium
+        ? `<span class="tagPremium">★ Prémium</span>`
+        : "";
 
     const roleLabel = u.role || "felhasználó";
 
@@ -207,8 +206,7 @@ function displayUser(u) {
    PRÉMIUM KEZELÉS
 =========================================================================================== */
 window.togglePremium = async function(uid, current) {
-    const ref = doc(db, "users", uid);
-    await updateDoc(ref, { premium: !current });
+    await updateDoc(doc(db, "users", uid), { premium: !current });
     logAction(uid, current ? "Prémium kikapcsolva" : "Prémium bekapcsolva");
 };
 
@@ -216,8 +214,7 @@ window.togglePremium = async function(uid, current) {
    CHAT COUNT NULLÁZÁS
 =========================================================================================== */
 window.resetChats = async function(uid) {
-    const ref = doc(db, "users", uid);
-    await updateDoc(ref, { chatCount: 0 });
+    await updateDoc(doc(db, "users", uid), { chatCount: 0 });
     alert("Chat számláló nullázva!");
     logAction(uid, "Chat számláló nullázva");
 };
@@ -226,8 +223,7 @@ window.resetChats = async function(uid) {
    BLOKKOLÁS
 =========================================================================================== */
 window.banUser = async function(uid) {
-    const ref = doc(db, "users", uid);
-    await updateDoc(ref, { banned: true });
+    await updateDoc(doc(db, "users", uid), { banned: true });
     alert("Felhasználó blokkolva!");
     logAction(uid, "Felhasználó blokkolva");
 };
@@ -236,15 +232,13 @@ window.banUser = async function(uid) {
    ADMIN LOG
 =========================================================================================== */
 async function logAction(targetUid, actionText) {
-    await setDoc(
-        doc(db, "adminLogs", Date.now().toString()),
-        {
-            target: targetUid,
-            action: actionText,
-            time: new Date().toISOString()
-        }
-    );
+    await setDoc(doc(db, "adminLogs", Date.now().toString()), {
+        target: targetUid,
+        action: actionText,
+        time: new Date().toISOString()
+    });
 }
+
 </script>
 
 </body>
