@@ -81,7 +81,6 @@ onclick="window.open('https://www.paypal.com/donate/?hosted_button_id=QGU3WXVSCH
 
 <div class="container">
 
-    <!-- Gyorslinkek -->
     <div class="linkBar">
         <a href="admin-chats.html">💬 Összes chat</a>
         <a href="admin-stats.html">📊 Statisztikák</a>
@@ -98,23 +97,24 @@ onclick="window.open('https://www.paypal.com/donate/?hosted_button_id=QGU3WXVSCH
 
 <script type="module">
 
-/* FIREBASE IMPORT */
+/* FIREBASE IMPORT – MINDEN 12.6.0 VERZIÓ! */
 import { auth, db } from "./firebase-config.js";
-import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+import {
+    onAuthStateChanged,
+    signOut
+} from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
 
 import {
     collection, onSnapshot,
     doc, updateDoc, setDoc, getDoc
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+} from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
 
 const userList = document.getElementById("userList");
 const searchInput = document.getElementById("searchInput");
 let users = [];
 
-/* ===========================================================================================
-   🔒 ADMIN ELLENŐRZÉS – Firestore role alapú (MEGBÍZHATÓ)
-   Ha bármi hiba van, visszadobjuk az admin-login.html-re.
-=========================================================================================== */
+/* 🔒 ADMIN ELLENŐRZÉS */
 onAuthStateChanged(auth, async (user) => {
 
     if (!user) {
@@ -130,29 +130,23 @@ onAuthStateChanged(auth, async (user) => {
             return;
         }
 
-        // Ha admin → tölthetjük az adatokat
         loadUserList();
+
     } catch (err) {
         console.error("Admin ellenőrzés hiba:", err);
-        alert("Hiba történt az admin ellenőrzés során.");
         window.location.href = "admin-login.html";
     }
 });
 
-/* ===========================================================================================
-   REALTIME FELHASZNÁLÓ LISTA
-=========================================================================================== */
+/* 🔄 Real-time user lista */
 function loadUserList() {
     onSnapshot(collection(db, "users"), (snap) => {
-        users = [];
-        snap.forEach(d => users.push({ id: d.id, ...d.data() }));
+        users = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         render();
     });
 }
 
-/* ===========================================================================================
-   KERESÉS
-=========================================================================================== */
+/* 🔍 Keresés */
 searchInput.onkeyup = render;
 
 function render() {
@@ -168,9 +162,7 @@ function render() {
         .forEach(u => displayUser(u));
 }
 
-/* ===========================================================================================
-   FELHASZNÁLÓ KÁRTYA
-=========================================================================================== */
+/* 🧩 User kártya */
 function displayUser(u) {
 
     const onlineTag = u.online
@@ -181,11 +173,9 @@ function displayUser(u) {
         ? `<span class="tagPremium">★ Prémium</span>`
         : "";
 
-    const roleLabel = u.role || "felhasználó";
-
     userList.innerHTML += `
         <div class="userCard">
-            <div class="row"><b>${u.name || "-"}</b> (${roleLabel}) ${premiumTag}</div>
+            <div class="row"><b>${u.name || "-"}</b> (${u.role || "user"}) ${premiumTag}</div>
             <div class="row">Email: ${u.email || "-"}</div>
             <div class="row">Város: ${u.city || "-"}</div>
             <div class="row">Szakma: ${u.szakma || "-"}</div>
@@ -207,35 +197,27 @@ function displayUser(u) {
     `;
 }
 
-/* ===========================================================================================
-   PRÉMIUM KEZELÉS
-=========================================================================================== */
+/* ⭐ Prémium állítás */
 window.togglePremium = async function(uid, current) {
     await updateDoc(doc(db, "users", uid), { premium: !current });
-    logAction(uid, current ? "Prémium kikapcsolva" : "Prémium bekapcsolva");
+    logAction(uid, current ? "Premium OFF" : "Premium ON");
 };
 
-/* ===========================================================================================
-   CHAT COUNT NULLÁZÁS
-=========================================================================================== */
+/* 🔄 Chat counter nullázása */
 window.resetChats = async function(uid) {
     await updateDoc(doc(db, "users", uid), { chatCount: 0 });
     alert("Chat számláló nullázva!");
-    logAction(uid, "Chat számláló nullázva");
+    logAction(uid, "Chat reset");
 };
 
-/* ===========================================================================================
-   BLOKKOLÁS
-=========================================================================================== */
+/* 🚫 Ban */
 window.banUser = async function(uid) {
     await updateDoc(doc(db, "users", uid), { banned: true });
     alert("Felhasználó blokkolva!");
-    logAction(uid, "Felhasználó blokkolva");
+    logAction(uid, "User banned");
 };
 
-/* ===========================================================================================
-   ADMIN LOG
-=========================================================================================== */
+/* 📝 Admin log */
 async function logAction(targetUid, actionText) {
     await setDoc(doc(db, "adminLogs", Date.now().toString()), {
         target: targetUid,
