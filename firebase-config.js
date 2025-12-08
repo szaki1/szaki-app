@@ -1,16 +1,17 @@
-// Firebase importok
+// Firebase 12 importok (modul verzió, webhez ajánlott)
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
 import { getAuth } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
 
-// Új Firebase konfiguráció
+// --- SAJÁT FIREBASE CONFIG (helyesen javítva) ---
 export const firebaseConfig = {
-  apiKey: "AIzaSyDQTcc2PS32EaGLdS5Wv2er_oAMW_w50fU",
-  authDomain: "szakichat-v2.firebaseapp.com",
-  projectId: "szakichat-v2",
-  storageBucket: "szakichat-v2.firebasestorage.app",
-  messagingSenderId: "675957041716",
-  appId: "1:675957041716:web:d371840aabfb45b8f2f861"
+  apiKey: "AIzaSyANKVxrmhFRm3BHDTtFzm6VwLTLLnwC8bs",
+  authDomain: "szakichat-ai.firebaseapp.com",
+  projectId: "szakichat-ai",
+  storageBucket: "szakichat-ai.appspot.com",  // ← JAVÍTVA!
+  messagingSenderId: "788780123554",
+  appId: "1:788780123554:web:02357d45832906d46d1efb",
+  measurementId: "G-0CR9LTBHQ5"
 };
 
 // Inicializálás
