@@ -1,29 +1,19 @@
-// =====================================================
-// Firebase config – SzakiChat
-// =====================================================
+// Firebase importok
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
+import { getAuth } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
+import { getFirestore } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
 
-import { initializeApp } 
-    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-
-import { getAuth } 
-    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-
-import { getFirestore } 
-    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
-
-// 🔥 A SAJÁT PROJEKTED KONFIGJA
-const firebaseConfig = {
-  apiKey: "AIzaSyAKhHvi3yObUurBKhT1r_feg4g0A5w766Q",
-  authDomain: "szaki-app.firebaseapp.com",
-  projectId: "szaki-app",
-  storageBucket: "szaki-app.appspot.com",
-  messagingSenderId: "418149364598",
-  appId: "1:418149364598:web:2ae4450dc8fadfbac30057"
+// Új Firebase konfiguráció
+export const firebaseConfig = {
+  apiKey: "AIzaSyDQTcc2PS32EaGLdS5Wv2er_oAMW_w50fU",
+  authDomain: "szakichat-v2.firebaseapp.com",
+  projectId: "szakichat-v2",
+  storageBucket: "szakichat-v2.firebasestorage.app",
+  messagingSenderId: "675957041716",
+  appId: "1:675957041716:web:d371840aabfb45b8f2f861"
 };
 
-
-// 🔥 Firebase INIT
-export const app  = initializeApp(firebaseConfig);
+// Inicializálás
+export const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
-export const db   = getFirestore(app);
+export const db = getFirestore(app);
