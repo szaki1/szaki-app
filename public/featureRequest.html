@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kiemelt szaki jelentkezés – SzakiChat AI</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #fafafa;
+            margin: 0;
+            padding: 20px;
+            text-align: center;
+        }
+
+        h1 {
+            color: #ff8c00;
+            font-size: 28px;
+        }
+
+        .box {
+            background: white;
+            padding: 20px;
+            margin: 20px auto;
+            width: 90%;
+            max-width: 420px;
+            border-radius: 14px;
+            box-shadow: 0 3px 12px rgba(0,0,0,0.15);
+            font-size: 18px;
+            line-height: 28px;
+            text-align: left;
+        }
+
+        .btn {
+            display: block;
+            width: 90%;
+            background: #ff8c00;
+            color: white;
+            margin: 18px auto;
+            padding: 14px;
+            border-radius: 12px;
+            text-decoration: none;
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .btn:hover {
+            background: #ffa733;
+        }
+
+        #confirmBtn {
+            background: #28a745;
+        }
+
+        #confirmBtn:hover {
+            background: #3ec15c;
+        }
+
+        .back-btn {
+            display: inline-block;
+            margin-top: 20px;
+            background: #555;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-size: 18px;
+        }
+    </style>
+</head>
+
+<body>
+
+<h1>Kiemelt szakember jelentkezés</h1>
+
+<div class="box">
+    Kedves Szakember!<br><br>
+
+    A SzakiChat összes funkciója <b>mindig ingyenes</b> marad.<br><br>
+
+    Ha szeretnél a listák elején megjelenni, több munkát kapni és kitűnni a többiek közül,
+    akkor <b>KIEMELT Szaki</b> lehetsz.<br><br>
+
+    A kiemelés díját <b>TE adod meg</b>, tetszőleges összegű adománnyal.<br><br>
+</div>
+
+<!-- PayPal adomány gomb -->
+<a class="btn"
+   href="https://www.paypal.com/donate/?hosted_button_id=QGU3WXVSCH22A"
+   target="_blank">
+    ❤️ Adomány küldése (PayPal)
+</a>
+
+<!-- A szaki jelzi, hogy elküldte -->
+<a class="btn" id="confirmBtn" onclick="confirmRequest()">
+    ✔️ Elküldtem az adományt – kérem a kiemelést!
+</a>
+
+<a href="dashboard.html" class="back-btn">⬅ Vissza a profilomba</a>
+
+<script type="module">
+    import { auth, db } from "./firebase-config.js";
+    import { collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    async function confirmRequest() {
+        const user = auth.currentUser;
+
+        if (!user) {
+            alert("Hiba: Nem vagy bejelentkezve!");
+            return;
+        }
+
+        await addDoc(collection(db, "featuredRequests"), {
+            uid: user.uid,
+            email: user.email,
+            time: serverTimestamp(),
+            status: "pending"
+        });
+
+        alert("Köszönjük! A kérésedet rögzítettük és az admin hamarosan jóváhagyja.");
+        window.location.href = "dashboard.html";
+    }
+
+    window.confirmRequest = confirmRequest;
+</script>
+
+</body>
+</html>

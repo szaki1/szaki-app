@@ -1,0 +1,726 @@
+<!-- dashboard.html — SZAKI PROFILOD OLDAL v2.1 -->
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8" />
+<title>Szaki profilod – SzakiChat</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="theme-color" content="#ff9800">
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" type="image/svg+xml" href="/icon-192.png">
+
+
+<script type="module">
+import { auth, db, onAuthStateChanged, doc, getDoc, updateDoc, collection, query, where, onSnapshot, setPersistence, browserLocalPersistence } from "./firebase-config.js";
+import { initNotifications, requestNotificationPermission } from "./notifications.js";
+
+// --- SW UPDATE HANDLING: automatikus reload, ha új verzió elérhető ---
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('controllerchange', function() {
+    // Ha új SW aktiválódik, automatikusan reload
+    if (window.__reloadingForSW) return;
+    window.__reloadingForSW = true;
+    location.reload();
+  });
+
+
+// Üzenet a SW-nek, hogy skipWaiting-et hívjon, ha üzenetet kap
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('message', event => {
+    if (event.data && event.data.type === 'RELOAD_PAGE') {
+      location.reload();
+    }
+  });
+}
+
+// 🔒 PERSISTENCE DEBUG
+setPersistence(auth, browserLocalPersistence).then(()=>{
+  console.log('✅ Auth persistence: browserLocalPersistence');
+}).catch((err)=>{
+  console.error('❌ Auth persistence hiba:', err);
+});
+
+const PROF_COLORS = {
+  "Festő": "#FFD54F",
+  "Burkoló": "#FF9800",
+  "Villanyszerelő": "#FFC107",
+  "Vízszerelő": "#4FC3F7",
+  "Gázszerelő": "#EF5350",
+  "Gyorsétkeztetési eladó": "#4CAF50",
+  "Ford diagnosztika": "#1976D2"
+};
+
+let currentUser = null;
+let referralCode = null;
+
+// 💬 ÚJ ÜZENETEK SZÁMLÁLÓ - EGYSZERŰ
+function watchNewMessages(myId, role) {
+  const chatsRef = collection(db, "chats");
+  const field = role === "szaki" ? "szakiId" : "megrId";
+  const unreadField = role === "szaki" ? "unreadCountSzaki" : "unreadCountMegr";
+
+  const q = query(chatsRef, where(field, "==", myId));
+  onSnapshot(q, (snapshot) => {
+    let total = 0;
+    snapshot.forEach(chatDoc => {
+      const data = chatDoc.data() || {};
+      total += data[unreadField] || 0;
+    });
+
+    console.log("✅ SZÁMLÁLÓ FRISSÍTÉS:", total, "(field:", unreadField, ")");
+
+    const btn = document.getElementById("inboxBtn");
+    if (btn) {
+      btn.textContent = total > 0 ? `📥 Bejövő üzenetek: ${total}` : "📥 Bejövő üzenetek";
+      console.log("✅ Gomb frissítve:", btn.textContent);
+    } else {
+      console.error("❌ Gomb nem található!");
+    }
+  }, (err) => {
+    console.error('❌ watchNewMessages onSnapshot hiba:', err);
+  });
+}
+
+// ⏳ FIREBASE AUTH STATE - helyes user betöltés
+onAuthStateChanged(auth, async (user) => {
+  if (!user) {
+    location.replace("index.html");
+    return;
+  }
+  const userDoc = await getDoc(doc(db, "users", user.uid));
+  if (!userDoc.exists() || userDoc.data().role !== "szaki") {
+    location.replace("index.html");
+    return;
+  }
+  const userData = userDoc.data();
+  if (!userData.profilKitoltve) {
+    location.replace("szaki-profil-kitoltes.html");
+    return;
+  }
+  const prof = userData.szakma || "ismeretlen";
+  const header = document.querySelector("header");
+  if (header) {
+    header.style.background = PROF_COLORS[prof] || "#ff9800";
+  }
+  const loginInfoEl = document.getElementById("loginInfo");
+  // Update the login info element with the user's profession
+  if (loginInfoEl) {
+    loginInfoEl.textContent = `Belépve: ${prof.charAt(0).toUpperCase() + prof.slice(1)}`;
+  } else {
+    console.error("❌ loginInfo element not found!");
+  }
+  // 🔑 ADMIN GOMB MEGJELENÍTÉSE
+  if (userData.email === "chisnyan@gmail.com") {
+    const adminBtn = document.getElementById("adminBtn");
+    if (adminBtn) adminBtn.style.display = "block";
+  }
+  // 🔔 ÉRTESÍTÉSEK INICIALIZÁLÁSA
+  initNotifications();
+  // 💬 SZÁMLÁLÓ INDÍTÁSA (role alapján)
+  watchNewMessages(user.uid, userData.role);
+  //  ÉRTESÍTÉSI POPUP MEGJELENÍTÉSE (ha még nem engedélyezve)
+  if (Notification.permission === "default") {
+    setTimeout(() => {
+      showNotificationPrompt();
+    }, 1000);
+  }
+  // 🎁 REFERRAL KÓD GENERÁLÁS/BETÖLTÉS
+  if (!userData.referralCode) {
+    referralCode = user.uid.substring(0, 8).toUpperCase();
+    await updateDoc(doc(db, "users", user.uid), {
+      referralCode: referralCode,
+      referralCount: 0
+    });
+  } else {
+    referralCode = userData.referralCode;
+  }
+  console.log("🔑 Referral kód:", referralCode);
+	// Referral link megjelenítés - AZONNAL
+	const referralLink = `https://szakichat.hu/register-szaki.html?ref=${referralCode}`;
+	// Próbáljuk meg többször is, ha nem sikerül elsőre
+	if (!setReferralLink(referralLink)) {
+		setTimeout(() => {
+			if (!setReferralLink(referralLink)) {
+				console.error("❌ Referral link could not be set after retries.");
+			}
+		}, 500);
+	}
+});
+
+function setReferralLink(referralLink) {
+  const referralLinkEl = document.getElementById("referralLink");
+  if (referralLinkEl) {
+    referralLinkEl.value = referralLink;
+    console.log("✅ Referral link beállítva:", referralLink);
+    return true;
+  } else {
+    console.error("❌ referralLink elem nem található!");
+    return false;
+  }
+}
+
+// Első próbálkozás azonnal (userData feldolgozásakor hívd!):
+// if (!setReferralLink(referralLink)) {
+//   setTimeout(() => {
+//     if (!setReferralLink(referralLink)) {
+//       setTimeout(() => setReferralLink(referralLink), 500);
+//     }
+//   }, 100);
+// }
+
+
+window.copyReferralLink = function() {
+  const linkEl = document.getElementById("referralLink");
+  if (!linkEl) {
+    alert("❌ Link elem nem található!");
+    return;
+  }
+  const link = linkEl.value;
+  if (!link || link === "Betöltés...") {
+    alert("❌ Link még nem töltődött be!");
+    return;
+  }
+  navigator.clipboard.writeText(link);
+  alert("✅ Link másolva a vágólapra!");
+}
+
+window.shareFacebook = function() {
+  const url = encodeURIComponent("https://szakichat.hu");
+  window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}`, '_blank', 'width=600,height=400');
+}
+
+// 📸 SCREENSHOT FELTÖLTÉS ÉS AI ELLENŐRZÉS
+window.uploadScreenshot = async function() {
+  const fileInput = document.getElementById("screenshotInput");
+  const statusEl = document.getElementById("screenshotStatus");
+  
+  if (!fileInput.files || fileInput.files.length === 0) {
+    statusEl.innerHTML = '<span style="color:#f44336">❌ Nincs kiválasztva kép!</span>';
+    return;
+  }
+  
+  const file = fileInput.files[0];
+  
+  // Fájl méret ellenőrzés (max 5MB)
+  if (file.size > 5 * 1024 * 1024) {
+    statusEl.innerHTML = '<span style="color:#f44336">❌ A kép túl nagy! Max 5MB!</span>';
+    return;
+  }
+  
+  statusEl.innerHTML = '<span style="color:#ff9800">⏳ Kép feltöltése és AI ellenőrzés...</span>';
+  
+  try {
+    // Kép base64-re konvertálás
+    const base64 = await fileToBase64(file);
+    const base64Data = base64.split(',')[1]; // Remove data:image/...;base64, prefix
+    
+    // AI ellenőrzés Gemini Vision API-val
+    const isValid = await checkImageWithAI(base64Data);
+    
+    if (isValid.valid) {
+      // ✅ AUTOMATIKUS KIEMELÉS BEÁLLÍTÁSA
+      await activateFeaturedStatus();
+      
+      statusEl.innerHTML = '<span style="color:#4caf50">✅ SIKERES! Valódi munka fotó! +3 nap KIEMELT státusz aktiválva!</span>';
+      
+      // Frissítés megjelenítése
+      setTimeout(() => {
+        location.reload();
+      }, 2000);
+    } else {
+      statusEl.innerHTML = `<span style="color:#f44336">❌ ${isValid.reason || 'Nem munka fotó! Kérlek valódi burkolás/festés/szerelés fotót tölts fel!'}</span>`;
+    }
+  } catch (err) {
+    console.error("Screenshot upload error:", err);
+    statusEl.innerHTML = '<span style="color:#f44336">❌ Hiba történt! Próbáld újra!</span>';
+  }
+}
+
+// BASE64 KONVERZIÓ
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+// AI KÉPELLENŐRZÉS GEMINI VISION API-VAL
+// ⚠️ BIZTONSÁGI FIGYELMEZTETÉS: Ez az API kulcs PUBLIKUS!
+// JAVASOLT: Backend proxy endpointot készíteni Cloud Functions-ben
+// IDEIGLENES MEGOLDÁS: Google Cloud Console-ban korlátozd a kulcsot:
+//   - API restrictions: csak Generative Language API
+//   - Application restrictions: HTTP referrers (szakichat-ai.web.app/*)
+async function checkImageWithAI(base64ImageData) {
+  const GEMINI_API_KEY = "AIzaSyCRvuIN8UZtCIsXIMSp0qZolgvkHWYPm-M";
+  const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+  
+  const prompt = `
+Ellenőrizd ezt a képet! Facebook megosztási képernyőkép-e?
+
+KERESS:
+- "SzakiChat" vagy "szakichat" szöveg
+- Facebook felület (likes, comments, share gombok)
+- Megosztási aktivitás
+
+VÁLASZOLJ JSON FORMÁTUMBAN:
+{
+  "valid": true/false,
+  "reason": "rövid indoklás magyarul"
+}
+
+FONTOS:
+- Ha látszik Facebook ÉS SzakiChat → valid: true
+- Ha nem Facebook megosztás → valid: false
+- Add meg az okot magyarul!
+`;
+  
+  try {
+    const response = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{
+          parts: [
+            { text: prompt },
+            {
+              inline_data: {
+                mime_type: "image/jpeg",
+                data: base64ImageData
+              }
+            }
+          ]
+        }]
+      })
+    });
+    
+    if (!response.ok) {
+      throw new Error("Gemini API hiba");
+    }
+    
+    const data = await response.json();
+    const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    
+    // JSON kivonása a válaszból
+    const jsonMatch = aiText.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      return JSON.parse(jsonMatch[0]);
+    }
+    
+    // Fallback: ha az AI "facebook" és "szakichat" szót tartalmaz
+    const lowerText = aiText.toLowerCase();
+    if ((lowerText.includes("facebook") || lowerText.includes("megosztá")) && lowerText.includes("szaki")) {
+      return { valid: true, reason: "AI megerősítette a Facebook megosztást" };
+    }
+    
+    return { valid: false, reason: "AI nem ismerte fel Facebook megosztásnak" };
+    
+  } catch (err) {
+    console.error("AI image check error:", err);
+    // Fallback: ha API hiba van, engedélyezzük (ne blokkolja a felhasználót)
+    return { valid: true, reason: "AI ellenőrzés sikertelen, automatikusan engedélyezve" };
+  }
+}
+
+// KIEMELT STÁTUSZ AKTIVÁLÁSA (3 NAP)
+async function activateFeaturedStatus() {
+  if (!currentUser) return;
+  
+  const now = new Date();
+  const featuredUntil = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000); // +3 nap
+  
+  await updateDoc(doc(db, "users", currentUser.uid), {
+    featured: true,
+    featuredUntil: featuredUntil,
+    lastScreenshotUpload: now
+  });
+}
+
+window.enableNotifications = async function() {
+  const hasPermission = await requestNotificationPermission();
+  const statusEl = document.getElementById("notificationStatus");
+  const btnEl = document.getElementById("enableNotifications");
+  
+  if (hasPermission) {
+    if (statusEl) statusEl.textContent = "✅ Értesítések engedélyezve!";
+    if (btnEl) {
+      btnEl.disabled = true;
+      btnEl.textContent = "✅ Engedélyezve";
+    }
+  } else {
+    if (statusEl) statusEl.textContent = "❌ Engedély megtagadva";
+  }
+}
+
+// Értesítési státusz ellenőrzése oldal betöltéskor
+
+function updateUIWithUserData(userData, user) {
+  // Fejléc szakma
+  const prof = userData.szakma || "ismeretlen";
+  console.log("[DEBUG] Szakma Firestore-ból:", prof);
+  const header = document.querySelector("header");
+  if (header) {
+    header.style.background = PROF_COLORS[prof] || "#ff9800";
+  } else {
+    console.warn("[DEBUG] header elem nem található!");
+  }
+  const loginInfoEl = document.getElementById("loginInfo");
+  if (loginInfoEl) {
+    loginInfoEl.textContent = `Belépve: ${prof.charAt(0).toUpperCase() + prof.slice(1)}`;
+    console.log("[DEBUG] loginInfo frissítve:", loginInfoEl.textContent);
+  } else {
+    console.warn("[DEBUG] loginInfo elem nem található!");
+  }
+  // Referral kód és link
+  let referralCode = userData.referralCode;
+  if (!referralCode) {
+    referralCode = user.uid.substring(0, 8).toUpperCase();
+    updateDoc(doc(db, "users", user.uid), {
+      referralCode: referralCode,
+      referralCount: 0
+    });
+  }
+  const referralLink = `https://szakichat.hu/register-szaki.html?ref=${referralCode}`;
+  const referralLinkEl = document.getElementById("referralLink");
+  if (referralLinkEl) {
+    referralLinkEl.value = referralLink;
+    console.log("[DEBUG] Referral link beállítva:", referralLink);
+  } else {
+    console.warn("[DEBUG] referralLink elem nem található!");
+  }
+  // Statisztika
+  const referralCount = userData.referralCount || 0;
+  const featuredUntil = userData.featuredUntil?.toDate?.() || null;
+  const now = new Date();
+  let featuredText = "Jelenleg nincs kiemelés";
+  if (userData.featured && featuredUntil && featuredUntil > now) {
+    const daysLeft = Math.ceil((featuredUntil - now) / (1000 * 60 * 60 * 24));
+    featuredText = `⭐ KIEMELT (még ${daysLeft} nap)`;
+  }
+  const statsEl = document.getElementById("referralStats");
+  if (statsEl) {
+    statsEl.innerHTML = `
+      <div>👥 Ajánlott regisztrációk: <strong>${referralCount}</strong></div>
+      <div style="margin-top:6px">${featuredText}</div>
+    `;
+  } else {
+    console.warn("⚠️ referralStats elem nem található");
+  }
+  // Admin gomb
+  if (userData.email === "chisnyan@gmail.com") {
+    const adminBtn = document.getElementById("adminBtn");
+    if (adminBtn) adminBtn.style.display = "block";
+  }
+  // Értesítések gomb inicializálás
+  if (typeof initNotifications === "function") {
+    initNotifications();
+    console.log("[DEBUG] initNotifications meghívva");
+  } else {
+    console.warn("[DEBUG] initNotifications nem elérhető!");
+  }
+  // Hang gomb állapot frissítés (ha van ilyen logika)
+  if (typeof updateNotificationSoundButton === "function") {
+    updateNotificationSoundButton();
+  }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+      location.replace("index.html");
+      return;
+    }
+    const userDoc = await getDoc(doc(db, "users", user.uid));
+    if (!userDoc.exists() || userDoc.data().role !== "szaki") {
+      location.replace("index.html");
+      return;
+    }
+    const userData = userDoc.data();
+    if (!userData.profilKitoltve) {
+      location.replace("szaki-profil-kitoltes.html");
+      return;
+    }
+    updateUIWithUserData(userData, user);
+    // Inbox számláló, stb. csak ezután
+    if (typeof watchNewMessages === "function") {
+      watchNewMessages(user.uid);
+    }
+    // Értesítési popup, ha kell
+    if (Notification.permission === "default") {
+      setTimeout(() => {
+        if (typeof showNotificationPrompt === "function") showNotificationPrompt();
+      }, 1000);
+    }
+  });
+});
+  const currentState = localStorage.getItem('notificationSound') !== 'false'; // alapból BE
+  const newState = !currentState;
+  localStorage.setItem('notificationSound', newState);
+  updateSoundButtonState();
+  
+  if (newState) {
+    alert('🔊 Csipogó hang BEKAPCSOLVA');
+  } else {
+    alert('🔇 Csipogó hang KIKAPCSOLVA (csak rezgés)');
+  }
+}
+
+function updateSoundButtonState() {
+  const soundEnabled = localStorage.getItem('notificationSound') !== 'false';
+  const btn = document.getElementById('toggleSound');
+  if (btn) {
+    if (soundEnabled) {
+      btn.textContent = '🔊 Hang: BE';
+      btn.style.background = '#4caf50';
+    } else {
+      btn.textContent = '🔇 Hang: KI';
+      btn.style.background = '#9e9e9e';
+    }
+  }
+}
+
+// Értesítési prompt megjelenítése
+function showNotificationPrompt() {
+  const modal = document.createElement('div');
+  modal.style.cssText = `
+    position:fixed;top:0;left:0;right:0;bottom:0;
+    background:rgba(0,0,0,0.7);z-index:999999;
+    display:flex;align-items:center;justify-content:center;
+  `;
+  
+  const box = document.createElement('div');
+  box.style.cssText = `
+    background:#fff;padding:32px;border-radius:16px;
+    max-width:400px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,0.3);
+    text-align:center;
+  `;
+  
+  box.innerHTML = `
+    <div style="font-size:48px;margin-bottom:16px">🔔</div>
+    <h2 style="margin:0 0 16px 0;color:#ff9800">Értesítések engedélyezése?</h2>
+    <p style="color:#666;font-size:14px;line-height:1.6">
+      Kapsz értesítést:<br>
+      • 💬 Új üzenet érkezésekor<br>
+      • ⭐ Új értékelésről<br>
+      • ⏰ Kiemelés lejárata előtt
+    </p>
+    <button id="allowNotif" style="width:100%;padding:14px;margin-top:16px;background:#4caf50;color:#fff;border:none;border-radius:8px;font-size:16px;font-weight:bold;cursor:pointer">
+      ✅ Engedélyezem
+    </button>
+    <button id="denyNotif" style="width:100%;padding:12px;margin-top:8px;background:#fff;color:#666;border:1px solid #ddd;border-radius:8px;font-size:14px;cursor:pointer">
+      Talán később
+    </button>
+  `;
+  
+  modal.appendChild(box);
+  document.body.appendChild(modal);
+  
+  document.getElementById('allowNotif').onclick = async () => {
+    const hasPermission = await requestNotificationPermission();
+    if (hasPermission) {
+      alert('✅ Értesítések engedélyezve!');
+    }
+    modal.remove();
+  };
+  
+  document.getElementById('denyNotif').onclick = () => {
+    modal.remove();
+  };
+}
+
+// 📱 PWA TELEPÍTÉS
+let deferredPrompt;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  console.log('📱 PWA telepíthető!');
+  e.preventDefault();
+  deferredPrompt = e;
+  
+  // Mutasd a telepítés gombot
+  const installBtn = document.getElementById('installBtn');
+  if (installBtn) {
+    installBtn.style.display = 'block';
+  }
+});
+
+window.installPWA = async function() {
+  if (!deferredPrompt) {
+    alert('Az app már telepítve van vagy nem telepíthető ezen az eszközön.');
+    return;
+  }
+  
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  
+  if (outcome === 'accepted') {
+    console.log('✅ PWA telepítve');
+    alert('✅ App sikeresen telepítve a kezdőképernyőre!');
+  } else {
+    console.log('❌ PWA telepítés elutasítva');
+  }
+  
+  deferredPrompt = null;
+  document.getElementById('installBtn').style.display = 'none';
+};
+
+document.getElementById("enableNotifications").addEventListener("click", async () => {
+  const hasPermission = await requestNotificationPermission();
+  if (hasPermission) {
+    initNotifications();
+    document.getElementById("notificationStatus").textContent = "✅ Értesítések engedélyezve!";
+  } else {
+    document.getElementById("notificationStatus").textContent = "❌ Értesítések nem engedélyezettek!";
+  }
+});
+</script>
+
+<style>
+body{margin:0;font-family:Arial,sans-serif;background:#f5f5f5}
+header{
+  background:#ff9800;color:#fff;
+  padding:8px 12px 6px 12px;
+  display:flex;align-items:center;gap:10px;
+  min-height:44px;
+}
+header .title{font-weight:bold;font-size:17px;margin:0;}
+header .spacer{flex:1}
+#loginInfo{font-weight:bold;font-size:14px;margin:0 8px 0 0;white-space:nowrap;min-width:120px;text-align:right;}
+.logout{background:#fff;color:#000;border:none;padding:6px 12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:14px;margin-left:0;}
+.wrap{padding:10px 8px}
+/* Gombok és szekciók közötti sorköz minimalizálása */
+.main-btns{margin:18px 0 0 0 !important;display:flex;justify-content:center;gap:12px;}
+.main-content{text-align:center;margin-top:18px !important;}
+.main-content h2{margin:0 0 10px 0 !important;font-size:22px;}
+.main-content button{margin:8px auto 0 auto !important;}
+/* Referral szekció, értesítések, statisztika: kisebb padding, margin */
+#referralSection{max-width:600px;margin:24px auto 0 auto !important;background:#fff;padding:14px 10px 14px 10px !important;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.08);}
+#referralSection > div, #referralSection h3{margin-bottom:10px !important;margin-top:10px !important;}
+/* Értesítések blokk */
+#referralSection > div[style*='background:#fff3cd']{margin-bottom:8px !important;padding:10px 8px !important;}
+/* Facebook/screenshot blokk */
+#referralSection > div[style*='background:#f0f8ff']{margin-bottom:8px !important;padding:10px 8px !important;}
+/* Statisztika blokk */
+#referralSection > div[style*='background:#e8f5e9']{padding:10px 8px !important;}
+/* Gombok kisebb sorköz, kompaktabb */
+button{margin-top:0 !important;margin-bottom:0 !important;}
+
+</style>
+</head>
+
+<body>
+
+<header>
+  <div class="title">👷 Szaki – Profilod</div>
+  <div class="spacer"></div>
+  <div id="loginInfo">Belépve: …</div>
+  <button class="logout" onclick="location.href='logout-szaki.html'">Kilépés</button>
+</header>
+
+<div class="main-btns">
+  <button onclick="window.open('https://www.paypal.com/donate/?hosted_button_id=QGU3WXVSCH22A','_blank')"
+    style="display:flex;align-items:center;gap:8px;padding:8px 14px;background:linear-gradient(135deg,#2ecc71,#27ae60);color:#fff;border:none;border-radius:24px;font-weight:bold;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.10);font-size:15px;">
+    💰 Szándék
+  </button>
+  <button onclick="window.open('https://www.paypal.com/donate/?hosted_button_id=QGU3WXVSCH22A','_blank')"
+    style="background:transparent;border:none;box-shadow:none;cursor:pointer;padding:0;width:38px;height:38px;display:flex;align-items:center;justify-content:center;">
+    <span style="font-size:28px; color:#ff2d55; position:relative;">❤️
+      <span style="position:absolute; left:0; right:0; top:0; bottom:0; display:flex; align-items:center; justify-content:center; color:#fff; font-size:13px; font-weight:bold; pointer-events:none;">A</span>
+    </span>
+  </button>
+</div>
+  <!-- ...existing code... -->
+  <div class="main-content">
+    <h2>Üdv a Szaki Profilodon!</h2>
+    <button id="inboxBtn" onclick="location.href='szaki-inbox.html'" 
+            style="padding:12px 18px;font-size:16px;background:#ff9800;color:#fff;border:none;border-radius:10px;cursor:pointer;font-weight:bold;display:block;width:100%;max-width:260px;">
+      📥 Bejövő üzenetek
+    </button>
+    <button onclick="location.href='szaki-profil-kitoltes.html'" 
+            style="padding:9px 15px;font-size:15px;background:#fff;color:#ff9800;border:2px solid #ff9800;border-radius:10px;cursor:pointer;font-weight:bold;display:block;width:100%;max-width:260px;">
+      ⚙️ Profil szerkesztése
+    </button>
+    <!-- ADMIN GOMB (csak chisnyan@gmail.com látja) -->
+    <button id="adminBtn" onclick="location.href='admin.html'" 
+            style="display:none;padding:9px 15px;font-size:15px;background:#6c757d;color:#fff;border:none;border-radius:10px;cursor:pointer;font-weight:bold;width:100%;max-width:260px;">
+      🔒 Belép ADMIN
+    </button>
+    <!-- PWA TELEPÍTÉS GOMB -->
+    <button id="installBtn" onclick="installPWA()" 
+            style="display:none;padding:9px 15px;font-size:15px;background:#4CAF50;color:#fff;border:none;border-radius:10px;cursor:pointer;font-weight:bold;width:100%;max-width:260px;">
+      📱 Telepítsd az appot
+    </button>
+  </div>
+
+  <!-- REFERRAL/MEGOSZTÁS SZEKCIÓ -->
+  <div id="referralSection" style="max-width:600px;margin:40px auto;background:#fff;padding:24px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.08)">
+    
+    <!-- Értesítések beállítása -->
+    <div style="margin-bottom:20px;padding:16px;background:#fff3cd;border-radius:8px;border:1px solid #ffc107">
+      <strong>🔔 Értesítések:</strong>
+      <p style="font-size:13px;color:#856404;margin:8px 0">
+        Kapsz értesítést új üzenetről, értékelésről és kiemelés lejárat előtt!
+      </p>
+      <button id="enableNotifications" style="padding:10px 20px;background:#ffc107;color:#000;border:none;border-radius:6px;cursor:pointer;font-weight:bold;margin-right:10px">
+        🔔 Értesítések engedélyezése
+      </button>
+      <button id="toggleSound" style="padding:10px 20px;background:#4caf50;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:bold">
+        🔊 Hang: BE
+      </button>
+      <span id="notificationStatus" style="margin-left:10px;color:#28a745"></span>
+    </div>
+
+    <!-- INGYEN KIEMELÉS (értesítések után) -->
+    <div style="display:flex;align-items:center;gap:16px;margin:10px 0 0 0;flex-wrap:wrap;">
+      <h3 style="margin:0;color:#ff9800;white-space:nowrap;font-size:18px;">🎁 Ingyen kiemelés!</h3>
+      <div style="display:flex;align-items:center;gap:8px;background:#f9f9f9;padding:8px 10px;border-radius:8px;">
+        <strong style="font-size:15px;">📤 Ajánló linked:</strong>
+        <input type="text" id="referralLink" readonly style="padding:6px 8px;background:#fff;border:1px solid #ddd;border-radius:6px;font-family:monospace;width:180px;box-sizing:border-box;font-size:13px" placeholder="Betöltés...">
+        <button onclick="copyReferralLink()" style="padding:6px 10px;background:#4caf50;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:bold;font-size:13px;">
+          📋 Másolás
+        </button>
+      </div>
+      <span style="font-size:12px;color:#666;margin-left:8px;">💡 Minden regisztráció ezen keresztül → <strong>+3 nap KIEMELT</strong> státusz!</span>
+    </div>
+
+    <!-- Facebook megosztás + Screenshot feltöltés -->
+    <div style="margin-bottom:20px;padding:16px;background:#f0f8ff;border-radius:8px">
+      <strong>📱 Facebook megosztás:</strong>
+      <p style="font-size:13px;color:#666;margin:8px 0">
+        Oszd meg a SzakiChat-et Facebookon, készíts screenshot-ot a megosztásról, és töltsd fel!
+      </p>
+      <button onclick="shareFacebook()" style="padding:10px 20px;background:#1877f2;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:bold;margin-bottom:15px;width:100%">
+        📤 Megosztás Facebookon
+      </button>
+      
+      <!-- Screenshot feltöltés a megosztásról -->
+      <div style="margin-top:15px;padding:12px;background:#e1f5e1;border:2px solid #4caf50;border-radius:8px">
+        <strong>📸 Töltsd fel a megosztásról készült képernyőképet:</strong>
+        <p style="font-size:12px;color:#2e7d32;margin:8px 0">
+          ✅ Ha az AI megerősíti a Facebook megosztást → <strong>+3 nap KIEMELT státusz</strong>!
+        </p>
+        <input type="file" id="screenshotInput" accept="image/*" style="margin-top:10px;padding:8px;border:1px solid #ccc;border-radius:6px;width:100%;box-sizing:border-box">
+        <button onclick="uploadScreenshot()" style="margin-top:10px;padding:10px 20px;background:#4caf50;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:bold;width:100%">
+          🚀 Feltöltés és AI ellenőrzés
+        </button>
+        <div id="screenshotStatus" style="margin-top:10px;font-size:14px;font-weight:bold"></div>
+      </div>
+    </div>
+
+    <!-- Statisztika -->
+    <div style="padding:16px;background:#e8f5e9;border-radius:8px">
+      <strong>📊 Statisztikád:</strong>
+      <div id="referralStats" style="margin-top:10px;font-size:14px"></div>
+    </div>
+  </div>
+</div>
+
+<!-- PRESENCE STUB -->
+<script type="module" src="presence.js"></script>
+
+<!-- DONATION GOMB -->
+
+
+<script src="draggable-buttons.js"></script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+[
+  {
+    "origin": ["https://szakichat.hu", "https://www.szakichat.hu", "https://szakichat-ai.web.app", "https://szakichat-ai.firebaseapp.com"],
+    "method": ["GET", "POST", "PUT", "DELETE", "HEAD"],
+    "maxAgeSeconds": 3600,
+    "responseHeader": ["Content-Type", "Authorization", "Content-Length", "User-Agent", "X-Requested-With"]
+  }
+]

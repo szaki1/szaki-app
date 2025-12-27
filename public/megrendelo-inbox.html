@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8" />
+  <title>Megrendelő – Beszélgetések | SzakiChat</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f5f5f5;
+    }
+    header {
+      background: #2196f3;
+      color: #fff;
+      padding: 16px;
+      text-align: center;
+      font-size: 20px;
+      font-weight: bold;
+    }
+    .wrap {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 16px;
+    }
+    .item {
+      background: #fff;
+      padding: 14px;
+      border-radius: 12px;
+      margin-bottom: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      cursor: pointer;
+      transition: transform 0.1s, box-shadow 0.1s;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+    .item:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    }
+    .item-content {
+      flex: 1;
+    }
+    .name {
+      font-size: 16px;
+      font-weight: bold;
+      margin-bottom: 4px;
+    }
+    .last {
+      font-size: 14px;
+      color: #555;
+      margin-top: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .time {
+      font-size: 12px;
+      color: #999;
+      margin-top: 2px;
+    }
+    .empty {
+      background: #fff;
+      padding: 20px;
+      border-radius: 12px;
+      text-align: center;
+      color: #666;
+    }
+    .back-btn {
+      display: inline-block;
+      margin: 10px auto;
+      padding: 10px 16px;
+      background: #fff;
+      color: #2196f3;
+      border: 2px solid #2196f3;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .delete-btn {
+      padding: 8px 12px;
+      background: #f44336;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: bold;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .delete-btn:hover {
+      background: #d32f2f;
+    }
+  </style>
+</head>
+
+<body>
+
+<header>💬 Megrendelő – Beszélgetések</header>
+
+<div class="wrap">
+  <div style="text-align:center;margin-bottom:10px">
+    <a href="rooms.html" class="back-btn">← Új szaki keresése</a>
+  </div>
+  <div id="list" class="empty">⏳ Betöltés...</div>
+</div>
+
+<script type="module">
+import { auth, db } from "./firebase-config.js";
+import { onAuthStateChanged } from
+  "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {
+  collection, query, where, orderBy, onSnapshot, doc, getDoc, deleteDoc
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+/* ========================================
+   IDŐBÉLYEG FORMÁZÁS
+======================================== */
+function timeAgo(ts) {
+  if (!ts?.toDate) return "";
+  const m = Math.floor((Date.now() - ts.toDate().getTime()) / 60000);
+  if (m < 1) return "épp most";
+  if (m < 60) return `${m} perce`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h} órája`;
+  return `${Math.floor(h / 24)} napja`;
+}
+
+function formatName(fullName) {
+  if (!fullName) return "Névtelen";
+  const parts = fullName.trim().split(" ");
+  if (parts.length === 1) return parts[0];
+  const firstName = parts[0];
+  const restName = parts.slice(1).join(" ");
+  return `${firstName.charAt(0)}. ${restName}`;
+}
+
+/* ========================================
+   AUTH ELLENŐRZÉS + INBOX BETÖLTÉS
+======================================== */
+onAuthStateChanged(auth, async (user) => {
+  if (!user) {
+    location.replace("index.html");
+    return;
+  }
+
+  const userSnap = await getDoc(doc(db, "users", user.uid));
+  if (!userSnap.exists() || userSnap.data().role !== "megrendelo") {
+    alert("Ez nem megrendelői fiók!");
+    location.replace("index.html");
+    return;
+  }
+
+  const list = document.getElementById("list");
+
+  // ✅ EGYSZERŰSÍTETT QUERY: csak megrId szűrés, kliens oldali rendezés
+  const q = query(
+    collection(db, "chats"),
+    where("megrId", "==", user.uid),
+    orderBy("lastAt", "desc")
+  );
+
+  onSnapshot(q, async (snap) => {
+    list.innerHTML = "";
+
+    if (snap.empty) {
+      list.innerHTML = "<div class='empty'>Még nincs beszélgetésed.<br>Kezdj chat-et egy szakival a \"Új szaki keresése\" gombra kattintva.</div>";
+      return;
+    }
+
+    // Chatek összegyűjtése és rendezése
+    const chats = [];
+    for (const chatDoc of snap.docs) {
+      const chat = chatDoc.data();
+      const timestamp = chat.lastAt || chat.lastTime || null;
+      
+      chats.push({
+        id: chatDoc.id,
+        data: chat,
+        timestamp: timestamp
+      });
+    }
+    
+    // Kliens oldali rendezés
+    chats.sort((a, b) => {
+      const timeA = a.timestamp?.toMillis?.() || 0;
+      const timeB = b.timestamp?.toMillis?.() || 0;
+      return timeB - timeA;
+    });
+
+    // Minden chat-et feldolgozunk
+    for (const chatItem of chats) {
+      const chat = chatItem.data;
+      const chatId = chatItem.id;
+
+      // Szaki nevének lekérése + profil info
+      let szakiName = "Ismeretlen szaki";
+      let szakiInfo = "";
+      try {
+        const szakiSnap = await getDoc(doc(db, "users", chat.szakiId));
+        if (szakiSnap.exists()) {
+          const szakiData = szakiSnap.data();
+          szakiName = szakiData.name || "Névtelen";
+          
+          const infoParts = [];
+          if (szakiData.szakma) {
+            infoParts.push(szakiData.szakma);
+          }
+          if (szakiData.varos) {
+            infoParts.push(szakiData.varos);
+          }
+          szakiInfo = infoParts.join(" • ");
+        }
+      } catch (err) {
+        console.error("Szaki név betöltési hiba:", err);
+      }
+
+      // Inbox elem létrehozása
+      const item = document.createElement("div");
+      item.className = "item";
+      
+      const deleteBtn = document.createElement("button");
+      deleteBtn.className = "delete-btn";
+      deleteBtn.textContent = "🗑️ Törlés";
+      deleteBtn.onclick = async (e) => {
+        e.stopPropagation();
+        if (!confirm(`Biztosan törlöd ezt a beszélgetést?\n\n👷 ${szakiName}\n\n⚠️ Az összes üzenet törlődik!`)) {
+          return;
+        }
+        
+        try {
+          await deleteDoc(doc(db, "chats", chatId));
+          alert("✅ Beszélgetés törölve!");
+        } catch (err) {
+          console.error("Törlési hiba:", err);
+          alert("❌ Hiba történt a törlés során!");
+        }
+      };
+      
+      item.innerHTML = `
+        <div class="item-content">
+          <div class="name">👷 ${formatName(szakiName)}</div>
+          ${szakiInfo ? `<div style="font-size:12px;color:#666;margin-top:2px">${szakiInfo}</div>` : ""}
+          <div class="last">${chat.lastMsg || chat.lastMessage || "(üzenet)"}</div>
+          <div class="time">${timeAgo(chatItem.timestamp)}</div>
+        </div>
+      `;
+      
+      item.appendChild(deleteBtn);
+
+      // Kattintásra chat megnyitása (csak az item-content részre)
+      item.querySelector('.item-content').onclick = () => {
+        location.href = `chat.html?szakiId=${chat.szakiId}`;
+      };
+
+      list.appendChild(item);
+    }
+  });
+});
+</script>
+
+<!-- FIX GOMBOK (ALUL EGY SORBAN) -->
+<div id="fixedButtonBar" style="position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:2px solid #ddd;padding:8px 12px;display:flex;flex-direction:column;gap:8px;z-index:9998;box-shadow:0 -2px 10px rgba(0,0,0,0.1)">
+  <!-- GOMBOK -->
+  <div style="display:flex;gap:8px">
+    <button id="shareBtn" style="background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;padding:8px 12px;border-radius:20px;font-weight:bold;cursor:pointer;border:none;font-size:12px;display:flex;align-items:center;gap:4px;white-space:nowrap">📤 Megosztás</button>
+    <button onclick="window.open('https://www.paypal.com/donate/?hosted_button_id=QGU3WXVSCH22A','_blank')" style="background:linear-gradient(135deg,#2ecc71,#27ae60);color:#fff;padding:8px 12px;border-radius:20px;font-weight:bold;cursor:pointer;border:none;font-size:12px;display:flex;align-items:center;gap:4px;white-space:nowrap">💰 Becsület kassza</button>
+    <button onclick="window.open('https://www.paypal.com/donate/?hosted_button_id=QGU3WXVSCH22A','_blank')" style="background:#ff2d55;color:#fff;padding:8px 12px;border-radius:20px;font-weight:bold;cursor:pointer;border:none;font-size:12px;display:flex;align-items:center;gap:4px;white-space:nowrap">❤️ Adomány</button>
+  </div>
+  
+  <!-- ADSENSE HELY -->
+  <div style="background:linear-gradient(135deg,#ff9f43,#ff6348);color:#fff;padding:12px;border-radius:12px;text-align:center">
+    <div style="font-size:16px;font-weight:bold;margin-bottom:4px">📢 Regisztrálj szakiként INGYEN!</div>
+    <div style="font-size:13px;opacity:0.95;margin-bottom:4px">💼 Találj munkákat közel hozzád!</div>
+    <div style="font-size:13px;opacity:0.95">⭐ Légy Te is prémium tag hamarosan!</div>
+    <button onclick="location.href='register-szaki.html'" style="margin-top:8px;background:rgba(255,255,255,0.3);color:#fff;border:2px solid #fff;padding:8px 16px;border-radius:20px;font-weight:bold;cursor:pointer;font-size:12px">👉 Kattints a regisztrációhoz</button>
+  </div>
+</div>
+
+<script>
+document.getElementById('shareBtn')?.addEventListener('click', async () => {
+  const shareUrl = 'https://szakichat.hu';
+  const shareText = '🏠 SzakiChat - Szakemberek és Megrendelők Találkozóhelye';
+  if (navigator.share) {
+    try {
+      await navigator.share({title: 'SzakiChat', text: shareText, url: shareUrl});
+    } catch (err) {
+      if (err.name !== 'AbortError') {
+        navigator.clipboard.writeText(shareUrl).then(() => alert('✅ Link vágólapra másolva!\n\n' + shareUrl));
+      }
+    }
+  } else {
+    navigator.clipboard.writeText(shareUrl).then(() => alert('✅ Link vágólapra másolva!\n\n' + shareUrl + '\n\nMost bárhol beillesztheted! 📤'));
+  }
+});
+</script>
+
+<script type="module">
+// ÉRTESÍTÉSEK INICIALIZÁLÁSA
+import { initNotifications, requestNotificationPermission } from "./notifications.js?v=2";
+
+// Értesítések automatikus indítása
+initNotifications();
+
+// Értesítési engedély kérése (első betöltéskor)
+setTimeout(() => {
+  if (Notification.permission === "default") {
+    requestNotificationPermission();
+  }
+}, 2000);
+</script>
+
+<script src="draggable-buttons.js"></script>
+</body>
+</html>

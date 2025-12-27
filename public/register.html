@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8" />
+  <title>Regisztráció – SzakiChat</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <script type="module">
+    import { auth, db } from "./firebase-config.js";
+    import { createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    window.register = async function () {
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value.trim();
+      const role = document.querySelector("input[name='role']:checked")?.value;
+      const errorBox = document.getElementById("error");
+
+      errorBox.textContent = "";
+
+      if (!role) {
+        errorBox.textContent = "Válassz szerepet.";
+        return;
+      }
+
+      try {
+        const cred = await createUserWithEmailAndPassword(auth, email, password);
+        const uid = cred.user.uid;
+
+        await setDoc(doc(db, "users", uid), {
+          email,
+          role,
+          online: true,
+          createdAt: serverTimestamp(),
+          lastActive: serverTimestamp()
+        });
+
+        location.href = role === "szaki" ? "dashboard.html" : "rooms.html";
+      } catch (err) {
+        errorBox.textContent = "Hiba a regisztráció során.";
+      }
+    };
+  </script>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f5f5f5;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    .box {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      width: 100%;
+      max-width: 380px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+      text-align: center;
+    }
+    input, button {
+      width: 100%;
+      padding: 12px;
+      margin: 8px 0;
+      font-size: 16px;
+    }
+    .roles {
+      display: flex;
+      justify-content: space-between;
+      margin: 10px 0;
+    }
+    button {
+      background: #4caf50;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .error {
+      color: red;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="box">
+    <h2>➕ Regisztráció</h2>
+
+    <input id="email" type="email" placeholder="Email" />
+    <input id="password" type="password" placeholder="Jelszó" />
+
+    <div class="roles">
+      <label><input type="radio" name="role" value="szaki" /> 👷 Szaki</label>
+      <label><input type="radio" name="role" value="megrendelo" /> 🧑 Megrendelő</label>
+    </div>
+
+    <button onclick="register()">Regisztráció</button>
+
+    <div id="error" class="error"></div>
+  </div>
+
+  <!-- 🟢 online/offline SZENT LOGIKA -->
+  <script type="module" src="presence.js"></script>
+</body>
+</html>

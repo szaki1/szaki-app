@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<title>Force offline</title>
+</head>
+<body>
+<script type="module">
+import { db } from "./firebase-config.js";
+import {
+  collection,
+  getDocs,
+  updateDoc,
+  doc,
+  serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+(async () => {
+  const snap = await getDocs(collection(db, "users"));
+
+  let count = 0;
+
+  for (const d of snap.docs) {
+    await updateDoc(doc(db, "users", d.id), {
+      online: false,
+      lastActive: serverTimestamp()
+    });
+    count++;
+  }
+
+  alert(`KÉSZ ✅ ${count} felhasználó OFFLINE`);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,163 @@
+<!-- FIX GOMBOK (Becsület kassza, Adomány, Megosztás) -->
+<div id="fixedButtonBar" style="
+  position:fixed;
+  bottom:10px;
+  right:10px;
+  display:flex;
+  gap:8px;
+  z-index:9999;
+  flex-direction:column;
+  align-items:flex-end;
+">
+
+  <!-- ÜZENETSZÁMLÁLÓ GOMB -->
+  <button id="fixedInboxBtn" style="
+    background:linear-gradient(135deg,#ff9800,#ffc107);
+    color:#fff;
+    padding:10px 14px;
+    border-radius:24px;
+    font-weight:bold;
+    cursor:pointer;
+    box-shadow:0 4px 14px rgba(0,0,0,0.25);
+    border:none;
+    font-size:13px;
+    display:flex;
+    align-items:center;
+    gap:6px;
+  ">
+    📥 Üzenetek
+  </button>
+
+<script>
+document.getElementById('fixedInboxBtn')?.addEventListener('click', () => {
+  location.href = 'szaki-inbox.html';
+});
+</script>
+  </button>
+
+  <!-- MEGOSZTÁS -->
+  <button id="shareBtn" style="
+    background:linear-gradient(135deg,#667eea,#764ba2);
+    color:#fff;
+    padding:10px 14px;
+    border-radius:24px;
+    font-weight:bold;
+    cursor:pointer;
+    box-shadow:0 4px 14px rgba(0,0,0,0.25);
+    border:none;
+    font-size:13px;
+    display:flex;
+    align-items:center;
+    gap:6px;
+  ">
+    📤 Megosztás
+  </button>
+
+  <!-- BECSÜLET KASSZA -->
+  <button onclick="window.open('https://www.paypal.com/donate/?hosted_button_id=QGU3WXVSCH22A','_blank')" style="
+    background:linear-gradient(135deg,#2ecc71,#27ae60);
+    color:#fff;
+    padding:10px 14px;
+    border-radius:24px;
+    font-weight:bold;
+    cursor:pointer;
+    box-shadow:0 4px 14px rgba(0,0,0,0.25);
+    border:none;
+    font-size:13px;
+    display:flex;
+    align-items:center;
+    gap:6px;
+  ">
+    💰 Becsület kassza
+  </button>
+
+  <!-- ADOMÁNY (letisztult szív ikon) -->
+  <button onclick="window.open('https://www.paypal.com/donate/?hosted_button_id=QGU3WXVSCH22A','_blank')" style="
+    background:transparent;
+    border:none;
+    box-shadow:none;
+    cursor:pointer;
+    padding:0;
+    margin:0;
+    width:40px;
+    height:40px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  ">
+    <span style="font-size:32px; color:#ff2d55;">❤️</span>
+  </button>
+</div>
+
+    // 💬 ÜZENETSZÁMLÁLÓ FRISSÍTŐ (dashboard logika alapján)
+    import { auth, db, collection, query, where, onSnapshot, onAuthStateChanged } from "./firebase-config.js";
+
+    function watchFixedInbox(szakiId) {
+      const chatsRef = collection(db, "chats");
+      const q = query(chatsRef, where("szakiId", "==", szakiId));
+      onSnapshot(q, (snapshot) => {
+        let total = 0;
+        snapshot.forEach(chatDoc => {
+          total += chatDoc.data().unreadCountSzaki || 0;
+        });
+        const btn = document.getElementById("fixedInboxBtn");
+        if (btn) {
+          btn.textContent = total > 0 ? `📥 Üzenetek: ${total}` : "📥 Üzenetek";
+        }
+      });
+    }
+
+    onAuthStateChanged(auth, (user) => {
+      if (!user) return;
+      // Csak szaki szerepnél jelenik meg a számláló
+      import("./firebase-config.js").then(mod => {
+        mod.getDoc(mod.doc(mod.db, "users", user.uid)).then(snap => {
+          if (snap.exists() && snap.data().role === "szaki") {
+            watchFixedInbox(user.uid);
+          }
+        });
+      });
+    });
+
+<script>
+// MEGOSZTÁS FUNKCIÓ
+document.getElementById('shareBtn')?.addEventListener('click', async () => {
+  const shareUrl = 'https://szakichat.hu';
+  const shareText = '🏠 SzakiChat - Szakemberek és Megrendelők Találkozóhelye';
+  
+  // Natív megosztás (mobil)
+  if (navigator.share) {
+    try {
+      await navigator.share({
+        title: 'SzakiChat',
+        text: shareText,
+        url: shareUrl
+      });
+    } catch (err) {
+      if (err.name !== 'AbortError') {
+        copyToClipboard(shareUrl);
+      }
+    }
+  } else {
+    // Vágólapra másolás (desktop)
+    copyToClipboard(shareUrl);
+  }
+});
+
+function copyToClipboard(text) {
+  navigator.clipboard.writeText(text).then(() => {
+    alert('✅ Link vágólapra másolva!\n\n' + text + '\n\nMost bárhol beillesztheted! 📤');
+  }).catch(() => {
+    // Fallback régi böngészőkhöz
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textarea);
+    alert('✅ Link vágólapra másolva!\n\n' + text);
+  });
+}
+</script>

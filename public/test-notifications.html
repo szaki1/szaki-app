@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8" />
+<title>Értesítés Teszt - SzakiChat</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="theme-color" content="#4caf50">
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" type="image/svg+xml" href="/icon-192.png">
+<style>
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  padding: 20px;
+  background: #f5f5f5;
+}
+.container {
+  max-width: 600px;
+  margin: 0 auto;
+  background: white;
+  padding: 30px;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+h1 {
+  color: #333;
+  text-align: center;
+}
+.status {
+  padding: 15px;
+  margin: 15px 0;
+  border-radius: 8px;
+  font-weight: bold;
+}
+.status.good {
+  background: #c8e6c9;
+  color: #2e7d32;
+}
+.status.bad {
+  background: #ffcdd2;
+  color: #c62828;
+}
+.btn {
+  width: 100%;
+  padding: 14px;
+  margin: 10px 0;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  color: white;
+}
+.btn-primary {
+  background: #2196f3;
+}
+.btn-success {
+  background: #4caf50;
+}
+.btn-warning {
+  background: #ff9800;
+}
+.btn:hover {
+  opacity: 0.9;
+}
+.log {
+  background: #f5f5f5;
+  padding: 15px;
+  border-radius: 8px;
+  margin-top: 20px;
+  max-height: 300px;
+  overflow-y: auto;
+  font-family: monospace;
+  font-size: 12px;
+}
+.log-entry {
+  padding: 5px 0;
+  border-bottom: 1px solid #ddd;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>🔔 Értesítés Teszt Panel</h1>
+  
+  <div id="permissionStatus" class="status">
+    Engedély állapot: <span id="permValue">-</span>
+  </div>
+  
+  <div id="swStatus" class="status">
+    Service Worker: <span id="swValue">-</span>
+  </div>
+  
+  <button class="btn btn-primary" onclick="requestPermission()">
+    🔔 Engedély kérése
+  </button>
+  
+  <button class="btn btn-success" onclick="testNotification()">
+    📬 Teszt Értesítés
+  </button>
+  
+  <button class="btn btn-warning" onclick="testVibration()">
+    📳 Rezgés Teszt
+  </button>
+  
+  <button class="btn btn-success" onclick="testSound()">
+    🔊 Csak Hang Teszt
+  </button>
+  
+  <button class="btn btn-primary" onclick="registerSW()">
+    🔧 Service Worker Regisztráció
+  </button>
+  
+  <button class="btn btn-success" onclick="testSWNotification()">
+    📡 SW Értesítés Teszt
+  </button>
+  
+  <div class="log" id="logContainer">
+    <div class="log-entry">📝 Logok...</div>
+  </div>
+  
+  <a href="/" style="display:block;text-align:center;margin-top:20px;color:#2196f3;">🏠 Vissza a főoldalra</a>
+</div>
+
+<script type="module">
+import { requestNotificationPermission, showNotification, registerServiceWorker } from './notifications.js';
+
+let swReg = null;
+
+function log(message) {
+  const logContainer = document.getElementById('logContainer');
+  const entry = document.createElement('div');
+  entry.className = 'log-entry';
+  entry.textContent = `${new Date().toLocaleTimeString()} - ${message}`;
+  logContainer.insertBefore(entry, logContainer.firstChild);
+}
+
+function updateStatus() {
+  const permValue = document.getElementById('permValue');
+  const permStatus = document.getElementById('permissionStatus');
+  const swValue = document.getElementById('swValue');
+  const swStatus = document.getElementById('swStatus');
+  
+  permValue.textContent = Notification.permission;
+  permStatus.className = 'status ' + (Notification.permission === 'granted' ? 'good' : 'bad');
+  
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistration().then(reg => {
+      if (reg) {
+        swValue.textContent = 'Regisztrálva ✅';
+        swStatus.className = 'status good';
+        swReg = reg;
+      } else {
+        swValue.textContent = 'Nincs regisztrálva ❌';
+        swStatus.className = 'status bad';
+      }
+    });
+  } else {
+    swValue.textContent = 'Nem támogatott ❌';
+    swStatus.className = 'status bad';
+  }
+  
+  log('Státusz frissítve');
+}
+
+window.requestPermission = async function() {
+  log('🔔 Engedély kérése...');
+  const result = await requestNotificationPermission();
+  log(result ? '✅ Engedély megadva' : '❌ Engedély megtagadva');
+  updateStatus();
+};
+
+window.testNotification = function() {
+  log('📬 Teszt értesítés küldése...');
+  if (Notification.permission !== 'granted') {
+    alert('Kérlek előbb engedélyezd az értesítéseket!');
+    return;
+  }
+  
+  showNotification('🎉 Teszt Értesítés', {
+    body: 'Ha ezt látod, az értesítések működnek!',
+    tag: 'test',
+    requireInteraction: false
+  });
+  log('✅ Értesítés elküldve');
+};
+
+window.testVibration = function() {
+  log('📳 Rezgés teszt...');
+  if ('vibrate' in navigator) {
+    navigator.vibrate([200, 100, 200, 100, 200]);
+    log('✅ Rezgés aktiválva');
+  } else {
+    log('❌ Rezgés nem támogatott');
+  }
+};
+
+window.testSound = function() {
+  log('🔊 Hang teszt (dupla csipogás)...');
+  
+  try {
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    
+    // Első csipogás
+    const osc1 = audioContext.createOscillator();
+    const gain1 = audioContext.createGain();
+    
+    osc1.connect(gain1);
+    gain1.connect(audioContext.destination);
+    
+    osc1.frequency.value = 1000;
+    osc1.type = 'square';
+    
+    gain1.gain.setValueAtTime(0.7, audioContext.currentTime);
+    gain1.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+    
+    osc1.start(audioContext.currentTime);
+    osc1.stop(audioContext.currentTime + 0.3);
+    
+    // Második csipogás
+    setTimeout(() => {
+      const osc2 = audioContext.createOscillator();
+      const gain2 = audioContext.createGain();
+      
+      osc2.connect(gain2);
+      gain2.connect(audioContext.destination);
+      
+      osc2.frequency.value = 1200;
+      osc2.type = 'square';
+      
+      gain2.gain.setValueAtTime(0.7, audioContext.currentTime);
+      gain2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+      
+      osc2.start(audioContext.currentTime);
+      osc2.stop(audioContext.currentTime + 0.3);
+    }, 150);
+    
+    log('✅ Dupla csipogás lejátszva');
+  } catch (error) {
+    log('❌ Hang teszt hiba: ' + error.message);
+  }
+};
+
+window.registerSW = async function() {
+  log('🔧 Service Worker regisztráció...');
+  swReg = await registerServiceWorker();
+  if (swReg) {
+    log('✅ SW regisztrálva: ' + swReg.scope);
+  } else {
+    log('❌ SW regisztráció sikertelen');
+  }
+  updateStatus();
+};
+
+window.testSWNotification = async function() {
+  log('📡 SW értesítés teszt...');
+  
+  if (!swReg) {
+    alert('Kérlek előbb regisztráld a Service Worker-t!');
+    return;
+  }
+  
+  if (Notification.permission !== 'granted') {
+    alert('Kérlek előbb engedélyezd az értesítéseket!');
+    return;
+  }
+  
+  try {
+    await swReg.showNotification('📡 Service Worker Teszt', {
+      body: 'Ez egy Service Worker értesítés!',
+      icon: '/icon-192.png',
+      badge: '/icon-192.png',
+      tag: 'sw-test',
+      requireInteraction: true,
+      vibrate: [200, 100, 200],
+      data: { url: '/test-notifications.html' }
+    });
+    log('✅ SW értesítés sikeresen elküldve');
+  } catch (error) {
+    log('❌ SW értesítés hiba: ' + error.message);
+  }
+};
+
+// Automatikus inicializálás
+updateStatus();
+log('✅ Teszt panel betöltve');
+
+// SW üzenetek figyelése
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('message', event => {
+    log('📨 SW üzenet: ' + JSON.stringify(event.data));
+  });
+}
+</script>
+
+</body>
+</html>

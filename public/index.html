@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8" />
+<title>SzakiChat - Szakemberek és Megrendelők</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="description" content="Találj szakembert vagy ügyfeleket egyszerűen!" />
+<meta name="theme-color" content="#ff9800" />
+<link rel="manifest" href="/manifest.json" />
+<link rel="icon" type="image/svg+xml" href="/icon-192.png" />
+
+<!-- Google AdSense Verification Code -->
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2627869523184160"
+     crossorigin="anonymous"></script>
+
+<style>
+body{
+  margin:0; min-height:100vh; display:flex;
+  flex-direction:column;
+  align-items:center; justify-content:center;
+  background:#f5f5f5; font-family:Arial,sans-serif;
+  padding:20px;
+}
+.box{
+  background:#fff; padding:28px; border-radius:12px;
+  width:100%; max-width:420px;
+  box-shadow:0 4px 18px rgba(0,0,0,.12);
+  text-align:center;
+}
+h1{ margin-top:0; }
+.btn{
+  width:100%; padding:14px; margin:10px 0;
+  border:none; border-radius:10px;
+  font-size:16px; font-weight:bold;
+  cursor:pointer;
+}
+.szaki{ background:#ff9800; color:#fff; }
+.megr{ background:#2196f3; color:#fff; }
+
+/* STATISZTIKÁK */
+.stats{
+  display:grid;
+  grid-template-columns:repeat(3, 1fr);
+  gap:10px;
+  margin-top:16px;
+  padding-top:12px;
+  border-top:2px solid #eee;
+}
+.stat{
+  background:#f9f9f9;
+  padding:10px 8px;
+  border-radius:8px;
+  text-align:center;
+}
+.stat-number{
+  font-size:18px;
+  font-weight:bold;
+  color:#333;
+  margin-bottom:2px;
+}
+.stat-label{
+  font-size:9px;
+  color:#666;
+  text-transform:uppercase;
+  letter-spacing:0.3px;
+}
+.stat-online{
+  font-size:11px;
+  color:#4caf50;
+  margin-top:4px;
+}
+.stat-online::before{
+  content:"●";
+  color:#4caf50;
+  margin-right:4px;
+  font-size:12px;
+}
+
+/* PWA TELEPÍTÉS GOMB */
+.install-btn{
+  width:100%;
+  padding:14px;
+  margin:16px 0 0 0;
+  border:2px solid #4caf50;
+  background:#4caf50;
+  color:#fff;
+  border-radius:10px;
+  font-size:16px;
+  font-weight:bold;
+  cursor:pointer;
+  transition:all 0.3s;
+  display:block;
+}
+.install-btn:hover{
+  background:#45a049;
+  border-color:#45a049;
+}
+.install-btn.hidden{
+  display:none;
+}
+</style>
+</head>
+
+<body>
+
+<div class="box">
+  <h1>SzakiChat</h1>
+
+  <button class="btn szaki" onclick="location.href='login-szaki.html'">
+    👷 Szaki belépés
+  </button>
+
+  <button class="btn megr" onclick="location.href='login-user.html'">
+    🧑 Megrendelő belépés
+  </button>
+
+  <!-- PWA TELEPÍTÉS GOMB -->
+  <button class="install-btn" id="installBtn">
+    📥 Telepítsd a "Szaki" appot!
+  </button>
+
+  <!-- STATISZTIKÁK -->
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-number" id="statSzakik">-</div>
+      <div class="stat-label">Szakember</div>
+      <div class="stat-online" id="statOnlineSzaki">0 online</div>
+    </div>
+    <div class="stat">
+      <div class="stat-number" id="statMegr">-</div>
+      <div class="stat-label">Megrendelő</div>
+      <div class="stat-online" id="statOnlineMegr">0 online</div>
+    </div>
+    <div class="stat">
+      <div class="stat-number" id="statSuccess">-</div>
+      <div class="stat-label">Sikeres projekt</div>
+    </div>
+  </div>
+
+  <!-- BELSŐ PROMÓCIÓS BANNER -->
+  <div style="margin-top:24px;padding:16px;background:#fff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.08)">
+    <a href="register-szaki.html" 
+       style="display:block;text-decoration:none;background:linear-gradient(135deg,#ff6b35 0%,#f7931e 100%);color:#fff;padding:24px;border-radius:12px;text-align:center;box-shadow:0 6px 20px rgba(255,107,53,0.3);transition:transform 0.2s;cursor:pointer"
+       onmouseover="this.style.transform='scale(1.02)'" 
+       onmouseout="this.style.transform='scale(1)'">
+      <div style="font-size:20px;font-weight:bold;margin-bottom:8px">📢 Regisztrálj szakiként INGYEN!</div>
+      <div style="font-size:15px;opacity:0.95;margin-bottom:6px">💼 Találj munkákat közel hozzád!</div>
+      <div style="font-size:14px;opacity:0.9">⭐ Légy Te is prémium tag hamarosan!</div>
+      <div style="margin-top:12px;font-size:13px;background:rgba(255,255,255,0.2);padding:8px 16px;border-radius:20px;display:inline-block">👉 Kattints a regisztrációhoz</div>
+    </a>
+  </div>
+</div>
+
+<script type="module">
+import {
+  db,
+  collection,
+  getDocs
+} from "./firebase-config.js";
+
+/* 🔧 MARKETING KEZDŐ ÉRTÉKEK */
+const BASE_MEGR = 100;
+const BASE_SUCCESS = 80;
+
+async function loadHomepageStats() {
+  try {
+    const snap = await getDocs(collection(db, "users"));
+
+    let szaki = 0;
+    let megr = BASE_MEGR;
+    let onlineSzaki = 0;
+    let onlineMegr = 0;
+
+    snap.forEach(d => {
+      const u = d.data();
+
+      // ✅ MINDEN SZAKI (valós + fake is)
+      if (u.role === "szaki") {
+        szaki++;
+        // Online csak a valós szakik (fake-ek nem számítanak online-nak)
+        if (u.online === true && u.isFake !== true) onlineSzaki++;
+      }
+
+      if (u.role === "megrendelo") {
+        megr++;
+        if (u.online === true) onlineMegr++;
+      }
+    });
+
+    document.getElementById("statSzakik").innerText = szaki;
+    document.getElementById("statMegr").innerText = megr;
+    document.getElementById("statOnlineSzaki").innerText = onlineSzaki + " online";
+    document.getElementById("statOnlineMegr").innerText = onlineMegr + " online";
+    document.getElementById("statSuccess").innerText = BASE_SUCCESS;
+  } catch (err) {
+    console.error("❌ Statisztika betöltési hiba:", err);
+    document.getElementById("statSzakik").innerText = "?";
+    document.getElementById("statMegr").innerText = "?";
+    document.getElementById("statOnlineSzaki").innerText = "? online";
+    document.getElementById("statOnlineMegr").innerText = "? online";
+    document.getElementById("statSuccess").innerText = "?";
+  }
+}
+
+loadHomepageStats();
+
+// PWA TELEPÍTÉSI LOGIKA + ÉRTESÍTÉS ENGEDÉLY
+let deferredPrompt;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  // Mutasd a telepítés gombot
+  const installBtn = document.getElementById('installBtn');
+  if (installBtn) {
+    installBtn.style.display = 'block';
+  }
+});
+
+// Telepítés gomb kattintás - EGYSZERŰSÍTETT
+document.getElementById('installBtn').addEventListener('click', async () => {
+  if (deferredPrompt) {
+    // Chrome/Edge Android - natív install prompt
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    
+    if (outcome === 'accepted') {
+      console.log('✅ App telepítve!');
+      document.getElementById('installBtn').style.display = 'none';
+    }
+    
+    deferredPrompt = null;
+  } else {
+    // Már telepítve vagy nem támogatott böngésző
+    alert('✅ Az app már telepítve van, vagy használd Chrome/Edge böngészőt a telepítéshez!');
+  }
+});
+
+window.addEventListener('appinstalled', () => {
+  console.log('✅ PWA telepítve!');
+  document.getElementById('installBtn').style.display = 'none';
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Ikon generálás</title>
+<style>
+body{font-family:Arial;padding:20px;background:#f5f5f5}
+.icon-box{background:#fff;padding:20px;margin:10px 0;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.1)}
+canvas{border:2px solid #ddd;margin:10px}
+button{padding:10px 20px;background:#4caf50;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:16px;margin:5px}
+button:hover{background:#45a049}
+.output{background:#f9f9f9;padding:15px;border-radius:4px;margin:10px 0;font-family:monospace;font-size:12px;word-break:break-all;max-height:200px;overflow-y:auto}
+</style>
+</head>
+<body>
+
+<h1>🎨 SzakiChat Ikon Generálás</h1>
+
+<div class="icon-box">
+<h2>192x192 Ikon</h2>
+<canvas id="canvas192" width="192" height="192"></canvas>
+<br>
+<button onclick="download192()">⬇️ Letöltés PNG</button>
+<button onclick="copy192()">📋 Base64 másolás</button>
+<div class="output" id="output192"></div>
+</div>
+
+<div class="icon-box">
+<h2>512x512 Ikon</h2>
+<canvas id="canvas512" width="512" height="512"></canvas>
+<br>
+<button onclick="download512()">⬇️ Letöltés PNG</button>
+<button onclick="copy512()">📋 Base64 másolás</button>
+<div class="output" id="output512"></div>
+</div>
+
+<script>
+// SVG -> Canvas -> PNG konverzió
+function svgToCanvas(svgString, canvasId, callback) {
+  const canvas = document.getElementById(canvasId);
+  const ctx = canvas.getContext('2d');
+  const img = new Image();
+  
+  const blob = new Blob([svgString], {type: 'image/svg+xml'});
+  const url = URL.createObjectURL(blob);
+  
+  img.onload = function() {
+    ctx.drawImage(img, 0, 0);
+    URL.revokeObjectURL(url);
+    if (callback) callback(canvas);
+  };
+  
+  img.src = url;
+}
+
+// 192x192 SVG
+const svg192 = `<svg width="192" height="192" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="bgGrad" cx="50%" cy="50%">
+      <stop offset="0%" style="stop-color:#FF6B35;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#F7931E;stop-opacity:1" />
+    </radialGradient>
+  </defs>
+  <rect width="192" height="192" rx="42" fill="url(#bgGrad)"/>
+  <g transform="translate(96,96)">
+    <path d="M-35,-20 L-25,-20 L-25,0 L-20,0 L-20,35 L-25,35 L-25,40 L-35,40 L-35,35 L-40,35 L-40,0 L-35,0 Z" 
+          fill="#fff" stroke="#fff" stroke-width="2"/>
+    <rect x="-45" y="-30" width="30" height="15" rx="2" fill="#fff"/>
+    <path d="M15,-35 L25,-35 L25,30 L30,35 L30,40 L10,40 L10,35 L15,30 Z" 
+          fill="#fff" stroke="#fff" stroke-width="2"/>
+    <rect x="12" y="-45" width="16" height="12" rx="2" fill="#fff"/>
+  </g>
+  <circle cx="96" cy="96" r="80" fill="none" stroke="#fff" stroke-width="3" opacity="0.3"/>
+</svg>`;
+
+// 512x512 SVG
+const svg512 = `<svg width="512" height="512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="bgGrad512" cx="50%" cy="50%">
+      <stop offset="0%" style="stop-color:#FF6B35;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#F7931E;stop-opacity:1" />
+    </radialGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad512)"/>
+  <g transform="translate(256,256)">
+    <path d="M-95,-55 L-65,-55 L-65,0 L-55,0 L-55,95 L-65,95 L-65,110 L-95,110 L-95,95 L-105,95 L-105,0 L-95,0 Z" 
+          fill="#fff" stroke="#fff" stroke-width="5"/>
+    <rect x="-120" y="-80" width="80" height="40" rx="5" fill="#fff"/>
+    <path d="M40,-95 L70,-95 L70,80 L80,95 L80,110 L30,110 L30,95 L40,80 Z" 
+          fill="#fff" stroke="#fff" stroke-width="5"/>
+    <rect x="32" y="-120" width="46" height="32" rx="5" fill="#fff"/>
+  </g>
+  <circle cx="256" cy="256" r="215" fill="none" stroke="#fff" stroke-width="8" opacity="0.3"/>
+  <text x="256" y="420" font-family="Arial, sans-serif" font-size="48" font-weight="bold" 
+        fill="#fff" text-anchor="middle">SZAKI</text>
+</svg>`;
+
+// Generálás
+svgToCanvas(svg192, 'canvas192', (canvas) => {
+  document.getElementById('output192').textContent = 'Kész! ✅';
+});
+
+svgToCanvas(svg512, 'canvas512', (canvas) => {
+  document.getElementById('output512').textContent = 'Kész! ✅';
+});
+
+// Letöltés funkciók
+function download192() {
+  const canvas = document.getElementById('canvas192');
+  const link = document.createElement('a');
+  link.download = 'icon-192.png';
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+  alert('✅ icon-192.png letöltve!');
+}
+
+function download512() {
+  const canvas = document.getElementById('canvas512');
+  const link = document.createElement('a');
+  link.download = 'icon-512.png';
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+  alert('✅ icon-512.png letöltve!');
+}
+
+// Base64 másolás
+function copy192() {
+  const canvas = document.getElementById('canvas192');
+  const base64 = canvas.toDataURL('image/png');
+  navigator.clipboard.writeText(base64).then(() => {
+    document.getElementById('output192').textContent = base64;
+    alert('✅ Base64 vágólapra másolva!');
+  });
+}
+
+function copy512() {
+  const canvas = document.getElementById('canvas512');
+  const base64 = canvas.toDataURL('image/png');
+  navigator.clipboard.writeText(base64).then(() => {
+    document.getElementById('output512').textContent = base64;
+    alert('✅ Base64 vágólapra másolva!');
+  });
+}
+</script>
+
+</body>
+</html>

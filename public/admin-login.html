@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8" />
+<title>Admin Belépés – SzakiChat</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+<style>
+body {
+  margin:0; height:100vh;
+  display:flex; align-items:center; justify-content:center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  font-family:Arial,sans-serif;
+}
+.box {
+  background:#fff; padding:40px; border-radius:12px;
+  width:100%; max-width:400px;
+  box-shadow:0 8px 24px rgba(0,0,0,.2);
+}
+h2 { 
+  margin-top:0; 
+  text-align:center; 
+  color:#667eea;
+  font-size:28px;
+}
+.lock-icon {
+  text-align:center;
+  font-size:48px;
+  margin-bottom:20px;
+}
+input {
+  width:100%; padding:14px; margin:8px 0;
+  border-radius:8px; border:1px solid #ddd;
+  font-size:16px;
+  box-sizing:border-box;
+}
+button {
+  width:100%; padding:14px; margin-top:10px;
+  border:none; border-radius:8px;
+  background:#667eea; color:#fff;
+  font-size:16px; font-weight:bold; cursor:pointer;
+  transition:background 0.3s;
+}
+button:hover {
+  background:#5568d3;
+}
+button:disabled {
+  background:#ccc;
+  cursor:not-allowed;
+}
+.error {
+  color:#e74c3c;
+  text-align:center;
+  margin-top:10px;
+  font-weight:bold;
+}
+.info {
+  text-align:center;
+  margin-top:16px;
+  font-size:13px;
+  color:#666;
+}
+</style>
+</head>
+
+<body>
+
+<div class="box">
+  <div class="lock-icon">🔐</div>
+  <h2>Admin Belépés</h2>
+
+  <input id="email" type="email" placeholder="Admin email cím" autocomplete="email" />
+  <input id="password" type="password" placeholder="Jelszó" autocomplete="current-password" />
+
+  <button id="loginBtn" onclick="adminLogin()">Belépés</button>
+
+  <div id="error" class="error"></div>
+  
+  <div class="info">
+    Csak adminisztrátorok számára
+  </div>
+</div>
+
+<script type="module">
+import { auth, signInWithEmailAndPassword, db } from "./firebase-config.js";
+import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+window.adminLogin = async () => {
+  const email = document.getElementById("email").value.trim();
+  const password = document.getElementById("password").value.trim();
+  const errorBox = document.getElementById("error");
+  const loginBtn = document.getElementById("loginBtn");
+
+  errorBox.textContent = "";
+
+  if (!email || !password) {
+    errorBox.textContent = "Add meg az email címet és a jelszót!";
+    return;
+  }
+
+  loginBtn.disabled = true;
+  loginBtn.textContent = "Bejelentkezés...";
+
+  try {
+    const cred = await signInWithEmailAndPassword(auth, email, password);
+    const uid = cred.user.uid;
+
+    // Admin jogosultság ellenőrzése
+    const userSnap = await getDoc(doc(db, "users", uid));
+    
+    if (!userSnap.exists()) {
+      await auth.signOut();
+      errorBox.textContent = "Nincs felhasználói profil!";
+      loginBtn.disabled = false;
+      loginBtn.textContent = "Belépés";
+      return;
+    }
+
+    const userData = userSnap.data();
+
+    // Admin email cím ellenőrzése (később lehet role-alapú is)
+    if (userData.email !== "vaskozsolttamas@gmail.com") {
+      await auth.signOut();
+      errorBox.textContent = "Nincs admin jogosultságod!";
+      loginBtn.disabled = false;
+      loginBtn.textContent = "Belépés";
+      return;
+    }
+
+    // Sikeres admin belépés
+    location.replace("admin.html");
+
+  } catch (err) {
+    console.error("Admin login hiba:", err);
+    errorBox.textContent = "Hibás email vagy jelszó!";
+    loginBtn.disabled = false;
+    loginBtn.textContent = "Belépés";
+  }
+};
+</script>
+
+</body>
+</html>

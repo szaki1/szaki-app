@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8">
+  <title>Megrendelő regisztráció – SzakiChat</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Google AdSense -->
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2627869523184160"
+     crossorigin="anonymous"></script>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f5f5f5;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+    .box {
+      background: #fff;
+      padding: 30px;
+      border-radius: 16px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.12);
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    input {
+      width: 100%;
+      padding: 14px;
+      margin-bottom: 14px;
+      font-size: 16px;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+    }
+    button {
+      width: 100%;
+      padding: 14px;
+      font-size: 18px;
+      font-weight: bold;
+      border: none;
+      border-radius: 12px;
+      background: #2196f3;
+      color: white;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #1976d2;
+    }
+    .info {
+      margin-top: 14px;
+      font-size: 13px;
+      color: #666;
+      text-align: center;
+    }
+    .error {
+      color: red;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="box">
+  <h1>🧑 Megrendelő regisztráció</h1>
+
+  <div id="error" class="error"></div>
+
+  <input type="text" id="name" placeholder="Neved" 
+         pattern="[A-Za-zÁÉÍÓÖŐÚÜŰáéíóöőúüű\s-]+" 
+         title="Csak betűk, szóköz és kötőjel engedélyezett (számok nem!)" 
+         required>
+  <input type="email" id="email" placeholder="Email cím" required>
+  <input type="password" id="password" placeholder="Jelszó">
+
+  <button onclick="registerUser()">Regisztráció</button>
+
+  <div class="info">
+    ℹ️ Megrendelőként szakembert keresel.<br>
+    Szaki fiókkal ide nem tudsz belépni.
+  </div>
+</div>
+
+<script type="module">
+import { auth, db } from "./firebase-config.js";
+import {
+  createUserWithEmailAndPassword
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {
+  doc, setDoc, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+window.registerUser = async () => {
+  const name = document.getElementById("name").value.trim();
+  const email = document.getElementById("email").value.trim();
+  const password = document.getElementById("password").value.trim();
+  const errorBox = document.getElementById("error");
+
+  errorBox.textContent = "";
+
+  // Név validáció - csak betűk, ékezetek, szóköz, kötőjel
+  const namePattern = /^[A-Za-zÁÉÍÓÖŐÚÜŰáéíóöőúüű\s-]+$/;
+  if (!namePattern.test(name)) {
+    errorBox.textContent = "❌ A név csak betűket tartalmazhat (számok tiltva!)";
+    return;
+  }
+
+  if (!name || !email || !password) {
+    errorBox.textContent = "Minden mező kötelező!";
+    return;
+  }
+
+  try {
+    const cred = await createUserWithEmailAndPassword(auth, email, password);
+    const uid = cred.user.uid;
+
+    await setDoc(doc(db, "users", uid), {
+      uid,
+      name,
+      email,
+      role: "megrendelo",
+      createdAt: serverTimestamp(),
+      profilKitoltve: false,
+      isFake: false,
+      online: false
+    });
+
+    alert("✅ Sikeres regisztráció! Kérjük, töltsd ki a profilodat!");
+    location.replace("megrendelo-profil-kitoltes.html");
+
+  } catch (err) {
+    console.error(err);
+    errorBox.textContent = "Hiba a regisztráció során.";
+  }
+};
+</script>
+
+</body>
+</html>

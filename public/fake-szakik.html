@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8" />
+  <title>Álszakik betöltése</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="style.css">
+</head>
+<body style="padding:30px">
+
+<h2>🧪 Álszakik generálása</h2>
+<p>Egyszer futtasd. Utána ezt az oldalt törölheted.</p>
+
+<button id="runBtn" style="padding:14px 18px;font-size:16px">
+  87 db álszaki betöltése
+</button>
+
+<p id="log" style="margin-top:16px;"></p>
+
+<script type="module">
+import {
+  db,
+  collection,
+  addDoc,
+  serverTimestamp
+} from "./firebase-config.js";
+
+const names = [
+  "Kovács László","Nagy Gábor","Tóth András","Szabó Zoltán","Varga Péter",
+  "Kiss József","Balogh István","Farkas Tamás","Papp Lajos","Molnár Ádám",
+  "Rácz Norbert","Kerekes Imre","Sipos Márk","Bíró Attila","Lakatos Ferenc",
+  "Horváth Gergely","Mészáros Roland","Király Zsolt","Vámos Tibor","Bodnár Ákos"
+];
+
+const professions = [
+  "Festő","Burkoló","Gipszkartonos",
+  "Villanyszerelő","Vízszerelő","Gázszerelő","Fűtésszerelő",
+  "Gyorsétkeztetési eladó","Ford diagnosztika"
+];
+
+function rand(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+function randPhone(){ return "06" + Math.floor(200000000 + Math.random()*699999999); }
+
+document.getElementById("runBtn").onclick = async () => {
+  const log = document.getElementById("log");
+  log.textContent = "Feltöltés indul…";
+
+  for(let i=0;i<87;i++){
+    const minutesAgo = [5,15,60,1440][Math.floor(Math.random()*4)];
+    const online = minutesAgo <= 60;
+
+    await addDoc(collection(db,"users"),{
+      uid: "fake_"+crypto.randomUUID(),
+      name: rand(names),
+      email: "fake"+i+"@szakichat.hu",
+      phone: randPhone(),
+      role: "szaki",
+      profession: rand(professions),
+      phoneVisible: false,
+      shareCount: Math.floor(Math.random()*5),
+      featured: Math.random() < 0.2,
+      online,
+      lastSeenMinutesAgo: minutesAgo,
+      createdAt: serverTimestamp()
+    });
+  }
+
+  log.textContent = "✅ KÉSZ! 87 álszaki feltöltve.";
+};
+</script>
+
+</body>
+</html>

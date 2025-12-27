@@ -1,0 +1,378 @@
+<!-- rooms.html — VÉGLEGES, TISZTA (HELYES MEZŐNEVEK, READ-ONLY PRESENCE) -->
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8" />
+<title>Megrendelő – Szakma választás</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="theme-color" content="#2196f3">
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" type="image/svg+xml" href="/icon-192.png">
+
+<script type="module">
+import { db } from "./firebase-config.js";
+import {
+  collection,
+  query,
+  where,
+  onSnapshot
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { updateBadge } from "./badge-manager.js";
+
+// Dynamic load notifications so a syntax error in that module doesn't break this page
+let initNotifications = async () => {};
+let requestNotificationPermission = async () => false;
+(async () => {
+  try {
+    const mod = await import('./notifications.js');
+    if (mod.initNotifications) initNotifications = mod.initNotifications;
+    if (mod.requestNotificationPermission) requestNotificationPermission = mod.requestNotificationPermission;
+    try { initNotifications(); } catch (err) { console.warn('initNotifications failed:', err); }
+  } catch (err) {
+    console.warn('Notifications module failed to load:', err);
+  }
+})();
+
+const PROF_COLORS = {
+  "Festő": "#FFD54F",
+  "Burkoló": "#FF9800",
+  "Villanyszerelő": "#FFC107",
+  "Vízszerelő": "#4FC3F7",
+  "Gázszerelő": "#EF5350",
+  "Gyorsétkeztetési eladó": "#4CAF50",
+  "Ford diagnosztika": "#1976D2"
+};
+
+let unsubscribe = null;
+
+function timeAgo(ts) {
+  if (!ts?.toDate) return "";
+  const min = Math.floor((Date.now() - ts.toDate().getTime()) / 60000);
+  if (min < 1) return "épp most";
+  if (min < 60) return `${min} perce`;
+  if (min < 1440) return `${Math.floor(min / 60)} órája`;
+  return `${Math.floor(min / 1440)} napja`;
+}
+
+function formatName(fullName) {
+  if (!fullName) return "Névtelen";
+  const parts = fullName.trim().split(" ");
+  if (parts.length === 1) return parts[0];
+  const firstName = parts[0];
+  const restName = parts.slice(1).join(" ");
+  return `${firstName.charAt(0)}. ${restName}`;
+}
+
+function setHeader(prof) {
+  const h = document.querySelector("header");
+  h.style.background = PROF_COLORS[prof] || "#2196f3";
+  
+  const title = document.getElementById("headerTitle");
+  if (title) {
+    <!DOCTYPE html>
+    <html lang="hu">
+    <head>
+      <meta charset="UTF-8">
+      <meta http-equiv="refresh" content="0;url=megrendelo-profil.html">
+      <title>Átirányítás...</title>
+    </head>
+    <body style="background:#fff;font-family:sans-serif;text-align:center;padding:64px">
+      <h2>Átirányítás a megrendelő irányítópultra...</h2>
+      <p>Ha nem történik meg automatikusan, <a href="megrendelo-profil.html">kattints ide</a>.</p>
+    </body>
+    </html>
+    });
+  });
+
+  // 2️⃣ RENDEZÉS: priority DESC, majd név ABC
+  szakik.sort((a, b) => {
+    if (b.priority !== a.priority) return b.priority - a.priority;
+    return a.name.localeCompare(b.name, 'hu');
+  });
+
+  // 3️⃣ SZAKIK MEGJELENÍTÉSE
+  szakik.forEach(szaki => {
+    const u = szaki.data;
+    
+    const status = szaki.online
+      ? `<span class="on">🟢 online</span>`
+      : `<span class="off">⚪ ${u.lastActive ? timeAgo(u.lastActive) : "régen"} volt elérhető</span>`;
+
+    // Profil információk
+    const infoParts = [];
+    if (u.varos) infoParts.push(`📍 ${u.varos}`);
+    if (u.kerulet) infoParts.push(`${u.kerulet}. kerület`);
+    if (u.tapasztalatEvek) infoParts.push(`${u.tapasztalatEvek} év tapasztalat`);
+    if (u.teljesLakasFelujitasVallal) infoParts.push(`✅ Teljes lakás felújítás`);
+    
+    const infoText = infoParts.join(" • ");
+    const desc = u.bemutatkozas || u.description || "";
+
+    // KIEMELT BADGE
+    const featuredBadge = szaki.featured 
+      ? `<span style="background:#FFD700;color:#000;padding:4px 8px;border-radius:4px;font-size:11px;font-weight:bold;margin-left:8px">⭐ KIEMELT</span>` 
+      : '';
+
+    // ÉRTÉKELÉS ÉS AJÁNLÁSOK
+    const ratingStars = szaki.rating > 0 
+      ? `<div style="margin-top:6px;font-size:14px">⭐ ${szaki.rating.toFixed(1)}</div>` 
+      : '';
+    const recsText = szaki.recommendations > 0 
+      ? `<div style="margin-top:4px;font-size:13px;color:#666">👍 ${szaki.recommendations} ajánlás</div>` 
+      : '';
+    const priceText = u.oradij
+      ? `<div style="font-size:14px;color:#2196f3;font-weight:bold;margin-top:6px">💰 ${u.oradij} Ft/óra</div>`
+      : '';
+
+    allSzakikData.push({ ...szaki, infoText, status, featuredBadge, ratingStars, recsText, priceText, desc });
+
+    const div = document.createElement("div");
+    div.className = "card";
+
+    const isFav = isFavorite(szaki.id);
+    const favIcon = isFav ? "❤️" : "🤍";
+
+    div.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:start">
+        <div class="name">${formatName(szaki.name)}${featuredBadge}</div>
+        <button class="fav-btn" data-id="${szaki.id}" style="background:none;border:none;font-size:24px;cursor:pointer;padding:0">${favIcon}</button>
+      </div>
+      <div class="status">${status}</div>
+      ${ratingStars}
+      ${recsText}
+      ${priceText}
+      ${infoText ? `<div class="desc" style="font-size:13px;color:#666;margin-top:4px">${infoText}</div>` : ""}
+      ${desc ? `<div class="desc" style="margin-top:6px">${desc}</div>` : ""}
+    `;
+
+    div.onclick = (e) => {
+      if (e.target.classList.contains('fav-btn')) {
+        e.stopPropagation();
+        toggleFavorite(szaki.id);
+        renderFilteredSzakik();
+        return;
+      }
+      location.href = `chat.html?szakiId=${szaki.id}`;
+    };
+
+    list.appendChild(div);
+  });
+}
+
+function isFavorite(szakiId) {
+  const favs = JSON.parse(localStorage.getItem('favorites') || '[]');
+  return favs.includes(szakiId);
+}
+
+function toggleFavorite(szakiId) {
+  let favs = JSON.parse(localStorage.getItem('favorites') || '[]');
+  if (favs.includes(szakiId)) {
+    favs = favs.filter(id => id !== szakiId);
+  } else {
+    favs.push(szakiId);
+  }
+  localStorage.setItem('favorites', JSON.stringify(favs));
+}
+
+function renderFilteredSzakik() {
+  const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+  const list = document.getElementById('list');
+  list.innerHTML = '';
+
+  let filtered = allSzakikData.filter(szaki => {
+    const nameMatch = szaki.name.toLowerCase().includes(searchTerm);
+    const cityMatch = szaki.data.varos?.toLowerCase().includes(searchTerm);
+    const districtMatch = szaki.data.kerulet?.toString().includes(searchTerm);
+    return nameMatch || cityMatch || districtMatch;
+  });
+
+  filtered.sort((a, b) => {
+    if (b.priority !== a.priority) return b.priority - a.priority;
+    return a.name.localeCompare(b.name, 'hu');
+  });
+
+  if (filtered.length === 0) {
+    list.innerHTML = '<b>Nincs találat a keresésre.</b>';
+    return;
+  }
+
+  filtered.forEach(szaki => {
+    const isFav = isFavorite(szaki.id);
+    const favIcon = isFav ? '❤️' : '🤍';
+
+    const div = document.createElement('div');
+    div.className = 'card';
+    div.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:start">
+        <div class="name">${formatName(szaki.name)}${szaki.featuredBadge}</div>
+        <button class="fav-btn" data-id="${szaki.id}" style="background:none;border:none;font-size:24px;cursor:pointer;padding:0">${favIcon}</button>
+      </div>
+      <div class="status">${szaki.status}</div>
+      ${szaki.ratingStars}
+      ${szaki.recsText}
+      ${szaki.priceText}
+      ${szaki.infoText ? `<div class="desc" style="font-size:13px;color:#666;margin-top:4px">${szaki.infoText}</div>` : ''}
+      ${szaki.desc ? `<div class="desc" style="margin-top:6px">${szaki.desc}</div>` : ''}
+    `;
+
+    div.onclick = (e) => {
+      if (e.target.classList.contains('fav-btn')) {
+        e.stopPropagation();
+        toggleFavorite(szaki.id);
+        renderFilteredSzakik();
+        return;
+      }
+      location.href = `chat.html?szakiId=${szaki.id}`;
+    };
+
+    list.appendChild(div);
+  });
+}
+
+// ✅ Inbox gomb hozzáadása a headerhez
+window.addEventListener("DOMContentLoaded", () => {
+  const header = document.querySelector("header");
+  const inboxBtn = document.createElement("button");
+  inboxBtn.textContent = "💬 Beszélgetéseim";
+  inboxBtn.style.cssText = `
+    position: absolute;
+    top: 50%;
+    right: 16px;
+    transform: translateY(-50%);
+    background: #fff;
+    color: #2196f3;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+  `;
+  inboxBtn.onclick = () => location.href = "megrendelo-inbox.html";
+  header.style.position = "relative";
+  header.appendChild(inboxBtn);
+
+  // Keresés input listener
+  const searchInput = document.getElementById('searchInput');
+  if (searchInput) {
+    searchInput.addEventListener('input', () => {
+      if (allSzakikData.length > 0) {
+        renderFilteredSzakik();
+      }
+    });
+  }
+  
+  // ✅ SZAKMA GOMBOK EVENT LISTENER
+  document.querySelectorAll('.profession-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const profession = btn.dataset.profession;
+      loadSzakik(profession);
+    });
+  });
+  
+  // ✅ HANG GOMB EVENT LISTENER
+  const soundToggleBtn = document.getElementById('soundToggle');
+  if (soundToggleBtn) {
+    soundToggleBtn.addEventListener('click', toggleSound);
+  }
+});
+</script>
+
+<style>
+body { margin:0; font-family:Arial; background:#f5f5f5; }
+header { background:#2196f3; color:#fff; padding:16px; text-align:center; font-size:20px; }
+.wrap { max-width:900px; margin:auto; padding:16px; }
+.btns button {
+  padding:12px 18px; margin:6px;
+  border-radius:10px; border:1px solid #ccc;
+  background:#fff; cursor:pointer; font-weight:bold;
+}
+.card {
+  background:#fff; padding:14px; margin:10px 0;
+  border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,.08);
+  cursor:pointer;
+}
+.name { font-size:18px; font-weight:bold; }
+.status { margin:6px 0; }
+.on { color:green; font-weight:bold; }
+.off { color:#777; font-weight:bold; }
+.last { font-size:12px; color:#888; }
+.desc { font-size:14px; color:#555; }
+</style>
+</head>
+
+<body>
+
+<header style="display:flex;justify-content:space-between;align-items:center;padding:16px">
+  <span id="headerTitle">🧑 Megrendelő – Válassz szakmát</span>
+  <div style="display:flex;gap:8px">
+    <button id="installBtn" onclick="installPWA()" style="display:none;background:#4CAF50;color:#fff;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:14px">
+      📱 Telepítés
+    </button>
+    <button id="soundToggle" style="background:#4caf50;color:#fff;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:14px">
+      🔊 Hang
+    </button>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="btns">
+    <button class="profession-btn" data-profession="Festő">🎨 Festő</button>
+    <button class="profession-btn" data-profession="Burkoló">🔨 Burkoló</button>
+    <button class="profession-btn" data-profession="Villanyszerelő">⚡ Villanyszerelő</button>
+    <button class="profession-btn" data-profession="Vízszerelő">🔧 Vízszerelő</button>
+    <button class="profession-btn" data-profession="Gázszerelő">🔥 Gázszerelő</button>
+    <button class="profession-btn" data-profession="Gyorsétkeztetési eladó">🍔 Gyorsétkeztetési eladó</button>
+    <button class="profession-btn" data-profession="Ford diagnosztika">🚗 Ford diagnosztika</button>
+  </div>
+
+  <div style="margin:16px 0">
+    <input type="text" id="searchInput" placeholder="🔍 Keresés név, város vagy kerület szerint..." style="width:100%;padding:12px;font-size:16px;border-radius:10px;border:1px solid #ccc;box-sizing:border-box" />
+  </div>
+
+  <div id="list"></div>
+</div>
+
+<!-- DONATION GOMB -->
+<div id="donateBtn"
+     onclick="window.open('https://www.paypal.com/donate/?hosted_button_id=QGU3WXVSCH22A','_blank')"
+     style="
+       position:fixed;
+       bottom:20px;
+       right:20px;
+       background:#ff2d55;
+       color:#fff;
+       padding:12px 18px;
+       border-radius:30px;
+       font-weight:bold;
+       cursor:pointer;
+       box-shadow:0 4px 14px rgba(0,0,0,.25);
+       z-index:9999;
+     ">
+  ❤️ Adomány
+</div>
+
+<!-- BECSüLET KASSZA -->
+<div id="honestyBox"
+     onclick="window.open('https://www.paypal.com/donate/?hosted_button_id=QGU3WXVSCH22A','_blank')"
+     style="
+       position:fixed;
+       top:20px;
+       right:20px;
+       background:linear-gradient(135deg,#2ecc71,#27ae60);
+       color:#fff;
+       padding:12px 18px;
+       border-radius:28px;
+       font-weight:bold;
+       cursor:pointer;
+       box-shadow:0 6px 18px rgba(0,0,0,0.25);
+       z-index:9999;
+       display:flex;
+       align-items:center;
+       gap:8px;
+     ">
+  💰 Becsület kassza
+</div>
+
+<script src="draggable-buttons.js"></script>
+</body>
+</html>

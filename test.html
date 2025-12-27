@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<body>
+    <h2>AI Proxy Teszt</h2>
+
+    <textarea id="input" rows="4" cols="50">Szia! Ki vagy?</textarea>
+    <br><br>
+    <button onclick="send()">Küldés</button>
+
+    <h3>Válasz:</h3>
+    <pre id="output"></pre>
+
+<script>
+async function send() {
+    const text = document.getElementById("input").value;
+
+    const res = await fetch("http://localhost:3001/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: text })
+    });
+
+    const data = await res.json();
+    document.getElementById("output").textContent = JSON.stringify(data, null, 2);
+}
+</script>
+</body>
+</html>

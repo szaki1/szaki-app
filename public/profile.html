@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8" />
+  <title>Szaki profil – SzakiChat</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <script type="module">
+    import { auth, db } from "./firebase-config.js";
+    import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import {
+      doc, getDoc, collection, addDoc, serverTimestamp, query, where, getDocs
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const params = new URLSearchParams(location.search);
+    const szakiId = params.get("uid");
+
+    const nameEl = document.getElementById("name");
+    const descEl = document.getElementById("desc");
+    const btn = document.getElementById("startChat");
+
+    let megrendeloUid = null;
+
+    onAuthStateChanged(auth, async user => {
+      if (!user) {
+        location.href = "login-user.html";
+        return;
+      }
+
+      megrendeloUid = user.uid;
+
+      const meSnap = await getDoc(doc(db, "users", megrendeloUid));
+      if (!meSnap.exists() || meSnap.data().role !== "megrendelo") {
+        location.href = "index.html";
+        return;
+      }
+
+      if (!szakiId) return;
+
+      const szakiSnap = await getDoc(doc(db, "users", szakiId));
+      if (!szakiSnap.exists()) return;
+
+      const d = szakiSnap.data();
+      nameEl.textContent = d.name || "Szaki";
+      descEl.textContent = d.description || "Nincs bemutatkozás.";
+    });
+
+    window.startChat = async function () {
+      btn.disabled = true;
+
+      // ellenőrizzük, van-e már chat köztük
+      const q = query(
+        collection(db, "chatRooms"),
+        where("megrendeloId", "==", megrendeloUid),
+        where("szakiId", "==", szakiId)
+      );
+
+      const snap = await getDocs(q);
+
+      if (!snap.empty) {
+        location.href = `chat.html?chatId=${snap.docs[0].id}`;
+        return;
+      }
+
+      const chatRef = await addDoc(collection(db, "chatRooms"), {
+        megrendeloId: megrendeloUid,
+        szakiId: szakiId,
+        createdAt: serverTimestamp()
+      });
+
+      location.href = `chat.html?chatId=${chatRef.id}`;
+    };
+  </script>
+
+  <style>
+    body { margin:0; font-family:Arial; background:#f5f5f5; }
+    .box {
+      max-width:420px; margin:30px auto; background:#fff;
+      padding:20px; border-radius:12px; box-shadow:0 4px 16px rgba(0,0,0,.08);
+    }
+    h2 { margin-top:0; }
+    button {
+      width:100%; padding:14px; border:none; border-radius:8px;
+      background:#2196f3; color:#fff; font-size:16px; cursor:pointer;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="box">
+    <h2 id="name">Szaki</h2>
+    <p id="desc"></p>
+
+    <button id="startChat" onclick="startChat()">💬 Chat indítása</button>
+  </div>
+</body>
+</html>

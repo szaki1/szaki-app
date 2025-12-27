@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8" />
+<title>Értesítések Beállítása - SzakiChat</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="theme-color" content="#ff9800">
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" type="image/svg+xml" href="/icon-192.png">
+<style>
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+.container {
+  background: white;
+  border-radius: 20px;
+  padding: 40px;
+  max-width: 600px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+}
+h1 {
+  color: #333;
+  text-align: center;
+  margin-top: 0;
+}
+.section {
+  margin: 30px 0;
+  padding: 20px;
+  background: #f5f5f5;
+  border-radius: 12px;
+}
+.section h2 {
+  color: #ff9800;
+  margin-top: 0;
+  font-size: 20px;
+}
+.step {
+  margin: 15px 0;
+  padding-left: 30px;
+  position: relative;
+}
+.step::before {
+  content: "✓";
+  position: absolute;
+  left: 0;
+  top: 0;
+  background: #4caf50;
+  color: white;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+}
+.install-btn {
+  display: none;
+  width: 100%;
+  padding: 16px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 18px;
+  font-weight: bold;
+  cursor: pointer;
+  margin-top: 20px;
+}
+.install-btn:hover {
+  transform: scale(1.02);
+  box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+}
+.install-btn.show {
+  display: block;
+}
+.emoji {
+  font-size: 48px;
+  text-align: center;
+  margin: 20px 0;
+}
+.back-btn {
+  display: block;
+  text-align: center;
+  margin-top: 30px;
+  padding: 12px 24px;
+  background: #2196f3;
+  color: white;
+  text-decoration: none;
+  border-radius: 8px;
+  font-weight: bold;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="emoji">📱💬</div>
+  <h1>SzakiChat Telepítése & Értesítések</h1>
+  
+  <div class="section">
+    <h2>📲 PWA (Progresszív Web Alkalmazás)</h2>
+    <p>A SzakiChat telepíthető az eszközödre, mint egy natív alkalmazás!</p>
+    
+    <div class="step">
+      <strong>Android/Chrome:</strong> Nyisd meg a menüt (⋮) → "Hozzáadás a kezdőképernyőhöz"
+    </div>
+    <div class="step">
+      <strong>iPhone/Safari:</strong> Nyomd meg a Megosztás ikont → "Hozzáadás a kezdőképernyőhöz"
+    </div>
+    <div class="step">
+      <strong>PC/Desktop:</strong> Chrome címsorában kattints a telepítés ikonra vagy használd az alábbi gombot
+    </div>
+    
+    <button class="install-btn" id="installBtn">
+      📥 Telepítés most
+    </button>
+  </div>
+  
+  <div class="section">
+    <h2>🔔 Értesítések Bekapcsolása</h2>
+    <p>Az értesítések engedélyezésével értesítést kapsz minden új üzenetről!</p>
+    
+    <div class="step">
+      Jelentkezz be a fiókodba
+    </div>
+    <div class="step">
+      Engedélyezd az értesítéseket a felugró ablakban
+    </div>
+    <div class="step">
+      Mostantól értesítést kapsz minden új üzenetről, értékelésről és ajánlásról!
+    </div>
+  </div>
+  
+  <div class="section">
+    <h2>⚙️ Beállítások módosítása</h2>
+    <p>Ha később szeretnéd módosítani az értesítéseket:</p>
+    
+    <div class="step">
+      <strong>Android:</strong> Beállítások → Alkalmazások → SzakiChat → Értesítések
+    </div>
+    <div class="step">
+      <strong>iPhone:</strong> Beállítások → Értesítések → Safari → szakichat.hu
+    </div>
+    <div class="step">
+      <strong>Desktop Chrome:</strong> Beállítások → Adatvédelem és biztonság → Webhely beállításai → Értesítések
+    </div>
+  </div>
+  
+  <a href="/" class="back-btn">🏠 Vissza a főoldalra</a>
+</div>
+
+<script>
+let deferredPrompt;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  
+  const installBtn = document.getElementById('installBtn');
+  installBtn.classList.add('show');
+  
+  installBtn.addEventListener('click', async () => {
+    if (!deferredPrompt) return;
+    
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    console.log(`User response: ${outcome}`);
+    
+    if (outcome === 'accepted') {
+      alert('✅ Alkalmazás telepítve! Mostantól a kezdőképernyőről indíthatod.');
+    }
+    
+    deferredPrompt = null;
+    installBtn.classList.remove('show');
+  });
+});
+
+window.addEventListener('appinstalled', () => {
+  console.log('✅ PWA telepítve');
+  alert('✅ SzakiChat sikeresen telepítve!');
+});
+</script>
+
+</body>
+</html>

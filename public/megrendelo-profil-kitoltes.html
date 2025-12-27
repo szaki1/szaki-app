@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8" />
+  <title>Profil kitöltése – SzakiChat</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- Google AdSense -->
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2627869523184160"
+     crossorigin="anonymous"></script>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f5f5f5;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .box {
+      background: #fff;
+      padding: 30px;
+      border-radius: 16px;
+      width: 100%;
+      max-width: 500px;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.12);
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 10px;
+      color: #2196f3;
+    }
+    .subtitle {
+      text-align: center;
+      color: #666;
+      font-size: 14px;
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      font-weight: bold;
+      margin-top: 14px;
+      margin-bottom: 4px;
+      font-size: 14px;
+    }
+    input, select, textarea {
+      width: 100%;
+      padding: 12px;
+      font-size: 16px;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+    }
+    textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+    button {
+      width: 100%;
+      padding: 14px;
+      font-size: 18px;
+      font-weight: bold;
+      border: none;
+      border-radius: 12px;
+      background: #2196f3;
+      color: white;
+      cursor: pointer;
+      margin-top: 20px;
+    }
+    button:hover {
+      background: #1976d2;
+    }
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    .error {
+      color: red;
+      margin-top: 10px;
+      text-align: center;
+      font-weight: bold;
+    }
+    .optional {
+      color: #999;
+      font-weight: normal;
+      font-size: 13px;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="box">
+  <h1>🧑 Profil kitöltése</h1>
+  <div class="subtitle">Töltsd ki a profil adataidat!</div>
+
+  <div id="error" class="error"></div>
+
+  <label>Név *</label>
+  <input type="text" id="nev" placeholder="pl. Kovács János" required />
+
+  <label>Város *</label>
+  <input type="text" id="varos" placeholder="pl. Budapest" required />
+
+  <label>Kerület <span class="optional">(opcionális, ha Budapesten laksz)</span></label>
+  <input type="number" id="kerulet" placeholder="pl. 13" min="1" max="23" />
+
+  <label>Telefonszám *</label>
+  <input type="tel" id="telefon" placeholder="pl. +36301234567" required />
+
+  <label>Milyen szakembert keresel? <span class="optional">(opcionális)</span></label>
+  <select id="keresettSzakma">
+    <option value="">Válassz szakmát</option>
+    <option>Festő</option>
+    <option>Burkoló</option>
+    <option>Villanyszerelő</option>
+    <option>Vízszerelő</option>
+    <option>Gázszerelő</option>
+    <option>Gipszkartonos</option>
+    <option>Ács</option>
+    <option>Kőműves</option>
+    <option>Tetőfedő</option>
+    <option>Parkettás</option>
+    <option>Gyorsétkeztetési eladó</option>
+    <option>Ford diagnosztika</option>
+  </select>
+
+  <label>Projekt leírása <span class="optional">(opcionális)</span></label>
+  <textarea id="projektLeiras" placeholder="Írj pár sort arról, milyen munkát szeretnél elvégeztetni..."></textarea>
+
+  <button id="saveBtn" onclick="saveProfile()">Profil mentése</button>
+</div>
+
+<div class="box" style="margin-top: 20px;">
+  <h1>👤 Megrendelő Profil</h1>
+  <div class="subtitle">Töltsd ki a megrendelői profil adataidat!</div>
+
+  <div id="errorMegrendelo" class="error"></div>
+
+  <form id="profileForm">
+    <label for="name">Név *</label>
+    <input type="text" id="name" name="name" placeholder="pl. Kovács János" required />
+
+    <label for="city">Város *</label>
+    <input type="text" id="city" name="city" placeholder="pl. Budapest" required />
+
+    <label for="phone">Telefonszám *</label>
+    <input type="tel" id="phone" name="phone" placeholder="pl. +36301234567" required />
+
+    <button type="submit">Mentés</button>
+  </form>
+</div>
+
+<script type="module">
+import { auth, db } from "./firebase-config.js";
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {
+  doc, getDoc, updateDoc, setDoc, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+let currentUser = null;
+
+onAuthStateChanged(auth, async (user) => {
+  if (!user) {
+    location.replace("login-user.html");
+    return;
+  }
+  currentUser = user;
+
+  // ✅ Meglévő adatok betöltése
+  const userSnap = await getDoc(doc(db, "users", user.uid));
+  if (userSnap.exists()) {
+    const data = userSnap.data();
+    if (data.name) document.getElementById("nev").value = data.name;
+    if (data.varos) document.getElementById("varos").value = data.varos;
+    if (data.kerulet) document.getElementById("kerulet").value = data.kerulet;
+    if (data.telefon) document.getElementById("telefon").value = data.telefon;
+    if (data.keresettSzakma) document.getElementById("keresettSzakma").value = data.keresettSzakma;
+    if (data.projektLeiras) document.getElementById("projektLeiras").value = data.projektLeiras;
+    if (data.role === 'megrendelo') {
+      document.getElementById("name").value = data.name;
+      document.getElementById("city").value = data.city;
+      document.getElementById("phone").value = data.phone;
+    }
+  }
+});
+
+window.saveProfile = async () => {
+  const errorBox = document.getElementById("error");
+  errorBox.textContent = "";
+
+  const nev = document.getElementById("nev").value.trim();
+  const varos = document.getElementById("varos").value.trim();
+  const kerulet = document.getElementById("kerulet").value;
+  const telefon = document.getElementById("telefon").value.trim();
+  const keresettSzakma = document.getElementById("keresettSzakma").value;
+  const projektLeiras = document.getElementById("projektLeiras").value.trim();
+
+  // ✅ KÖTELEZŐ MEZŐK
+  if (!nev) {
+    errorBox.textContent = "❌ Add meg a neved!";
+    return;
+  }
+  if (!varos) {
+    errorBox.textContent = "❌ Add meg a városod!";
+    return;
+  }
+  if (!telefon) {
+    errorBox.textContent = "❌ Add meg a telefonszámod!";
+    return;
+  }
+
+  if (!currentUser) {
+    errorBox.textContent = "❌ Nem vagy bejelentkezve!";
+    return;
+  }
+
+  const saveBtn = document.getElementById("saveBtn");
+  saveBtn.disabled = true;
+  saveBtn.textContent = "Mentés...";
+
+  try {
+    const userRef = doc(db, "users", currentUser.uid);
+
+    await updateDoc(userRef, {
+      name: nev,
+      varos: varos,
+      kerulet: kerulet || null,
+      telefon: telefon,
+      revealsEarned: 0,  // Reklám kattintások száma (telefonszám feloldáshoz)
+      keresettSzakma: keresettSzakma || null,
+      projektLeiras: projektLeiras || null,
+      profilKitoltve: true,
+      lastUpdated: serverTimestamp()
+    });
+
+    alert("✅ Profil sikeresen mentve!");
+    location.replace("rooms.html");
+  } catch (error) {
+    console.error("Profil mentési hiba:", error);
+    errorBox.textContent = "❌ Hiba történt: " + error.message;
+    saveBtn.disabled = false;
+    saveBtn.textContent = "Profil mentése";
+  }
+};
+
+document.getElementById('profileForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const errorBox = document.getElementById("errorMegrendelo");
+  errorBox.textContent = "";
+
+  const name = document.getElementById('name').value.trim();
+  const city = document.getElementById('city').value.trim();
+  const phone = document.getElementById('phone').value.trim();
+
+  // ✅ KÖTELEZŐ MEZŐK
+  if (!name) {
+    errorBox.textContent = "❌ Add meg a neved!";
+    return;
+  }
+  if (!city) {
+    errorBox.textContent = "❌ Add meg a városod!";
+    return;
+  }
+  if (!phone) {
+    errorBox.textContent = "❌ Add meg a telefonszámod!";
+    return;
+  }
+
+  if (!currentUser) {
+    errorBox.textContent = "❌ Nem vagy bejelentkezve!";
+    return;
+  }
+
+  try {
+    await setDoc(doc(db, "users", currentUser.uid), {
+      name,
+      city,
+      phone,
+      role: 'megrendelo',
+      profilKitoltve: true
+    }, { merge: true });
+
+    alert("✅ Profil sikeresen mentve!");
+    location.replace("megrendelo-profil.html");
+  } catch (error) {
+    console.error("Profil mentési hiba:", error);
+    errorBox.textContent = "❌ Hiba történt: " + error.message;
+  }
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,38 @@
+<!-- DONATION COMPONENT - Másold be minden oldalra a </body> tag elé -->
+
+<button id="donateBox"
+  onclick="donate()"
+  style="
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    cursor: pointer;
+    padding: 0;
+    margin: 0;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+  ">
+  <span style="font-size:38px; color:#ff2d55; position:relative;">❤️
+    <span style="position:absolute; left:0; right:0; top:0; bottom:0; display:flex; align-items:center; justify-content:center; color:#fff; font-size:18px; font-weight:bold; pointer-events:none;">A</span>
+  </span>
+</button>
+
+<script>
+function donate() {
+  window.open(
+    "https://www.paypal.com/donate/?hosted_button_id=IDE_A_PAYPAL_GOMB_ID",
+    "_blank"
+  );
+}
+</script>
+
+<style>
+
+</style>

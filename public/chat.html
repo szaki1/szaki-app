@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8" />
+<title>SzakiChat – Beszélgetés</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+<style>
+body{margin:0;font-family:Arial;background:#f5f5f5;display:flex;flex-direction:column;height:100vh;padding-bottom:170px;padding-top:80px}
+header{position:fixed;top:0;left:0;right:0;background:#2196f3;color:#fff;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;z-index:10000}
+.header-left{display:flex;flex-direction:column}
+.partner-name{font-size:18px;font-weight:bold;margin-bottom:2px}
+.partner-info{font-size:12px;opacity:0.9}
+.header-center{text-align:center;font-size:12px;opacity:0.9;flex:1}
+.header-right{display:flex;flex-direction:row;align-items:center;gap:12px}
+#presence{font-size:14px;font-weight:bold}
+.share-icon-btn{width:40px;height:40px;border:none;border-radius:50%;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;box-shadow:0 2px 4px rgba(0,0,0,0.2)}
+.share-icon-btn:hover{background:#f0f0f0}
+.share-icon{width:28px;height:28px}
+.chat{flex:1;padding:16px;overflow-y:auto;display:flex;flex-direction:column}
+.msg{margin-bottom:10px;padding:10px 14px;border-radius:10px;max-width:70%;word-wrap:break-word;position:relative}
+.megr{background:#e3f2fd;align-self:flex-end}
+.szaki{background:#eeeeee;align-self:flex-start}
+.msg-time{font-size:10px;color:#666;margin-top:4px;opacity:0.7}
+footer{position:fixed;bottom:95px;left:0;right:0;display:flex;gap:8px;padding:10px;background:#fff;border-top:1px solid #ddd;align-items:center;z-index:10001}
+.action-btn{width:40px;height:40px;border:none;border-radius:50%;background:#f0f0f0;color:#555;cursor:pointer;font-size:20px;display:flex;align-items:center;justify-content:center}
+.action-btn:hover{background:#e0e0e0}
+input{flex:1;padding:12px;font-size:16px;border-radius:8px;border:1px solid #ccc}
+button{padding:12px 16px;font-size:16px;border:none;border-radius:8px;background:#2196f3;color:#fff;cursor:pointer}
+button:hover{background:#1976d2}
+input[type="file"]{display:none}
+.heart-btn{position:relative;width:60px;height:60px;cursor:pointer;border:none;background:transparent;padding:0}
+.heart-btn::before,.heart-btn::after{content:"";position:absolute;width:30px;height:48px;background:#ff2d55;border-radius:30px 30px 0 0}
+.heart-btn::before{left:0;transform:rotate(-45deg);transform-origin:0 100%}
+.heart-btn::after{right:0;transform:rotate(45deg);transform-origin:100% 100%}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
+</style>
+</head>
+
+<body>
+
+<header>
+  <div class="header-left">
+    <div class="partner-name" id="partnerName">Partner</div>
+    <div class="partner-info" id="partnerInfo"></div>
+  </div>
+  <div class="header-center">
+    <button class="share-icon-btn" id="shareBtn" title="Megosztás">
+      <svg class="share-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="black"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="6" y1="12" x2="18" y2="5" stroke="black" stroke-width="2"/><line x1="6" y1="12" x2="18" y2="19" stroke="black" stroke-width="2"/></svg>
+    </button>
+  </div>
+  <div class="header-right">
+    <div style="font-size:11px;opacity:0.85;margin-bottom:2px" id="currentDateTime">2025.12.24. 21:24</div>
+    <div id="presence">⏳ betöltés…</div>
+  </div>
+</header>
+
+<div class="chat" id="chat"></div>
+
+<footer>
+  <input type="file" id="fileInput" accept="image/*,application/pdf,.doc,.docx,.txt" style="display:none" />
+  <input id="msgInput" placeholder="Írj üzenetet…" />
+  <button id="sendBtn" style="background:#2196f3;color:#fff;padding:12px 20px;border:none;border-radius:8px;font-weight:bold;font-size:16px">Küldés</button>
+</footer>
+
+<script type="module">
+import { auth, db, storage, ref, uploadBytes, getDownloadURL } from "./firebase-config.js";
+import {
+  doc, getDoc, setDoc, addDoc, collection, updateDoc, getDocs, writeBatch,
+  serverTimestamp, onSnapshot, query, orderBy, increment, where
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+function timeAgo(ts){
+  if(!ts?.toDate) return "";
+  const m=Math.floor((Date.now()-ts.toDate().getTime())/60000);
+  if(m<1) return "épp most";
+  if(m<60) return `${m} perce`;
+  return `${Math.floor(m/60)} órája`;
+}
+
+function formatMessageTime(ts, fullDate = false) {
+  // Accept Firestore Timestamp or plain Date object
+  if (!ts) return "";
+  let date;
+  if (typeof ts.toDate === 'function') {
+    date = ts.toDate();
+  } else if (ts.seconds) {
+    date = new Date(ts.seconds * 1000);
+  } else if (ts instanceof Date) {
+    date = ts;
+  } else {
+    return "";
+  }
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  if (fullDate) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}.${month}.${day}. ${hours}:${minutes}`;
+  }
+  return `${hours}:${minutes}`;
+}
+
+function formatName(fullName) {
+  if (!fullName) return "Névtelen";
+  const parts = fullName.trim().split(" ");
+  if (parts.length === 1) return parts[0];
+  return `${parts[0].charAt(0)}. ${parts.slice(1).join(" ")}`;
+}
+
+// Telefonszám maszkolás
+function maskPhone(phone) {
+  if (!phone) return "";
+  
+  // Tisztítás - csak számok maradnak
+  const cleaned = phone.replace(/\D/g, '');
+  
+  // +3630******* vagy 0630******* vagy 003630*******
+  if (cleaned.startsWith('36')) {
+    // +3630******* vagy 003630*******
+    const prefix = phone.startsWith('+') ? '+36' : (phone.startsWith('00') ? '0036' : '36');
+    return prefix + cleaned.substring(2, 4) + '*******';
+  } else if (cleaned.startsWith('06')) {
+    // 0630*******
+    return '06' + cleaned.substring(2, 4) + '*******';
+  } else {
+    // Más formátum - első 4 számjegy megmarad
+    return cleaned.substring(0, 4) + '*******';
+  }
+}
+
+const params=new URLSearchParams(location.search);
+const szakiId=params.get("szakiId");
+const megrId=params.get("megrId");
+
+const nameEl=document.getElementById("partnerName");
+const infoEl=document.getElementById("partnerInfo");
+const presenceEl=document.getElementById("presence");
+const chatEl=document.getElementById("chat");
+const inputEl=document.getElementById("msgInput");
+const sendBtn=document.getElementById("sendBtn");
+const dateTimeEl=document.getElementById("currentDateTime");
+
+// DÁTUM ÉS IDŐ FRISSÍTÉSE
+function updateDateTime() {
+  const now = new Date();
+  const days = ['Vasárnap', 'Hétfő', 'Kedd', 'Szerda', 'Csütörtök', 'Péntek', 'Szombat'];
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const dayName = days[now.getDay()];
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  
+  dateTimeEl.textContent = `${year}.${month}.${day}. ${dayName} ${hours}:${minutes}`;
+}
+
+updateDateTime();
+setInterval(updateDateTime, 60000);
+
+let chatId=null;
+let chatRef=null;
+let chatDocRef=null;
+let meUid=null;
+let myRole=null;
+let partnerId=null;
+
+onAuthStateChanged(auth, async user=>{
+  if(!user){
+    location.replace("index.html");
+    return;
+  }
+
+  meUid=user.uid;
+
+  const meSnap = await getDoc(doc(db,"users",meUid));
+  if(!meSnap.exists()){
+    alert("Felhasználói adatok nem találhatók!");
+    return;
+  }
+
+  const myData = meSnap.data();
+  myRole = myData.role;
+
+  if(myRole === "szaki"){
+    if(!megrId){
+      alert("Hiányzó megrendelő ID!");
+      return;
+    }
+    partnerId = megrId;
+  } else {
+    if(!szakiId){
+      alert("Hiányzó szaki ID!");
+      return;
+    }
+    partnerId = szakiId;
+  }
+
+  chatId = meUid < partnerId
+    ? `${meUid}_${partnerId}`
+    : `${partnerId}_${meUid}`;
+
+  chatDocRef = doc(db,"chats",chatId);
+  chatRef = collection(db,"chats",chatId,"messages");
+
+  const partnerSnap = await getDoc(doc(db,"users",partnerId));
+  const partnerData = partnerSnap.exists() ? partnerSnap.data() : {};
+  const partnerName = formatName(partnerData.name || "Ismeretlen");
+
+  const chatSnap = await getDoc(chatDocRef);
+  if(!chatSnap.exists()){
+    const chatDoc = {};
+    
+    if(myRole === "szaki"){
+      chatDoc.szakiId = meUid;
+      chatDoc.szakiName = myData.name || "Szaki";
+      chatDoc.megrId = partnerId;
+      chatDoc.megrName = partnerData.name || "Megrendelő";
+    } else {
+      chatDoc.megrId = meUid;
+      chatDoc.megrName = myData.name || "Megrendelő";
+      chatDoc.szakiId = partnerId;
+      chatDoc.szakiName = partnerData.name || "Szaki";
+    }
+    
+    chatDoc.chatId = chatId;
+    chatDoc.createdAt = serverTimestamp();
+    chatDoc.lastAt = serverTimestamp();
+    chatDoc.lastMsg = "";
+    
+    await setDoc(chatDocRef, chatDoc);
+  }
+  
+  // ✅ OLVASATLAN ÜZENETEK NULLÁZÁSA ÉS OLVASOTTSÁG JELZÉS (amikor megnyitja a chatet)
+  const chatDocSnap = await getDoc(chatDocRef);
+  if (chatDocSnap.exists()) {
+    const currentChatData = chatDocSnap.data();
+    const unreadField = myRole === "szaki" ? "unreadCountSzaki" : "unreadCountMegr";
+    if (currentChatData[unreadField] > 0) {
+      await updateDoc(chatDocRef, {
+        [unreadField]: 0
+      });
+      console.log("✅ Olvasatlan üzenetek nullázva:", unreadField);
+    }
+
+    // OLVASOTTSÁG: minden bejövő, még nem látott üzenethez seenAt beírása
+    const q = query(chatRef, orderBy("createdAt", "asc"));
+    const snap = await getDocs(q);
+    const batch = writeBatch(db);
+    let hasToUpdate = false;
+    snap.forEach(docSnap => {
+      const m = docSnap.data();
+      // Ha nem én küldtem ÉS még nincs seenAt
+      if (m.from !== meUid && !m.seenAt) {
+        batch.update(doc(db, "chats", chatId, "messages", docSnap.id), {
+          seenAt: serverTimestamp()
+        });
+        hasToUpdate = true;
+      }
+    });
+    if (hasToUpdate) await batch.commit();
+  }
+
+  onSnapshot(doc(db,"users",partnerId),snap=>{
+    if(!snap.exists()) return;
+    const d=snap.data();
+    nameEl.textContent=formatName(d.name) || partnerName;
+    
+    const infoParts = [];
+    if(d.szakma) infoParts.push(d.szakma);
+    if(d.varos) infoParts.push(d.varos);
+    if(d.telefon) infoParts.push(`📞 ${maskPhone(d.telefon)}`);
+    infoEl.textContent = infoParts.join(" • ");
+    
+    presenceEl.textContent=d.online
+      ? "🟢 online"
+      : `⚪ offline ${d.lastActive?`(${timeAgo(d.lastActive)})`:""}`;
+
+    // Ha megrendelő nézi a szakit, mutassunk értékelés és ajánlás gombokat a fejlécen
+    (async () => {
+      try {
+        const headerRight = document.querySelector('.header-right');
+        if (!headerRight) return;
+
+        // csak egyszer hozzuk létre
+        if (myRole === 'megrendelo' && d.role === 'szaki' && !document.getElementById('rateBtn')) {
+          const rateBtn = document.createElement('button');
+          rateBtn.id = 'rateBtn';
+          rateBtn.title = 'Értékeld a szakembert';
+          rateBtn.style.cssText = 'padding:8px 12px;border-radius:8px;border:none;background:#fff;cursor:pointer;font-weight:bold;color:#2196f3';
+          rateBtn.textContent = '⭐ Értékelés';
+
+          const recBtn = document.createElement('button');
+          recBtn.id = 'recBtn';
+          recBtn.title = 'Ajánld ezt a szakembert';
+          recBtn.style.cssText = 'padding:8px 12px;border-radius:8px;border:none;background:#fff;cursor:pointer;font-weight:bold;color:#4caf50';
+          recBtn.textContent = '🔗 Ajánlás';
+
+          headerRight.insertBefore(recBtn, headerRight.firstChild);
+          headerRight.insertBefore(rateBtn, headerRight.firstChild);
+
+          // Ellenőrizzük, ajánlotta-e már
+          try {
+            const recQ = query(collection(db,'recommendations'), where('fromUid','==', meUid), where('toUid','==', partnerId));
+            const recSnap = await getDocs(recQ);
+            if (!recSnap.empty) {
+              recBtn.textContent = '✅ Ajánlva';
+              recBtn.disabled = true;
+              recBtn.style.opacity = '0.6';
+            }
+          } catch (e) { console.warn('rec check failed', e); }
+
+          // Értékelés logika
+          rateBtn.addEventListener('click', async () => {
+            const ratingStr = prompt('Adj meg egy értékelést 1-5 között (csillag):');
+            if (!ratingStr) return;
+            const rating = Math.max(1, Math.min(5, Number(ratingStr)));
+            if (!rating || isNaN(rating)) { alert('Érvénytelen érték.'); return; }
+            const comment = prompt('Hozzáfűznél egy rövid megjegyzést? (opcionális)') || '';
+            try {
+              await addDoc(collection(db,'reviews'), {
+                fromUid: meUid,
+                toUid: partnerId,
+                rating,
+                comment: comment.slice(0,500),
+                createdAt: serverTimestamp()
+              });
+
+              // Újraszámoljuk az átlagot és frissítjük a szakember dokumentumot
+              const rvQ = query(collection(db,'reviews'), where('toUid','==', partnerId));
+              const rvSnap = await getDocs(rvQ);
+              let sum = 0; let cnt = 0;
+              rvSnap.forEach(rs => { const r = rs.data(); if (r.rating) { sum += Number(r.rating); cnt++; } });
+              const avg = cnt ? (sum / cnt) : 0;
+              await updateDoc(doc(db,'users',partnerId), { rating: avg });
+              alert('Köszönjük az értékelést!');
+            } catch (err) {
+              console.error('Értékelés hiba:', err);
+              alert('Hiba történt az értékelés mentésekor.');
+            }
+          });
+
+          // Ajánlás logika
+          recBtn.addEventListener('click', async () => {
+            if (!confirm('Biztosan ajánlod ezt a szakembert?')) return;
+            try {
+              await addDoc(collection(db,'recommendations'), {
+                fromUid: meUid,
+                toUid: partnerId,
+                toName: d.name || '',
+                createdAt: serverTimestamp()
+              });
+              // Növeljük a szakember recommendations mezőjét
+              await updateDoc(doc(db,'users',partnerId), { recommendations: increment(1) });
+              recBtn.textContent = '✅ Ajánlva';
+              recBtn.disabled = true;
+              recBtn.style.opacity = '0.6';
+              alert('Köszönjük! Ajánlásod rögzítve.');
+            } catch (err) {
+              console.error('Ajánlás hiba:', err);
+              alert('Hiba történt az ajánlás mentésekor.');
+            }
+          });
+        }
+      } catch (e) {
+        console.warn('Header action buttons error', e);
+      }
+    })();
+  });
+
+  const messagesQuery = query(chatRef, orderBy("createdAt", "asc"));
+  
+  onSnapshot(messagesQuery, snap=>{
+    chatEl.innerHTML="";
+    snap.forEach(d=>{
+      const m=d.data();
+      const div=document.createElement("div");
+      const isMine = m.from === meUid;
+      div.className = "msg " + (isMine ? "megr" : "szaki");
+
+      // Fájl/Kép megjelenítése
+      if (m.fileUrl) {
+        if (m.fileType === 'image') {
+          const img = document.createElement("img");
+          img.src = m.fileUrl;
+          img.style.cssText = 'max-width:200px;max-height:200px;border-radius:8px;margin-bottom:8px;cursor:pointer';
+          img.onclick = () => window.open(m.fileUrl, '_blank');
+          div.appendChild(img);
+        } else {
+          const fileLink = document.createElement("a");
+          fileLink.href = m.fileUrl;
+          fileLink.target = "_blank";
+          fileLink.textContent = `📎 ${m.fileName || 'Fájl'}`;
+          fileLink.style.cssText = 'display:block;color:#2196f3;text-decoration:underline;margin-bottom:8px';
+          div.appendChild(fileLink);
+        }
+      }
+
+      // Szöveg megjelenítése (ha van)
+      if (m.text) {
+        const textSpan = document.createElement("div");
+        textSpan.textContent = m.text;
+        div.appendChild(textSpan);
+      }
+
+      if (m.createdAt) {
+        const timeSpan = document.createElement("div");
+        timeSpan.className = "msg-time";
+        timeSpan.textContent = formatMessageTime(m.createdAt);
+        div.appendChild(timeSpan);
+      }
+
+      // Olvasottság jelzés (csak saját üzenetnél, ha seenAt létezik)
+      if (isMine && m.seenAt) {
+        const seenSpan = document.createElement("div");
+        seenSpan.className = "msg-time seen-indicator";
+        seenSpan.style.color = "#0b74da";
+        seenSpan.style.fontWeight = "600";
+        seenSpan.style.marginTop = "6px";
+        seenSpan.style.fontSize = "13px";
+        seenSpan.textContent = `Látta: ${formatMessageTime(m.seenAt, true)}`;
+        div.appendChild(seenSpan);
+      }
+
+      chatEl.appendChild(div);
+    });
+    chatEl.scrollTop=chatEl.scrollHeight;
+  });
+});
+
+let selectedFile = null;
+
+async function sendMsg(){
+  const text=inputEl.value.trim();
+  if(!text && !selectedFile) return;
+  if(!chatRef) return;
+
+  let fileUrl = null;
+  let fileType = null;
+  let fileName = null;
+
+  // Ha van fájl, feltöltjük Storage-ba és csak a URL-t mentjük
+  if (selectedFile) {
+    // Engedélyezünk nagyobb fájlméretet Storage esetén (max 5MB)
+    if (selectedFile.size > 5 * 1024 * 1024) {
+      alert('❌ Túl nagy fájl! Maximum 5 MB lehet.');
+      return;
+    }
+
+    try {
+      const storagePath = `chats/${chatId}/${Date.now()}_${selectedFile.name}`;
+      const storageRef = ref(storage, storagePath);
+      await uploadBytes(storageRef, selectedFile);
+      fileUrl = await getDownloadURL(storageRef);
+
+      fileType = selectedFile.type.startsWith('image/') ? 'image' : 'file';
+      fileName = selectedFile.name;
+
+      // File input és előnézet törlése
+      document.getElementById('fileInput').value = '';
+      const preview = document.getElementById('filePreview');
+      if (preview) preview.remove();
+      selectedFile = null;
+    } catch (error) {
+      console.error('❌ Fájl feltöltési hiba:', error);
+      alert('❌ Hiba történt a fájl feltöltése során!');
+      return;
+    }
+  }
+
+  const msgData = {
+    from: meUid,
+    text: text || '',
+    createdAt: serverTimestamp()
+  };
+  
+  if (fileUrl) {
+    msgData.fileUrl = fileUrl;
+    msgData.fileType = fileType;
+    msgData.fileName = fileName;
+  }
+
+  try {
+    await addDoc(chatRef, msgData);
+
+    // ✅ OLVASATLAN SZÁMLÁLÓ ATOMIKUS NÖVELÉSE a másik félnél
+    const incrementField = myRole === "szaki" ? "unreadCountMegr" : "unreadCountSzaki";
+    await updateDoc(chatDocRef, {
+      [incrementField]: increment(1),
+      lastMsg: text || `📎 ${fileName || 'Fájl'}`,
+      lastAt: serverTimestamp()
+    });
+
+    console.log("✅ Számláló atomikusan növelve és lastAt frissítve");
+  } catch (err) {
+    console.error('❌ Hiba üzenet küldésekor vagy számláló frissítéskor:', err);
+    alert('❌ Hiba történt az üzenet küldésekor. Próbáld újra.');
+  }
+
+  inputEl.value="";
+}
+
+sendBtn.onclick=sendMsg;
+inputEl.addEventListener("keydown",e=>{
+  if(e.key==="Enter"){
+    e.preventDefault();
+    sendMsg();
+  }
+});
+
+const attachBtn = document.getElementById("attachBtn");
+const micBtn = document.getElementById("micBtn");
+const fileInput = document.getElementById("fileInput");
+
+attachBtn.onclick = () => fileInput.click();
+
+fileInput.onchange = (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  
+  selectedFile = file;
+  
+  // Előnézet megjelenítése
+  const existingPreview = document.getElementById('filePreview');
+  if (existingPreview) existingPreview.remove();
+  
+  const preview = document.createElement('div');
+  preview.id = 'filePreview';
+  preview.style.cssText = 'position:fixed;bottom:165px;left:10px;right:10px;background:#fff;padding:12px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.2);display:flex;align-items:center;gap:12px;z-index:9998';
+  
+  if (file.type.startsWith('image/')) {
+    const img = document.createElement('img');
+    img.src = URL.createObjectURL(file);
+    img.style.cssText = 'width:60px;height:60px;object-fit:cover;border-radius:4px';
+    preview.appendChild(img);
+  } else {
+    const icon = document.createElement('div');
+    icon.textContent = '📄';
+    icon.style.cssText = 'font-size:40px';
+    preview.appendChild(icon);
+  }
+  
+  const info = document.createElement('div');
+  info.style.cssText = 'flex:1;overflow:hidden';
+  info.innerHTML = `<div style="font-weight:bold;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${file.name}</div><div style="font-size:12px;color:#666">${(file.size / 1024).toFixed(1)} KB</div>`;
+  preview.appendChild(info);
+  
+  const removeBtn = document.createElement('button');
+  removeBtn.textContent = '❌';
+  removeBtn.style.cssText = 'background:none;border:none;font-size:20px;cursor:pointer;padding:4px';
+  removeBtn.onclick = () => {
+    selectedFile = null;
+    fileInput.value = '';
+    preview.remove();
+  };
+  preview.appendChild(removeBtn);
+  
+  document.body.appendChild(preview);
+};
+
+// BESZÉDFELISMERÉS (DIKTÁLÁS)
+let recognition = null;
+let isRecording = false;
+
+if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognition = new SpeechRecognition();
+  recognition.lang = 'hu-HU';
+  recognition.continuous = false;
+  recognition.interimResults = false;
+
+  recognition.onresult = (event) => {
+    const transcript = event.results[0][0].transcript;
+    inputEl.value += (inputEl.value ? ' ' : '') + transcript;
+    micBtn.style.background = '#f0f0f0';
+    isRecording = false;
+  };
+
+  recognition.onerror = (event) => {
+    console.error('Beszédfelismerés hiba:', event.error);
+    micBtn.style.background = '#f0f0f0';
+    isRecording = false;
+    if (event.error === 'no-speech') {
+      alert('⚠️ Nem észleltem beszédet. Próbáld újra!');
+    } else {
+      alert('❌ Hiba történt a beszédfelismerés során.');
+    }
+  };
+
+  recognition.onend = () => {
+    micBtn.style.background = '#f0f0f0';
+    isRecording = false;
+  };
+}
+
+micBtn.onclick = () => {
+  if (!recognition) {
+    alert('❌ A böngésző nem támogatja a beszédfelismerést.\n\nPróbáld Chrome vagy Edge böngészőben!');
+    return;
+  }
+
+  if (isRecording) {
+    recognition.stop();
+    micBtn.style.background = '#f0f0f0';
+    isRecording = false;
+  } else {
+    recognition.start();
+    micBtn.style.background = '#ff4444';
+    isRecording = true;
+  }
+};
+</script>
+
+<!-- FIX GOMBOK (ALUL EGY SORBAN) -->
+<div id="fixedButtonBar" style="position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:2px solid #ddd;padding:8px 12px;display:flex;flex-direction:column;gap:8px;z-index:9997;box-shadow:0 -2px 10px rgba(0,0,0,0.1)">
+  <!-- GOMBOK -->
+  <div style="display:flex;gap:8px;align-items:center">
+    <button onclick="window.open('https://www.paypal.com/donate/?hosted_button_id=QGU3WXVSCH22A','_blank')" style="background:linear-gradient(135deg,#2ecc71,#27ae60);color:#fff;padding:8px 12px;border-radius:20px;font-weight:bold;cursor:pointer;border:none;font-size:12px;display:flex;align-items:center;gap:4px;white-space:nowrap">💰 B.Kassza</button>
+    <button onclick="window.open('https://www.paypal.com/donate/?hosted_button_id=QGU3WXVSCH22A','_blank')" style="background:transparent;border:none;box-shadow:none;cursor:pointer;padding:0;margin:0;width:40px;height:40px;display:flex;align-items:center;justify-content:center;position:relative;">
+      <span style="font-size:32px; color:#ff2d55; position:relative;">❤️
+        <span style="position:absolute; left:0; right:0; top:0; bottom:0; display:flex; align-items:center; justify-content:center; color:#fff; font-size:16px; font-weight:bold; pointer-events:none;">A</span>
+      </span>
+    </button>
+    <button id="attachBtn" title="Kép vagy fájl küldése" style="width:44px;height:44px;border:none;border-radius:50%;background:#e3f2fd;color:#2196f3;cursor:pointer;font-size:20px;display:flex;align-items:center;justify-content:center">📎</button>
+    <button id="micBtn" title="Diktálás" style="width:44px;height:44px;border:none;border-radius:50%;background:#e3f2fd;color:#2196f3;cursor:pointer;font-size:20px;display:flex;align-items:center;justify-content:center">🎤</button>
+  </div>
+  
+  <!-- ADSENSE HELY -->
+  <div onclick="location.href='register-szaki.html'" style="background:linear-gradient(135deg,#ff9f43,#ff6348);color:#fff;padding:8px 12px;border-radius:8px;text-align:center;cursor:pointer;font-size:13px;font-weight:bold">
+    📢 Regisztrálj szakiként INGYEN! 💼 Találj munkákat! ⭐
+  </div>
+</div>
+
+<script>
+document.getElementById('shareBtn')?.addEventListener('click', async () => {
+  const shareUrl = 'https://szakichat.hu';
+  const shareText = '🏠 SzakiChat - Szakemberek és Megrendelők Találkozóhelye';
+  if (navigator.share) {
+    try {
+      await navigator.share({title: 'SzakiChat', text: shareText, url: shareUrl});
+    } catch (err) {
+      if (err.name !== 'AbortError') {
+        navigator.clipboard.writeText(shareUrl).then(() => alert('✅ Link vágólapra másolva!\n\n' + shareUrl));
+      }
+    }
+  } else {
+    navigator.clipboard.writeText(shareUrl).then(() => alert('✅ Link vágólapra másolva!\n\n' + shareUrl + '\n\nMost bárhol beillesztheted! 📤'));
+  }
+});
+</script>
+
+<script type="module" src="presence.js"></script>
+</body>
+</html>

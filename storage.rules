@@ -1,0 +1,26 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Chat fájlok - chats/{chatId}/{fileName}
+    match /chats/{chatId}/{fileName} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null 
+                   && request.resource.size < 25 * 1024 * 1024; // Max 25MB
+    }
+    
+    // Chat képek - csak bejelentkezett felhasználók írhatnak/olvashatnak
+    match /chat-images/{allPaths=**} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null 
+                   && request.resource.size < 10 * 1024 * 1024 // Max 10MB
+                   && request.resource.contentType.matches('image/.*');
+    }
+    
+    // Chat fájlok (PDF, DOC, XLS, ZIP, stb.)
+    match /chat-files/{allPaths=**} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null 
+                   && request.resource.size < 25 * 1024 * 1024; // Max 25MB
+    }
+  }
+}

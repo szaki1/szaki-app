@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8">
+  <title>SzakiChat – Szaki szoba</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<h1 id="roomTitle" style="text-align:center;margin:20px 0;">
+  Szaki szoba
+</h1>
+
+<p id="roomDesc" style="text-align:center;color:#555;margin-bottom:20px;">
+  Válassz egy szakembert a privát beszélgetés indításához.
+</p>
+
+<div id="szakiList"
+     style="max-width:900px;margin:0 auto;display:flex;flex-direction:column;gap:14px;">
+</div>
+
+<!-- ❤️ MEGOSZTÁS + ADOMÁNY -->
+<div style="
+  position:fixed;
+  bottom:20px;
+  left:20px;
+  background:#ffffff;
+  border-radius:20px;
+  padding:10px 16px;
+  box-shadow:0 4px 14px rgba(0,0,0,0.15);
+  display:flex;
+  gap:14px;
+  align-items:center;
+  z-index:5;
+">
+  <button onclick="sharePage()" style="cursor:pointer;">
+    🔁 Megosztás (<span id="shareCount">0</span>)
+  </button>
+
+  <button onclick="window.open('https://www.paypal.com/donate/?hosted_button_id=QGU3WXVSCH22A','_blank')"
+          style="cursor:pointer;">
+    ❤️ Becsület kassza
+  </button>
+</div>
+
+<script type="module">
+import {
+  db,
+  collection,
+  query,
+  where,
+  getDocs
+} from "./firebase-config.js";
+
+/* 🔎 URL PARAMÉTER */
+const params = new URLSearchParams(location.search);
+const profession = params.get("profession") || "Ismeretlen";
+
+/* 🏷️ CÍM */
+document.getElementById("roomTitle").innerText =
+  "👉 " + profession + " szakik";
+
+/* 🔁 BETÖLTÉS */
+async function loadSzakik(){
+  const list = document.getElementById("szakiList");
+  list.innerHTML = "";
+
+  const q = query(
+    collection(db,"users"),
+    where("role","==","szaki"),
+    where("szakma","==",profession)
+  );
+
+  const snap = await getDocs(q);
+
+  if(snap.empty){
+    list.innerHTML =
+      "<p style='text-align:center;color:#777'>Nincs elérhető szaki ebben a szobában.</p>";
+    return;
+  }
+
+  snap.forEach(d=>{
+    const u = d.data();
+
+    const card = document.createElement("div");
+    card.style = `
+      background:#ffffff;
+      border:1px solid #ddd;
+      border-radius:14px;
+      padding:16px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      box-shadow:0 2px 10px rgba(0,0,0,0.05);
+    `;
+
+    card.innerHTML = `
+      <div>
+        <b>${u.name || "Név nélkül"}</b><br>
+        <span style="color:#555">${u.szakma || ""}</span>
+      </div>
+
+      <button
+        style="padding:10px 14px;border-radius:10px;border:1px solid #ccc;cursor:pointer"
+        onclick="location.href='profile.html?uid=${d.id}'">
+        Szaki adatlap
+      </button>
+    `;
+
+    list.appendChild(card);
+  });
+}
+
+/* 🔁 MEGOSZTÁS (DEMO) */
+let shares = 0;
+function sharePage(){
+  shares++;
+  document.getElementById("shareCount").innerText = shares;
+  alert("Köszönjük a megosztást!");
+}
+
+loadSzakik();
+</script>
+
+</body>
+</html>

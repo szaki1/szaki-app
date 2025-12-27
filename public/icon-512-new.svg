@@ -1,0 +1,32 @@
+<svg width="512" height="512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Neon narancs háttér gradienssel -->
+  <defs>
+    <radialGradient id="bgGrad512" cx="50%" cy="50%">
+      <stop offset="0%" style="stop-color:#FF6B35;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#F7931E;stop-opacity:1" />
+    </radialGradient>
+  </defs>
+  
+  <!-- Háttér -->
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad512)"/>
+  
+  <!-- Fehér szerszám ikon (kalapács + csavarhúzó) nagyobb -->
+  <g transform="translate(256,256)">
+    <!-- Kalapács -->
+    <path d="M-95,-55 L-65,-55 L-65,0 L-55,0 L-55,95 L-65,95 L-65,110 L-95,110 L-95,95 L-105,95 L-105,0 L-95,0 Z" 
+          fill="#fff" stroke="#fff" stroke-width="5"/>
+    <rect x="-120" y="-80" width="80" height="40" rx="5" fill="#fff"/>
+    
+    <!-- Csavarhúzó -->
+    <path d="M40,-95 L70,-95 L70,80 L80,95 L80,110 L30,110 L30,95 L40,80 Z" 
+          fill="#fff" stroke="#fff" stroke-width="5"/>
+    <rect x="32" y="-120" width="46" height="32" rx="5" fill="#fff"/>
+  </g>
+  
+  <!-- Fehér kör körvonal a designhoz -->
+  <circle cx="256" cy="256" r="215" fill="none" stroke="#fff" stroke-width="8" opacity="0.3"/>
+  
+  <!-- "SZAKI" felirat -->
+  <text x="256" y="420" font-family="Arial, sans-serif" font-size="48" font-weight="bold" 
+        fill="#fff" text-anchor="middle">SZAKI</text>
+</svg>

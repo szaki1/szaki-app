@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8" />
+  <title>Profil kitöltése – SzakiChat</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f5f5f5;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .box {
+      background: #fff;
+      padding: 30px;
+      border-radius: 16px;
+      width: 100%;
+      max-width: 500px;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.12);
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 10px;
+      color: #ff9800;
+    }
+    .subtitle {
+      text-align: center;
+      color: #666;
+      font-size: 14px;
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      font-weight: bold;
+      margin-top: 14px;
+      margin-bottom: 4px;
+      font-size: 14px;
+    }
+    input, select, textarea {
+      width: 100%;
+      padding: 12px;
+      font-size: 16px;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+    }
+    textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+    .checkbox-group {
+      margin-top: 14px;
+      padding: 12px;
+      background: #f9f9f9;
+      border-radius: 10px;
+    }
+    .checkbox-group label {
+      display: flex;
+      align-items: center;
+      margin: 0;
+      font-weight: normal;
+    }
+    .checkbox-group input[type="checkbox"] {
+      width: auto;
+      margin-right: 8px;
+    }
+    button {
+      width: 100%;
+      padding: 14px;
+      font-size: 18px;
+      font-weight: bold;
+      border: none;
+      border-radius: 12px;
+      background: #ff9800;
+      color: white;
+      cursor: pointer;
+      margin-top: 20px;
+    }
+    button:hover {
+      background: #fb8c00;
+    }
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    .error {
+      color: red;
+      margin-top: 10px;
+      text-align: center;
+      font-weight: bold;
+    }
+    .optional {
+      color: #999;
+      font-weight: normal;
+      font-size: 13px;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="box">
+  <h1>👷 Profil kitöltése</h1>
+  <div class="subtitle">Töltsd ki a profil adataidat, hogy a megrendelők megtaláljanak!</div>
+
+  <div id="error" class="error"></div>
+
+  <label>Szakma *</label>
+  <select id="szakma" required>
+    <option value="">Válassz szakmát</option>
+    <option>Festő</option>
+    <option>Burkoló</option>
+    <option>Villanyszerelő</option>
+    <option>Vízszerelő</option>
+    <option>Gázszerelő</option>
+    <option>Gipszkartonos</option>
+    <option>Ács</option>
+    <option>Kőműves</option>
+    <option>Tetőfedő</option>
+    <option>Gyorsétkeztetési eladó</option>
+    <option>Ford diagnosztika</option>
+    <option>Parkettás</option>
+  </select>
+
+  <label>Város *</label>
+  <input type="text" id="varos" placeholder="pl. Budapest" required />
+
+  <label>Kerület <span class="optional">(opcionális, ha Budapesten dolgozol)</span></label>
+  <input type="number" id="kerulet" placeholder="pl. 13" min="1" max="23" />
+
+  <label>Telefonszám *</label>
+  <input type="tel" id="telefon" placeholder="pl. +36301234567" required />
+
+  <label>Szakmai tapasztalat (mióta dolgozol szakemberként?) *</label>
+  <input type="number" id="tapasztalat" placeholder="pl. 5" min="0" max="50" required />
+  <div style="font-size:12px;color:#666;margin-top:4px">Év(ek) száma</div>
+
+  <label>Óradíj <span class="optional">(opcionális, Ft/óra)</span></label>
+  <input type="number" id="oradij" placeholder="pl. 5000" min="0" step="500" />
+  <div style="font-size:12px;color:#666;margin-top:4px">Ha megadod, látni fogják a megrendelők</div>
+
+  <label>Bemutatkozás <span class="optional">(opcionális)</span></label>
+  <textarea id="bemutatkozas" placeholder="Írj pár sort magadról, milyen munkákat szoktál vállalni..."></textarea>
+
+  <div class="checkbox-group">
+    <label>
+      <input type="checkbox" id="teljesLakas" />
+      Teljes lakás/ház felújítást is vállalok
+    </label>
+  </div>
+
+  <button id="saveBtn" onclick="saveProfile()">Profil mentése</button>
+</div>
+
+<script type="module">
+import { auth, db } from "./firebase-config.js";
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {
+  doc, getDoc, updateDoc, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+let currentUser = null;
+
+onAuthStateChanged(auth, async (user) => {
+  if (!user) {
+    location.replace("login-szaki.html");
+    return;
+  }
+  currentUser = user;
+
+  // ✅ Meglévő adatok betöltése
+  const userSnap = await getDoc(doc(db, "users", user.uid));
+  if (userSnap.exists()) {
+    const data = userSnap.data();
+    if (data.szakma) document.getElementById("szakma").value = data.szakma;
+    if (data.varos) document.getElementById("varos").value = data.varos;
+    if (data.kerulet) document.getElementById("kerulet").value = data.kerulet;
+    if (data.telefon) document.getElementById("telefon").value = data.telefon;
+    if (data.tapasztalatEvek) document.getElementById("tapasztalat").value = data.tapasztalatEvek;
+    if (data.oradij) document.getElementById("oradij").value = data.oradij;
+    if (data.bemutatkozas) document.getElementById("bemutatkozas").value = data.bemutatkozas;
+    if (data.teljesLakasFelujitasVallal) document.getElementById("teljesLakas").checked = true;
+  }
+});
+
+window.saveProfile = async () => {
+  const errorBox = document.getElementById("error");
+  errorBox.textContent = "";
+
+  const szakma = document.getElementById("szakma").value;
+  const varos = document.getElementById("varos").value.trim();
+  const kerulet = document.getElementById("kerulet").value;
+  const telefon = document.getElementById("telefon").value.trim();
+  const tapasztalat = document.getElementById("tapasztalat").value;
+  const oradij = document.getElementById("oradij").value;
+  const bemutatkozas = document.getElementById("bemutatkozas").value.trim();
+  const teljesLakas = document.getElementById("teljesLakas").checked;
+
+  // Validáció
+  if (!szakma) {
+    errorBox.textContent = "Válassz szakmát!";
+    return;
+  }
+  if (!varos) {
+    errorBox.textContent = "Add meg a városod!";
+    return;
+  }
+  if (!telefon) {
+    errorBox.textContent = "Add meg a telefonszámodat!";
+    return;
+  }
+  if (!tapasztalat || tapasztalat < 0) {
+    errorBox.textContent = "Add meg a szakmai tapasztalatod (években)!";
+    return;
+  }
+
+  const saveBtn = document.getElementById("saveBtn");
+  saveBtn.disabled = true;
+  saveBtn.textContent = "Mentés...";
+
+  try {
+    const userRef = doc(db, "users", currentUser.uid);
+    
+    await updateDoc(userRef, {
+      szakma: szakma,
+      varos: varos,
+      kerulet: kerulet ? parseInt(kerulet) : null,
+      telefon: telefon,
+      revealsEarned: 0,  // Reklám kattintások száma (telefonszám feloldáshoz)
+      tapasztalatEvek: parseInt(tapasztalat),
+      oradij: oradij ? parseInt(oradij) : null,
+      bemutatkozas: bemutatkozas || "",
+      teljesLakasFelujitasVallal: teljesLakas,
+      profilKitoltve: true,
+      profilKitoltveIdopontja: serverTimestamp()
+    });
+
+    alert("✅ Profil sikeresen mentve!");
+    location.replace("dashboard.html");
+
+  } catch (err) {
+    console.error("Profil mentési hiba:", err);
+    errorBox.textContent = "Hiba a profil mentése során.";
+    saveBtn.disabled = false;
+    saveBtn.textContent = "Profil mentése";
+  }
+};
+</script>
+
+</body>
+</html>

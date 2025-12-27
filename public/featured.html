@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kiemelt szakemberek – SzakiChat AI</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            background: #ff8c00;
+            color: white;
+            padding: 18px;
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 30px auto;
+            padding: 10px;
+        }
+
+        .pro-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+        }
+
+        .pro-card img {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .name {
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .profession {
+            color: #555;
+            font-size: 15px;
+        }
+
+        .city {
+            color: #777;
+            font-size: 14px;
+        }
+
+        .back-btn {
+            display: block;
+            width: 200px;
+            margin: 30px auto;
+            background: #ff8c00;
+            color: white;
+            text-align: center;
+            padding: 12px;
+            font-size: 18px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .back-btn:hover {
+            background: #e67c00;
+        }
+    </style>
+
+    <script type="module">
+        import {
+            db,
+            collection,
+            query,
+            where,
+            onSnapshot
+        } from "./firebase-config.js";
+
+        const container = document.addEventListener("DOMContentLoaded", () => {
+            loadFeaturedProfessionals();
+        });
+
+        function loadFeaturedProfessionals() {
+            const colRef = collection(db, "users");   // Csak igazi szakik közül lehet kiemelni
+            const q = query(colRef, where("featured", "==", true));
+
+            onSnapshot(q, snapshot => {
+                const list = document.getElementById("featuredList");
+                list.innerHTML = "";
+
+                if (snapshot.empty) {
+                    list.innerHTML = "<p>Nincs kiemelt szakember.</p>";
+                    return;
+                }
+
+                snapshot.forEach(doc => {
+                    const d = doc.data();
+
+                    const card = document.createElement("div");
+                    card.className = "pro-card";
+
+                    card.innerHTML = `
+                        <img src="${d.avatar || 'https://i.pravatar.cc/150'}">
+                        <div>
+                            <div class="name">${d.name}</div>
+                            <div class="profession">${d.szakma}</div>
+                            <div class="city">${d.city}</div>
+                        </div>
+                    `;
+
+                    list.appendChild(card);
+                });
+            });
+        }
+    </script>
+</head>
+
+<body>
+
+<header>Kiemelt szakemberek ⭐</header>
+
+<div class="container">
+    <div id="featuredList"></div>
+</div>
+
+<a class="back-btn" href="index.html">⬅ Vissza a főoldalra</a>
+
+</body>
+</html>

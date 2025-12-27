@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8">
+  <title>Álszakik átmásolása users-be</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body style="padding:40px;max-width:600px;margin:auto">
+
+<h2>🔁 Álszakik → users</h2>
+<p>Egyszer futtasd. Utána ezt az oldalt törölheted.</p>
+
+<button id="runBtn" style="padding:14px 20px;font-size:16px">
+  87 álszaki átmásolása a users-be
+</button>
+
+<p id="log" style="margin-top:20px;font-weight:bold"></p>
+
+<script type="module">
+import {
+  db,
+  collection,
+  getDocs,
+  addDoc,
+  serverTimestamp
+} from "./firebase-config.js";
+
+const btn = document.getElementById("runBtn");
+const log = document.getElementById("log");
+
+btn.onclick = async () => {
+  btn.disabled = true;
+  log.innerText = "Másolás folyamatban...";
+
+  const fakeSnap = await getDocs(collection(db, "fakeProfessionals"));
+  let count = 0;
+
+  for (const doc of fakeSnap.docs) {
+    const d = doc.data();
+
+    await addDoc(collection(db, "users"), {
+      name: d.név || d.name || "Álszaki",
+      email: "fake_" + crypto.randomUUID() + "@szakichat.hu",
+      phone: d.Telefon || "0600000000",
+      role: "szaki",
+      szakma: d.Szakma || "Egyéb",
+      phoneVisible: false,
+      shareCount: 0,
+      featured: false,
+      isFake: true,
+      online: d.Online === true || d.online === true,
+      createdAt: serverTimestamp()
+    });
+
+    count++;
+  }
+
+  log.innerText = "✅ KÉSZ! Átmásolva: " + count + " álszaki.";
+};
+</script>
+
+</body>
+</html>

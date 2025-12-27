@@ -1,0 +1,104 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ===== HELPER FUNCTIONS =====
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // ===== RECOMMENDATIONS COLLECTION (megrendelő ajánlásai) =====
+    match /recommendations/{recId} {
+      // Létrehozás: csak autentikált felhasználó hozhat létre, és csak saját fromUid-jával
+      allow create: if isAuthenticated() && request.resource.data.fromUid == request.auth.uid;
+
+      // Olvasás: hitelesített felhasználók láthatják (helyi teszthez és éles olvasáshoz)
+      // (A fejlettebb korlátozást lehet később finomítani: csak fromUid/toUid szerint)
+      allow read: if isAuthenticated();
+
+      // Frissítés/törlés tiltva a biztonság miatt (ha szükséges, később módosítható)
+      allow update, delete: if false;
+    }
+
+    // ===== REVIEWS COLLECTION (értékelések / vélemények) =====
+    match /reviews/{reviewId} {
+      // Létrehozás: csak autentikált felhasználó írhat saját fromUid-jával
+      allow create: if isAuthenticated() && request.resource.data.fromUid == request.auth.uid;
+
+      // Olvasás: hitelesített felhasználók láthatják (teszt/alkalmazás működéshez)
+      allow read: if isAuthenticated();
+
+      // A szerző módosíthatja/törölheti saját review-ját
+      allow update, delete: if isAuthenticated() && resource.data.fromUid == request.auth.uid;
+    }
+    
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+    
+    function isChatParticipant(chatId) {
+      return chatId.matches('^' + request.auth.uid + '_.*') || 
+             chatId.matches('.*_' + request.auth.uid + '$');
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.email == 'chisnyan@gmail.com';
+    }
+    
+    // ===== USERS COLLECTION =====
+    match /users/{userId} {
+      // Mindenki olvashatja (statisztikához, szakik böngészéséhez)
+      allow read: if true;
+
+      // Csak saját profilt lehet létrehozni/írni (a felhasználó saját adatait szerkesztheti)
+      allow create: if isAuthenticated() && isOwner(userId);
+      allow update: if isAuthenticated() && isOwner(userId);
+
+      // A rating/recommendations mezőket kizárólag szerver-oldali logika (Cloud Functions / admin SDK)
+      // módosíthatja. Ügyfél oldali módosítás tiltva.
+
+      // Csak admin törölhet
+      allow delete: if isAdmin();
+    }
+    
+    // ===== CHATS COLLECTION =====
+    match /chats/{chatId} {
+      // Olvasás: 
+      // 1. Konkrét chat dokumentum - csak résztvevők
+      // 2. Lista query (inbox) - ha a where() tartalmazza a UID-et
+      allow read: if isAuthenticated() && (
+        isChatParticipant(chatId) || 
+        request.auth.uid in resource.data.keys() ||
+        resource.data.szakiId == request.auth.uid ||
+        resource.data.megrId == request.auth.uid
+      );
+      
+      // Létrehozás: bárki aki autentikált (első üzenet)
+      allow create: if isAuthenticated() && isChatParticipant(chatId);
+      
+      // Frissítés: csak résztvevők (lastMsg, lastAt, unreadCount mezők)
+      allow update: if isAuthenticated() && isChatParticipant(chatId);
+      
+      // Törlés: csak a résztvevők
+      allow delete: if isAuthenticated() && isChatParticipant(chatId);
+      
+      // ===== MESSAGES SUBCOLLECTION =====
+      match /messages/{messageId} {
+        // Csak a chat résztvevői olvashatják az üzeneteket
+        allow read: if isAuthenticated() && isChatParticipant(chatId);
+        
+        // Csak a feladó írhat új üzenetet (from mező == auth.uid)
+        allow create: if isAuthenticated() && 
+                        isChatParticipant(chatId) && 
+                        request.resource.data.from == request.auth.uid;
+        
+        // Üzenet módosítás: csak a chat résztvevői, és csak a seenAt mezőt módosíthatják
+        allow update: if isAuthenticated() && isChatParticipant(chatId) &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['seenAt']);
+        // Törlés továbbra sem engedélyezett
+        allow delete: if false;
+      }
+    }
+  }
+}

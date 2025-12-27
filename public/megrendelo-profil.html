@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Megrendelő Profil</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+      .fixed-buttons {
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        gap: 10px;
+        z-index: 1000;
+      }
+      .profession-container {
+        display: none;
+        margin-top: 16px;
+        max-height: 300px;
+        overflow-y: auto;
+        border: 1px solid #ccc;
+        border-radius: 10px;
+        padding: 10px;
+        background: #f9f9f9;
+      }
+      .profession-btn {
+        display: block;
+        margin: 6px 0;
+        padding: 8px 12px;
+        border-radius: 6px;
+        border: 1px solid #ccc;
+        background: #fff;
+        cursor: pointer;
+        font-weight: bold;
+        text-align: left;
+      }
+    </style>
+</head>
+<body>
+    <header style="padding:16px">
+        <h1 style="margin:0">Üdvözlünk a Megrendelő Profilodon!</h1>
+    </header>
+
+    <!-- Nagy, kiemelt bejövő-üzenetek számláló (2. sor) -->
+    <div id="bigInboxRow" style="display:flex;flex-direction:column;align-items:center;padding:12px 16px">
+        <button id="headerInboxBtn" style="font-size:2.5rem;line-height:1;padding:18px 28px;border-radius:14px;border:1px solid #e0e0e0;background:#fff;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,0.08);">
+            📥 Bejövő üzenetek (0)
+        </button>
+        <!-- Beszélgetéseim gomb és lista JS-ből generálva -->
+        <div id="convosContainer"></div>
+    </div>
+    <script type="module">
+    // ...existing code...
+    // --- Beszélgetéseim gomb és lista (csak JS-ből, csak bejelentkezve!) ---
+    const convosContainer = document.getElementById('convosContainer');
+    let convosOpen = false;
+    let convosList = null;
+    let convosToggleBtn = null;
+    function setupConvosUI(user) {
+        convosContainer.innerHTML = '';
+        convosToggleBtn = document.createElement('button');
+        convosToggleBtn.id = 'convosToggleBtn';
+        convosToggleBtn.textContent = '💬 Beszélgetéseim';
+        convosToggleBtn.style.cssText = 'margin-top:18px;font-size:1.2rem;padding:10px 22px;border-radius:10px;border:1px solid #2196f3;background:#e3f2fd;color:#1976d2;cursor:pointer;font-weight:bold;box-shadow:0 2px 8px rgba(33,150,243,0.08);';
+        convosList = document.createElement('div');
+        convosList.id = 'convosList';
+        convosList.style.cssText = 'display:none;max-height:260px;overflow-y:auto;width:100%;background:#fff;border-radius:10px;margin-top:8px;box-shadow:0 2px 12px rgba(0,0,0,0.08);padding:8px 0 8px 0;';
+        convosContainer.appendChild(convosToggleBtn);
+        convosContainer.appendChild(convosList);
+        convosToggleBtn.addEventListener('click', async () => {
+            convosOpen = !convosOpen;
+            convosList.style.display = convosOpen ? 'block' : 'none';
+            if (convosOpen) {
+                convosList.innerHTML = '<div style="text-align:center;color:#888;padding:12px">Betöltés...</div>';
+                if (!user) return;
+                const chatsCol = collection(db, 'chats');
+                const chatQ = query(chatsCol, where('megrId', '==', user.uid));
+                const chatSnap = await getDocs(chatQ);
+                if (chatSnap.empty) {
+                    convosList.innerHTML = '<div style="text-align:center;color:#888;padding:12px">Még nincs beszélgetésed.</div>';
+                    return;
+                }
+                convosList.innerHTML = '';
+                chatSnap.forEach(docSnap => {
+                    const d = docSnap.data();
+                    if (!d.szakiId) return;
+                    const szakiName = d.szakiName || d.szakiId;
+                    const szakma = d.szakma || '';
+                    const lastMsg = d.lastMsg ? ` – ${d.lastMsg.slice(0,40)}` : '';
+                    const row = document.createElement('div');
+                    row.style.cssText = 'padding:10px 18px;cursor:pointer;display:flex;align-items:center;gap:10px;border-bottom:1px solid #f0f0f0;font-size:1.05rem;';
+                    row.innerHTML = `<span style=\"font-weight:bold;color:#1976d2\">${szakiName}</span> <span style=\"color:#888;font-size:0.98em\">${szakma}</span> <span style=\"color:#aaa;font-size:0.93em\">${lastMsg}</span>`;
+                    row.onclick = () => location.href = `chat.html?szakiId=${d.szakiId}`;
+                    convosList.appendChild(row);
+                });
+            }
+        });
+    }
+    // ...existing code...
+    </script>
+
+
+    <main>
+        <section>
+            <p id="userInfo">Betöltés...</p>
+            <p id="userEmail">Email: Betöltés...</p>
+            <p id="userPhone">Telefonszám: Betöltés...</p>
+            <p id="userCity">Város (munkavégzés helye): Betöltés...</p>
+        </section>
+
+        <!-- Szakma választó gombok -->
+        <div style="text-align:center;margin-top:24px">
+          <button id="toggleProfessions" style="font-size:1.8rem;line-height:1;padding:14px 20px;border-radius:10px;border:1px solid #e0e0e0;background:#fff;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,0.08);">
+            🛠️ SZAKMA VÁLASZTÁS
+          </button>
+        </div>
+
+        <div id="professionContainer" class="profession-container">
+          <!-- Görgethető szakma lista -->
+          <button class="profession-btn" data-profession="Festő">🎨 Festő</button>
+          <button class="profession-btn" data-profession="Burkoló">🔨 Burkoló</button>
+          <button class="profession-btn" data-profession="Villanyszerelő">⚡ Villanyszerelő</button>
+          <button class="profession-btn" data-profession="Vízszerelő">🔧 Vízszerelő</button>
+          <button class="profession-btn" data-profession="Gázszerelő">🔥 Gázszerelő</button>
+          <button class="profession-btn" data-profession="Gyorsétkeztetési eladó">🍔 Gyorsétkeztetési eladó</button>
+          <button class="profession-btn" data-profession="Ford diagnosztika">🚗 Ford diagnosztika</button>
+        </div>
+
+        <!-- Keresés mező -->
+        <div style="margin:18px 0 0 0;max-width:500px;margin-left:auto;margin-right:auto;">
+            <input type="text" id="searchInput" placeholder="🔍 Keresés név, város vagy kerület szerint..." style="width:100%;padding:12px;font-size:16px;border-radius:10px;border:1px solid #ccc;box-sizing:border-box" />
+        </div>
+
+        <!-- Szaki lista -->
+        <div id="list" style="margin-top:18px;"></div>
+
+    </main>
+
+    <!-- Hang és PWA gombok -->
+    <div class="fixed-buttons">
+      <button id="soundToggle" style="background:#4caf50;color:#fff;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:14px">
+        🔊 Hang
+      </button>
+      <button id="honestyBox" onclick="window.open('https://www.paypal.com/donate/?hosted_button_id=QGU3WXVSCH22A','_blank')" style="background:linear-gradient(135deg,#2ecc71,#27ae60);color:#fff;padding:12px 18px;border-radius:28px;font-weight:bold;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,0.25);">
+        💰 Becsület kassza
+      </button>
+      <button id="donateBtn" onclick="window.open('https://www.paypal.com/donate/?hosted_button_id=QGU3WXVSCH22A','_blank')" style="background:#ff2d55;color:#fff;padding:12px 18px;border-radius:30px;font-weight:bold;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.25);">
+        ❤️ Adomány
+      </button>
+    </div>
+
+    <script src="draggable-buttons.js"></script>
+
+    <script type="module" src="firebase-config.js"></script>
+    <script type="module">
+        import { auth, db } from './firebase-config.js';
+        import { onAuthStateChanged, sendPasswordResetEmail } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+        import { doc, getDoc, collection, query, where, getDocs, addDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+
+        // --- Szakik listázása, keresés, szakma szűrés ---
+        let allSzakikData = [];
+        let selectedProfession = null;
+
+        function formatName(fullName) {
+            if (!fullName) return "Névtelen";
+            const parts = fullName.trim().split(" ");
+            if (parts.length === 1) return parts[0];
+            const firstName = parts[0];
+            const restName = parts.slice(1).join(" ");
+            return `${firstName.charAt(0)}. ${restName}`;
+        }
+
+        function renderFilteredSzakik() {
+            const list = document.getElementById('list');
+            if (!list) return;
+            let szakik = allSzakikData;
+            const search = (document.getElementById('searchInput')?.value || '').toLowerCase();
+            if (selectedProfession) {
+                szakik = szakik.filter(sz => sz.szakma === selectedProfession);
+            }
+            if (search) {
+                szakik = szakik.filter(sz =>
+                    (sz.name && sz.name.toLowerCase().includes(search)) ||
+                    (sz.varos && sz.varos.toLowerCase().includes(search)) ||
+                    (sz.kerulet && sz.kerulet.toLowerCase().includes(search))
+                );
+            }
+            list.innerHTML = '';
+            if (szakik.length === 0) {
+                list.innerHTML = '<div style="text-align:center;color:#888;padding:18px">Nincs találat.</div>';
+                return;
+            }
+            szakik.forEach(szaki => {
+                const div = document.createElement('div');
+                div.className = 'card';
+                div.innerHTML = `
+                  <div style="display:flex;justify-content:space-between;align-items:start">
+                    <div class="name">${formatName(szaki.name)}</div>
+                  </div>
+                  <div class="status">${szaki.status || ''}</div>
+                  ${szaki.ratingStars || ''}
+                  ${szaki.recsText || ''}
+                  ${szaki.priceText || ''}
+                  ${szaki.infoText ? `<div class="desc" style="font-size:13px;color:#666;margin-top:4px">${szaki.infoText}</div>` : ''}
+                  ${szaki.desc ? `<div class="desc" style="margin-top:6px">${szaki.desc}</div>` : ''}
+                `;
+                div.onclick = () => {
+                    location.href = `chat.html?szakiId=${szaki.id}`;
+                };
+                list.appendChild(div);
+            });
+        }
+
+        async function loadSzakik(profession = null) {
+            selectedProfession = profession;
+            let szakikCol = collection(db, 'users');
+            let szakikQ = query(szakikCol, where('role', '==', 'szaki'), where('isFake', '!=', true));
+            if (profession) {
+                szakikQ = query(szakikCol, where('role', '==', 'szaki'), where('isFake', '!=', true), where('szakma', '==', profession));
+            }
+            const snap = await getDocs(szakikQ);
+            allSzakikData = [];
+            snap.forEach(doc => {
+                const d = doc.data();
+                allSzakikData.push({
+                    id: doc.id,
+                    name: d.name,
+                    szakma: d.szakma,
+                    varos: d.varos,
+                    kerulet: d.kerulet,
+                    status: d.online ? '<span class="on">Online</span>' : '<span class="off">Offline</span>',
+                    ratingStars: d.rating ? '⭐'.repeat(Math.round(d.rating)) : '',
+                    recsText: d.recommendations ? `<span style="color:#2196f3;font-weight:bold">Ajánlások: ${d.recommendations}</span>` : '',
+                    priceText: d.price ? `<span style="color:#888">${d.price} Ft/óra</span>` : '',
+                    infoText: d.info,
+                    desc: d.desc
+                });
+            });
+            renderFilteredSzakik();
+        }
+
+        // --- Eseménykezelők ---
+        window.addEventListener("DOMContentLoaded", () => {
+            // Szakma gombok
+            document.querySelectorAll('.profession-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const profession = btn.dataset.profession;
+                    loadSzakik(profession);
+                });
+            });
+            // Keresés input
+            const searchInput = document.getElementById('searchInput');
+            if (searchInput) {
+                searchInput.addEventListener('input', () => {
+                    renderFilteredSzakik();
+                });
+            }
+            // Hang gomb
+            const soundToggleBtn = document.getElementById('soundToggle');
+            if (soundToggleBtn) {
+                soundToggleBtn.addEventListener('click', () => {
+                    const currentState = localStorage.getItem('notificationSound') !== 'false';
+                    const newState = !currentState;
+                    localStorage.setItem('notificationSound', newState);
+                    soundToggleBtn.textContent = newState ? '🔊 Hang' : '🔇 Hang';
+                    soundToggleBtn.style.background = newState ? '#4caf50' : '#9e9e9e';
+                    alert(newState ? '🔊 Csipogó hang BEKAPCSOLVA' : '🔇 Csipogó hang KIKAPCSOLVA (csak rezgés)');
+                });
+            }
+            // Alapértelmezett szaki lista betöltés
+            loadSzakik();
+        });
+
+        // --- Profil és chat logika (meglévő kód) ---
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) {
+                location.replace('index.html');
+                return;
+            }
+
+            const userDoc = await getDoc(doc(db, 'users', user.uid));
+            if (!userDoc.exists() || userDoc.data().role !== 'megrendelo') {
+                location.replace('index.html');
+                return;
+            }
+
+            const userData = userDoc.data();
+            document.getElementById('userInfo').textContent = `Név: ${userData.name}`;
+            document.getElementById('userEmail').textContent = `Email: ${userData.email || user.email || 'nincs megadva'}`;
+            document.getElementById('userPhone').textContent = `Telefonszám: ${userData.telefon || userData.phone || 'nincs megadva'}`;
+            document.getElementById('userCity').textContent = `Város (munkavégzés helye): ${userData.varos || userData.city || 'nincs megadva'}`;
+
+            // Áthelyezzük a kilépés gombot a profil infó alá
+            const logoutSmall = document.createElement('div');
+            logoutSmall.style.marginTop = '8px';
+            logoutSmall.innerHTML = '<button id="logoutSmallBtn" style="padding:8px 12px;border-radius:8px;border:1px solid #ccc;background:#fff;cursor:pointer">Kilépés</button>';
+            document.querySelector('main section:nth-of-type(1)').appendChild(logoutSmall);
+            document.getElementById('logoutSmallBtn').addEventListener('click', logout);
+
+            // Jelszó megjelenítése NEM ENGEDÉLYEZETT biztonsági okokból.
+            // Helyette kínáljuk a jelszó-visszaállító link küldését az emailre.
+            document.getElementById('sendResetBtn').addEventListener('click', async () => {
+                const status = document.getElementById('resetStatus');
+                status.textContent = 'Küldés folyamatban…';
+                try {
+                    const targetEmail = userData.email || user.email;
+                    if (!targetEmail) throw new Error('Nincs elérhető email cím a fiókhoz.');
+                    await sendPasswordResetEmail(auth, targetEmail);
+                    status.textContent = 'A jelszó-visszaállító link elküldve az email címre.';
+                } catch (err) {
+                    console.error('Jelszó visszaállító küldés hiba:', err);
+                    status.textContent = 'Hiba: nem sikerült elküldeni. Ellenőrizd az email címet.';
+                }
+            });
+            // Bejövő üzenetek számláló: összes unreadCountMegr összeadása a chats gyűjteményből
+            try {
+                const chatsCol = collection(db, 'chats');
+                const chatQ = query(chatsCol, where('megrId', '==', user.uid));
+                const chatSnap = await getDocs(chatQ);
+                let unreadTotal = 0;
+                chatSnap.forEach(c => {
+                    const cd = c.data();
+                    const u = cd.unreadCountMegr || 0;
+                    unreadTotal += u;
+                });
+
+                // Frissítsük a fejléc Bejövő üzenetek gomb feliratát
+                const headerBtn = document.getElementById('headerInboxBtn');
+                if (headerBtn) {
+                    headerBtn.textContent = `📥 Bejövő üzenetek (${unreadTotal})`;
+                    headerBtn.onclick = () => location.href = 'megrendelo-inbox.html';
+                }
+            } catch (err) {
+                console.error('Bejövő üzenetek számláló lekérése sikertelen:', err);
+            }
+
+            // ...nincs több teszt-gomb vagy ajánlás statisztika...
+            // Beszélgetéseim gomb csak bejelentkezve
+            setupConvosUI(user);
+        });
+
+        function logout() {
+            auth.signOut().then(() => {
+                location.replace('index.html');
+            });
+        }
+    </script>
+    <script>
+      document.getElementById('toggleProfessions').addEventListener('click', () => {
+        const container = document.getElementById('professionContainer');
+        container.style.display = container.style.display === 'none' ? 'block' : 'none';
+      });
+
+      // Szakmák rendezése ABC szerint (példa, ha dinamikusan töltjük be Firestore-ból)
+      const professions = [
+        { name: "Festő", icon: "🎨" },
+        { name: "Burkoló", icon: "🔨" },
+        { name: "Villanyszerelő", icon: "⚡" },
+        { name: "Vízszerelő", icon: "🔧" },
+        { name: "Gázszerelő", icon: "🔥" },
+        { name: "Gyorsétkeztetési eladó", icon: "🍔" },
+        { name: "Ford diagnosztika", icon: "🚗" }
+      ];
+
+      professions.sort((a, b) => a.name.localeCompare(b.name, "hu"));
+
+      const professionContainer = document.getElementById("professionContainer");
+      professionContainer.innerHTML = "";
+      professions.forEach(prof => {
+        const btn = document.createElement("button");
+        btn.className = "profession-btn";
+        btn.textContent = `${prof.icon} ${prof.name}`;
+        btn.dataset.profession = prof.name;
+        professionContainer.appendChild(btn);
+      });
+    </script>
+</body>
+</html>
