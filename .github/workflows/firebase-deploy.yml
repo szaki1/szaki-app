@@ -1,6 +1,7 @@
 # 🚀 Firebase Hosting automatikus deployment workflow
 # Ez a workflow minden push esetén automatikusan telepíti az alkalmazást Firebase Hosting-ra
 # Token-alapú authentikációt használ, ami biztonságos és nem igényel interaktív bejelentkezést
+# Tisztán statikus site - nincs build lépés vagy package.json
 
 name: 🚀 Firebase Hosting Deploy
 
@@ -24,16 +25,9 @@ jobs:
       - name: 📦 Checkout repository
         uses: actions/checkout@v4
       
-      # 🔧 Node.js környezet beállítása
-      # Node.js 20 LTS verzió használata npm cache-eléssel a gyorsabb telepítésért
-      - name: 🔧 Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-      
       # 📥 Firebase CLI telepítése
       # A firebase-tools globális telepítése szükséges a deployment parancsok futtatásához
+      # npx használata csomagkezelés nélkül
       - name: 📥 Install Firebase CLI
         run: npm install -g firebase-tools
       
