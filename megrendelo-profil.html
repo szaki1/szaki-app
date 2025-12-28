@@ -75,23 +75,22 @@
 
 <div class="container">
 
-    <!-- BEJÖVŐ ÜZENETEK -->
+    <!-- BEJÖVŐ ÜZENETEK (bigInboxRow) -->
     <div class="box">
         <b>📩 Bejövő üzenetek</b>
         <div id="incomingMessages" class="infoText" style="margin-top:12px; font-size:16px;">0</div>
         <div id="messagesList" style="margin-top:12px; max-height:300px; overflow-y:auto;"></div>
     </div>
 
-    <!-- SZAKMA VÁLASZTÁS - KÖZVETLENÜL A BEJÖVŐ ÜZENETEK ALATT -->
-    <div class="box">
-        <b>⚙️ SZAKMA VÁLASZTÁS</b>
-        <input id="professionSearch" type="text" placeholder="Keresés név, város vagy kerület szerint..." style="margin-top:8px;">
-        
-        <!-- SZAKMÁK LISTÁJA KÖZVETLENÜL ALATTA -->
-        <div id="professionDropdown" style="margin-top:12px; max-height:280px; overflow-y:auto; border:1px solid #ddd; border-radius:8px; background:#fafafa;">
-            <div style="text-align:center; color:#999; padding:20px;">Betöltés...</div>
-        </div>
-    </div>
+</div>
+
+<!-- SZAKMA VÁLASZTÁS - HEADER + INBOX után, még a main előtt -->
+<div id="professionSection" style="text-align:center; margin-top:24px;">
+    <button id="toggleProfessions" class="btn" style="width:90%; margin:14px auto; display:block;">🛠️ SZAKMA VÁLASZTÁS</button>
+    <div id="professionContainer" class="profession-container" style="max-width:480px; margin:0 auto; background:white; border-radius:12px; padding:18px; box-shadow:0 2px 10px rgba(0,0,0,0.08); margin:14px;"></div>
+</div>
+
+<div class="container">
 
     <!-- VÁROS SZERKESZTÉS -->
     <div class="box">
@@ -312,30 +311,38 @@ async function loadProfessions() {
 }
 
 function renderProfessions(items) {
-    const dropdown = document.getElementById("professionDropdown");
+    const dropdown = document.getElementById("professionContainer");
 
     if (items.length === 0) {
         dropdown.innerHTML = "<div style='padding:10px; color:#999;'>Nincsenek szakmák.</div>";
         return;
     }
 
-    dropdown.innerHTML = items.map(p => `
-        <div class="profession-item" onclick="selectProfession('${p}')" title="${p}">
-            ${p}
+    dropdown.innerHTML = `
+        <input id="professionSearch" type="text" placeholder="Keresés név, város vagy kerület szerint..." style="margin-top:8px; width:100%; padding:12px; border-radius:8px; border:1px solid #ccc; font-size:16px; box-sizing:border-box;">
+        <div style="margin-top:12px; max-height:280px; overflow-y:auto; border:1px solid #ddd; border-radius:8px; background:#fafafa;">
+            ${items.map(p => `
+                <div class="profession-item" onclick="selectProfession('${p}')" title="${p}">
+                    ${p}
+                </div>
+            `).join("")}
         </div>
-    `).join("");
+    `;
+
+    // Reattach search functionality
+    document.getElementById("professionSearch").oninput = (e) => {
+        const searchQuery = e.target.value.toLowerCase();
+        const filtered = allProfessions.filter(p => 
+            p.toLowerCase().includes(searchQuery)
+        );
+        renderProfessions(filtered);
+    };
 }
 
 /* ============================================================
    KERESÉS A SZAKMÁK KÖZÖTT
 ============================================================ */
-document.getElementById("professionSearch").oninput = (e) => {
-    const searchQuery = e.target.value.toLowerCase();
-    const filtered = allProfessions.filter(p => 
-        p.toLowerCase().includes(searchQuery)
-    );
-    renderProfessions(filtered);
-};
+// Handler hozzáadva renderProfessions-ben
 
 /* ============================================================
    SZAKMA KIVÁLASZTÁSA
