@@ -82,15 +82,32 @@
         <div id="messagesList" style="margin-top:12px; max-height:300px; overflow-y:auto;"></div>
     </div>
 
-    <!-- SZAKMA VÁLASZTÁS - RÖGZÍTETT SORREND -->
+    <!-- SZAKMA VÁLASZTÁS - KÖZVETLENÜL A BEJÖVŐ ÜZENETEK ALATT -->
     <div class="box">
         <b>⚙️ SZAKMA VÁLASZTÁS</b>
         <input id="professionSearch" type="text" placeholder="Keresés név, város vagy kerület szerint..." style="margin-top:8px;">
         
-        <!-- KÖZVETLENÜL ALATTA A SZAKMÁK LISTÁJA -->
+        <!-- SZAKMÁK LISTÁJA KÖZVETLENÜL ALATTA -->
         <div id="professionDropdown" style="margin-top:12px; max-height:280px; overflow-y:auto; border:1px solid #ddd; border-radius:8px; background:#fafafa;">
             <div style="text-align:center; color:#999; padding:20px;">Betöltés...</div>
         </div>
+    </div>
+
+    <!-- VÁROS SZERKESZTÉS -->
+    <div class="box">
+        <b>Hol keresel szakembert?</b>
+        <select id="citySelect">
+            <option value="">Válassz várost</option>
+            <option>Budapest</option>
+            <option>Gödöllő</option>
+            <option>Vác</option>
+            <option>Kecskemét</option>
+            <option>Debrecen</option>
+            <option>Szeged</option>
+            <option>Pécs</option>
+            <option>Győr</option>
+        </select>
+        <button class="btn" id="saveCityBtn">Város mentése</button>
     </div>
 
     <!-- PROFIL ADATOK -->
@@ -110,23 +127,6 @@
                 <b>Város:</b> <span id="cityDisplay">Betöltés...</span>
             </div>
         </div>
-    </div>
-
-    <!-- VÁROS SZERKESZTÉS -->
-    <div class="box">
-        <b>Hol keresel szakembert?</b>
-        <select id="citySelect">
-            <option value="">Válassz várost</option>
-            <option>Budapest</option>
-            <option>Gödöllő</option>
-            <option>Vác</option>
-            <option>Kecskemét</option>
-            <option>Debrecen</option>
-            <option>Szeged</option>
-            <option>Pécs</option>
-            <option>Győr</option>
-        </select>
-        <button class="btn" id="saveCityBtn">Város mentése</button>
     </div>
 
     <!-- MEGOSZTÁS -->
