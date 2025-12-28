@@ -66,6 +66,18 @@
         .profession-item:hover {
             background:#f9f9f9;
         }
+
+        .profession-container {
+            display: none;              /* ALAPBÓL REJTETT */
+            margin: 12px auto 0 auto;
+            width: 320px;
+            max-height: 240px;
+            overflow-y: auto;
+            border: 1px solid #ccc;
+            border-radius: 12px;
+            padding: 10px;
+            background: #f9f9f9;
+        }
     </style>
 </head>
 
@@ -87,7 +99,7 @@
 <!-- SZAKMA VÁLASZTÁS - HEADER + INBOX után, még a main előtt -->
 <div id="professionSection" style="text-align:center; margin-top:24px;">
     <button id="toggleProfessions" class="btn" style="width:90%; margin:14px auto; display:block;">🛠️ SZAKMA VÁLASZTÁS</button>
-    <div id="professionContainer" class="profession-container" style="max-width:480px; margin:0 auto; background:white; border-radius:12px; padding:18px; box-shadow:0 2px 10px rgba(0,0,0,0.08); margin:14px;"></div>
+    <div id="professionContainer" class="profession-container"></div>
 </div>
 
 <div class="container">
@@ -319,8 +331,8 @@ function renderProfessions(items) {
     }
 
     dropdown.innerHTML = `
-        <input id="professionSearch" type="text" placeholder="Keresés név, város vagy kerület szerint..." style="margin-top:8px; width:100%; padding:12px; border-radius:8px; border:1px solid #ccc; font-size:16px; box-sizing:border-box;">
-        <div style="margin-top:12px; max-height:280px; overflow-y:auto; border:1px solid #ddd; border-radius:8px; background:#fafafa;">
+        <input id="professionSearch" type="text" placeholder="Keresés..." style="width:100%; padding:10px; border-radius:8px; border:1px solid #ccc; font-size:14px; box-sizing:border-box; margin-bottom:8px;">
+        <div style="max-height:200px; overflow-y:auto;">
             ${items.map(p => `
                 <div class="profession-item" onclick="selectProfession('${p}')" title="${p}">
                     ${p}
@@ -357,6 +369,15 @@ window.selectProfession = function(profession) {
 window.openChat = function(chatID, szakiID) {
     window.location.href = `chat.html?chatID=${chatID}&partner=${szakiID}&role=megrendelo`;
 };
+
+
+/* ============================================================
+   SZAKMA VÁLASZTÁS TOGGLE
+============================================================ */
+document.getElementById('toggleProfessions').addEventListener('click', () => {
+    const c = document.getElementById('professionContainer');
+    c.style.display = (c.style.display === 'block') ? 'none' : 'block';
+});
 </script>
 
 </body>
