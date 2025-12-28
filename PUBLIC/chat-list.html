@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <title>Chat lista – SzakiChat</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+
+    <style>
+        body { background:#f4f4f4; margin:0; font-family:Arial; }
+        header {
+            background:#007aff; color:white; padding:16px;
+            text-align:center; font-size:20px; font-weight:bold;
+        }
+        .chatItem {
+            background:white; padding:16px; border-radius:12px;
+            box-shadow:0 2px 10px rgba(0,0,0,0.08);
+            margin:12px; display:flex;
+            justify-content:space-between; align-items:center;
+            cursor:pointer;
+        }
+        .chatName { font-size:17px; font-weight:bold; }
+        .lastMsg { color:#666; font-size:14px; margin-top:4px; }
+        .statusIcon { font-size:22px; }
+    </style>
+</head>
+
+<body>
+
+<header>Beszélgetések</header>
+
+<div id="chatList">Betöltés...</div>
+
+<!-- ❤️ Lebegő PayPal gomb -->
+<div id="supportFloatingBtn"
+     onclick="window.open('https://www.paypal.com/donate/?hosted_button_id=QGU3WXVSCH22A','_blank')">
+    <span class="heart">❤️</span> Támogasd a SzakiChat-et
+</div>
+
+
+<script type="module">
+import { auth, db } from "./firebase-config.js";
+
+import {
+    onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+import {
+    doc,
+    getDoc
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+
+let uid = null;
+
+onAuthStateChanged(auth, async (user) => {
+    if (!user) return window.location.href = "login.html";
+    uid = user.uid;
+    loadChatList();
+});
+
+
+/* ============================================================
+   CHAT LISTA BETÖLTÉSE (users → chatList)
+============================================================ */
+async function loadChatList() {
+    const listDiv = document.getElementById("chatList");
+    listDiv.innerHTML = "Betöltés...";
+
+    const userRef = doc(db, "users", uid);
+    const snap = await getDoc(userRef);
+
+    if (!snap.exists()) {
+        listDiv.innerHTML = "<p>Nincs adat.</p>";
+        return;
+    }
+
+    const data = snap.data();
+    const chatList = data.chatList || {};
+
+    if (Object.keys(chatList).length === 0) {
+        listDiv.innerHTML = "<p style='text-align:center;margin-top:30px;'>Nincs még beszélgetés.</p>";
+        return;
+    }
+
+    listDiv.innerHTML = "";
+
+    for (const chatId of Object.keys(chatList)) {
+        const entry = chatList[chatId];
+
+        // partner adatok
+        const partnerName = entry.name || "Ismeretlen";
+        const partnerOnline = entry.online || false;
+
+        // legutóbbi üzenet (chatSessions-ből)
+        const sessionRef = doc(db, "chatSessions", chatId);
+        const sessionSnap = await getDoc(sessionRef);
+
+        const lastMessage = sessionSnap.exists()
+            ? (sessionSnap.data().lastMessage || "Nincs üzenet")
+            : "Nincs üzenet";
+
+        // DIV létrehozás
+        const div = document.createElement("div");
+        div.className = "chatItem";
+        div.onclick = () => {
+            window.location.href =
+                `chat.html?chatId=${chatId}&partner=${encodeURIComponent(partnerName)}`;
+        };
+
+        div.innerHTML = `
+            <div>
+                <div class="chatName">${partnerName}</div>
+                <div class="lastMsg">${lastMessage}</div>
+            </div>
+            <div class="statusIcon">${partnerOnline ? "🟢" : "⚪"}</div>
+        `;
+
+        listDiv.appendChild(div);
+    }
+}
+</script>
+
+</body>
+</html>    const userSnap = await getDoc(userRef);
+
+    if (!userSnap.exists()) {
+        listDiv.innerHTML = "<p>Nincs adat.</p>";
+        return;
+    }
+
+    const data = userSnap.data();
+    const chatList = data.chatList || {};
+
+    if (Object.keys(chatList).length === 0) {
+        listDiv.innerHTML = "<p style='text-align:center;margin-top:30px;'>Nincs még beszélgetés.</p>";
+        return;
+    }
+
+    listDiv.innerHTML = "";
+
+    // chatList objektum → tömb
+    for (const chatId of Object.keys(chatList)) {
+        const entry = chatList[chatId];
+
+        const partnerUid = entry.uid;
+        const partnerName = entry.name;
+
+        // chat session lekérése a lastMessage miatt
+        const sessionRef = doc(db, "chatSessions", chatId);
+        const sessionSnap = await getDoc(sessionRef);
+
+        const session = sessionSnap.exists()
+            ? sessionSnap.data()
+            : { lastMessage: "", lastTime: null };
+
+        const div = document.createElement("div");
+        div.className = "chatItem";
+
+        div.onclick = () => {
+            window.location.href =
+                `chat.html?chatId=${chatId}&partner=${encodeURIComponent(partnerName)}`;
+        };
+
+        div.innerHTML = `
+            <div>
+                <div class="chatName">${partnerName}</div>
+                <div class="lastMsg">${session.lastMessage || "Nincs üzenet"}</div>
+            </div>
+            <div class="statusIcon">${entry.online ? "🟢" : "⚪"}</div>
+        `;
+
+        listDiv.appendChild(div);
+    }
+}
+
+</script>
+
+</body>
+</html>        .chatName {
+            font-size:17px;
+            font-weight:bold;
+        }
+
+        .lastMsg {
+            color:#666;
+            font-size:14px;
+            margin-top:4px;
+        }
+
+        .statusIcon {
+            font-size:22px;
+        }
+    </style>
+</head>
+
+<body>
+
+<header>Beszélgetések</header>
+
+<div id="chatList">Betöltés...</div>
+
+<!-- ❤️ Lebegő támogatás -->
+<div id="supportFloatingBtn"
+     onclick="window.open('https://www.paypal.com/donate/?hosted_button_id=QGU3WXVSCH22A','_blank')">
+    <span class="heart">❤️</span> Támogasd a SzakiChat-et
+</div>
+
+
+<script type="module">
+/* ============================================================
+   FIREBASE IMPORT
+============================================================ */
+import { auth, db } from "./firebase-config.js";
+
+import {
+    onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+import {
+    collection,
+    query,
+    where,
+    orderBy,
+    getDocs,
+    doc,
+    getDoc
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+
+/* ============================================================
+   FELHASZNÁLÓ BEJELENTKEZÉS ELLENŐRZÉS
+============================================================ */
+let uid = null;
+
+onAuthStateChanged(auth, async (user) => {
+    if (!user) return window.location.href = "login.html";
+
+    uid = user.uid;
+    loadChatList();
+});
+
+
+/* ============================================================
+   CHAT LISTA BETÖLTÉSE
+============================================================ */
+async function loadChatList() {
+    const list = document.getElementById("chatList");
+    list.innerHTML = "Betöltés...";
+
+    // chats ahol a user résztvevő
+    const q = query(
+        collection(db, "chats"),
+        where("participants", "array-contains", uid),
+        orderBy("lastTimestamp", "desc")
+    );
+
+    const snap = await getDocs(q);
+
+    if (snap.empty) {
+        list.innerHTML = "<p style='text-align:center; margin-top:30px;'>Nincs még beszélgetés.</p>";
+        return;
+    }
+
+    list.innerHTML = "";
+
+    for (const docu of snap.docs) {
+        const chat = docu.data();
+        const chatID = docu.id;
+
+        // partner ID meghatározása
+        const partnerID = chat.participants.find(p => p !== uid);
+
+        // partner adat lekérése
+        const pRef = doc(db, "users", partnerID);
+        const pSnap = await getDoc(pRef);
+        const p = pSnap.data();
+
+        const div = document.createElement("div");
+        div.className = "chatItem";
+
+        div.onclick = () => {
+            window.location.href =
+                `chat.html?chatID=${chatID}&partner=${partnerID}`;
+        };
+
+        div.innerHTML = `
+            <div>
+                <div class="chatName">${p.name || p.email}</div>
+                <div class="lastMsg">${chat.lastMessage || "Nincs üzenet"}</div>
+            </div>
+            <div class="statusIcon">
+                ${p.online ? "🟢" : "⚪"}
+            </div>
+        `;
+
+        list.appendChild(div);
+    }
+}
+</script>
+
+</body>
+</html>

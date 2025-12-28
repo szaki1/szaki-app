@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<title>SzakiChat – Szaki üzenetek</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+    body { font-family: Arial, sans-serif; background:#f2f2f2; margin:0; }
+    header {
+        background:#ff8c00; color:white; text-align:center;
+        padding:16px; font-size:22px; font-weight:bold;
+    }
+
+    .chat-box {
+        max-width:480px; height:68vh;
+        overflow-y:auto; background:white;
+        margin:15px auto; padding:15px;
+        border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    .msg {
+        padding:10px 14px; margin:8px 0;
+        border-radius:10px; max-width:70%;
+        line-height:1.4; word-wrap:break-word;
+    }
+    .me { background:#d1ffd1; margin-left:auto; }
+    .other { background:#eaeaea; margin-right:auto; }
+
+    .input-area {
+        max-width:480px; margin:10px auto;
+        display:flex; gap:8px;
+    }
+
+    input {
+        flex:1; padding:10px;
+        border-radius:8px; border:1px solid #ccc;
+    }
+
+    button {
+        padding:10px 12px; border:none;
+        background:#ff8c00; color:white;
+        border-radius:8px; cursor:pointer;
+    }
+
+    .mic-btn { background:#007aff; }
+
+    .img-thumb {
+        max-width:160px; border-radius:8px; margin-top:6px;
+    }
+
+    #supportFloatingBtn {
+        position: fixed;
+        bottom: 22px;
+        right: 22px;
+        background: #ff2d55;
+        padding: 14px 22px;
+        border-radius: 40px;
+        color: white; font-weight: bold;
+        cursor: pointer;
+        display: flex; gap: 10px; align-items: center;
+        box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+    }
+    .heart {
+        animation: heartbeat 1.4s infinite;
+    }
+    @keyframes heartbeat {
+        0%{transform:scale(1);}
+        25%{transform:scale(1.25);}
+        40%{transform:scale(1);}
+        60%{transform:scale(1.25);}
+        100%{transform:scale(1);}
+    }
+
+</style>
+</head>
+
+<body>
+
+<header id="headerTitle">Chat</header>
+
+<div class="chat-box" id="chatBox">Betöltés…</div>
+
+<div class="input-area">
+    <input id="msgInput" placeholder="Írj üzenetet…">
+    <button onclick="sendMessage()">Küldés</button>
+    <button class="mic-btn" onclick="startDictation()">🎤</button>
+</div>
+
+<div class="input-area">
+    <input type="file" id="imgUpload">
+    <button onclick="sendImage()">📸</button>
+</div>
+
+<div id="supportFloatingBtn"
+     onclick="window.open('https://www.paypal.com/donate/?hosted_button_id=QGU3WXVSCH22A','_blank')">
+    <span class="heart">❤️</span> Támogasd a SzakiChat-et
+</div>
+
+<script type="module">
+
+// ===============================
+// FIREBASE IMPORT – JAVÍTVA!!!
+// ===============================
+import { db, auth, storage } from "./firebase-config.js";
+
+import {
+    doc, getDoc, updateDoc, setDoc,
+    onSnapshot, arrayUnion
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+import {
+    ref, uploadBytes, getDownloadURL
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
+
+import {
+    onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+
+// ===============================
+// CHAT KÖRNYEZET
+// ===============================
+let uid = null;
+let partnerID = new URLSearchParams(window.location.search).get("partner");
+let chatID = null;
+let chatRef = null;
+
+
+// ===============================
+// BELÉPÉS ÉS CHAT AZONOSÍTÓ
+// ===============================
+onAuthStateChanged(auth, async (user) => {
+    if (!user) return window.location.href = "login.html";
+
+    uid = user.uid;
+
+    chatID = uid < partnerID ? uid + "_" + partnerID : partnerID + "_" + uid;
+    chatRef = doc(db, "chats", chatID);
+
+    // chat dokumentum létrehozása, ha nem létezik
+    await setDoc(chatRef, { messages: [] }, { merge: true });
+
+    await loadPartnerName();
+    watchMessages();
+});
+
+
+// ===============================
+// PARTNER NEVE – JAVÍTVA
+// ===============================
+async function loadPartnerName() {
+    const snap = await getDoc(doc(db, "users", partnerID));
+    if (snap.exists()) {
+        const data = snap.data();
+        document.getElementById("headerTitle").innerText = data.name || "Partner";
+    }
+}
+
+
+// ===============================
+// REALTIME ÜZENET FIGYELÉS
+// ===============================
+const chatBox = document.getElementById("chatBox");
+
+function watchMessages() {
+    onSnapshot(chatRef, (snap) => {
+        const msgs = snap.data().messages || [];
+
+        chatBox.innerHTML = "";
+        msgs.forEach(m => {
+            if (m.type === "img") {
+                chatBox.innerHTML += `
+                    <div class="msg ${m.from === uid ? 'me' : 'other'}">
+                        <img src="${m.url}" class="img-thumb">
+                    </div>`;
+            } else {
+                chatBox.innerHTML += `
+                    <div class="msg ${m.from === uid ? 'me' : 'other'}">
+                        ${m.text}
+                    </div>`;
+            }
+        });
+
+        chatBox.scrollTop = chatBox.scrollHeight;
+    });
+}
+
+
+// ===============================
+// SZÖVEG KÜLDÉS
+// ===============================
+window.sendMessage = async function() {
+    const msg = document.getElementById("msgInput").value.trim();
+    if (!msg) return;
+
+    await updateDoc(chatRef, {
+        messages: arrayUnion({
+            from: uid,
+            text: msg,
+            type: "text",
+            time: Date.now()
+        })
+    });
+
+    document.getElementById("msgInput").value = "";
+};
+
+
+// ===============================
+// KÉP KÜLDÉSE
+// ===============================
+window.sendImage = async function() {
+    const file = document.getElementById("imgUpload").files[0];
+    if (!file) return alert("Nincs kiválasztva kép!");
+
+    const storageRef = ref(storage, `chatImages/${chatID}/${Date.now()}_${file.name}`);
+    await uploadBytes(storageRef, file);
+    const url = await getDownloadURL(storageRef);
+
+    await updateDoc(chatRef, {
+        messages: arrayUnion({
+            from: uid,
+            type: "img",
+            url: url,
+            time: Date.now()
+        })
+    });
+};
+
+
+// ===============================
+// DIKTÁLÁS
+// ===============================
+window.startDictation = function() {
+    if (!("webkitSpeechRecognition" in window)) {
+        return alert("A böngésződ nem támogatja a hangfelismerést.");
+    }
+
+    const rec = new webkitSpeechRecognition();
+    rec.lang = "hu-HU";
+    rec.start();
+
+    rec.onresult = (e) => {
+        document.getElementById("msgInput").value = e.results[0][0].transcript;
+    };
+};
+
+</script>
+
+</body>
+</html>

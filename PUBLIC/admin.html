@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<title>Bővített Admin Panel – SzakiChat</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body { margin:0; background:#f4f4f4; font-family:Arial; }
+header {
+    background:#111; color:white; padding:18px;
+    font-size:22px; font-weight:bold; text-align:center;
+}
+
+.container {
+    max-width:900px; margin:20px auto; padding:10px;
+}
+
+.searchBox input {
+    width:100%; padding:12px; border-radius:8px;
+    border:1px solid #ccc; font-size:16px;
+}
+
+.userCard {
+    background:white; padding:14px; margin-top:12px;
+    border-radius:10px; box-shadow:0 3px 10px rgba(0,0,0,0.15);
+}
+
+.userCard .row { margin-top:6px; }
+.userCard button {
+    padding:8px 12px; margin:4px; border:none;
+    border-radius:8px; cursor:pointer; font-weight:bold;
+}
+.btn-danger { background:#d60000; color:white; }
+.btn-action { background:#007aff; color:white; }
+.btn-premium { background:#ff9f00; color:white; }
+.btn-small { font-size:13px; }
+
+.tagOnline { color:green; font-weight:bold; }
+.tagOffline { color:red; font-weight:bold; }
+.tagPremium { color:#ff9f00; font-weight:bold; }
+
+hr { margin:25px 0; }
+
+.linkBar {
+    padding:14px; background:#fff; border-radius:10px;
+    box-shadow:0 2px 10px rgba(0,0,0,0.1);
+}
+.linkBar a {
+    display:inline-block; padding:10px 14px;
+    background:#007aff; color:white; border-radius:8px;
+    margin-right:10px; margin-bottom:10px;
+    text-decoration:none;
+}
+
+/* ❤️ ADOMÁNY GOMB */
+#supportBtn {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background:#ff2d55;
+    color:white;
+    padding:14px 22px;
+    border-radius:40px;
+    font-weight:bold;
+    cursor:pointer;
+    box-shadow:0 4px 12px rgba(0,0,0,0.3);
+    z-index:999;
+}
+</style>
+</head>
+
+<body>
+
+<header>BŐVÍTETT ADMIN PANEL</header>
+
+<div id="supportBtn"
+onclick="window.open('https://www.paypal.com/donate/?hosted_button_id=QGU3WXVSCH22A','_blank')">
+❤️ Támogasd a SzakiChat-et
+</div>
+
+<div class="container">
+
+    <div class="linkBar">
+        <a href="admin-chats.html">💬 Összes chat</a>
+        <a href="admin-stats.html">📊 Statisztikák</a>
+        <a href="admin-login.html">🚪 Kilépés</a>
+    </div>
+
+    <h2>Felhasználók</h2>
+    <div class="searchBox">
+        <input type="text" id="searchInput" placeholder="Keresés név, email vagy város alapján...">
+    </div>
+
+    <div id="userList"></div>
+</div>
+
+<script type="module">
+
+/* FIREBASE IMPORT – MINDEN 12.6.0 VERZIÓ! */
+import { auth, db } from "./firebase-config.js";
+
+import {
+    onAuthStateChanged,
+    signOut
+} from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
+
+import {
+    collection, onSnapshot,
+    doc, updateDoc, setDoc, getDoc
+} from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
+
+const userList = document.getElementById("userList");
+const searchInput = document.getElementById("searchInput");
+let users = [];
+
+/* 🔒 ADMIN ELLENŐRZÉS */
+onAuthStateChanged(auth, async (user) => {
+
+    if (!user) {
+        window.location.href = "admin-login.html";
+        return;
+    }
+
+    try {
+        const snap = await getDoc(doc(db, "users", user.uid));
+        if (!snap.exists() || snap.data().role !== "admin") {
+            alert("Nincs admin jogosultság!");
+            window.location.href = "admin-login.html";
+            return;
+        }
+
+        loadUserList();
+
+    } catch (err) {
+        console.error("Admin ellenőrzés hiba:", err);
+        window.location.href = "admin-login.html";
+    }
+});
+
+/* 🔄 Real-time user lista */
+function loadUserList() {
+    onSnapshot(collection(db, "users"), (snap) => {
+        users = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        render();
+    });
+}
+
+/* 🔍 Keresés */
+searchInput.onkeyup = render;
+
+function render() {
+    const q = (searchInput.value || "").toLowerCase();
+    userList.innerHTML = "";
+
+    users
+        .filter(u =>
+            (u.name || "").toLowerCase().includes(q) ||
+            (u.email || "").toLowerCase().includes(q) ||
+            (u.city || "").toLowerCase().includes(q)
+        )
+        .forEach(u => displayUser(u));
+}
+
+/* 🧩 User kártya */
+function displayUser(u) {
+
+    const onlineTag = u.online
+        ? `<span class="tagOnline">🟢 Online</span>`
+        : `<span class="tagOffline">⚪ Offline</span>`;
+
+    const premiumTag = u.premium
+        ? `<span class="tagPremium">★ Prémium</span>`
+        : "";
+
+    userList.innerHTML += `
+        <div class="userCard">
+            <div class="row"><b>${u.name || "-"}</b> (${u.role || "user"}) ${premiumTag}</div>
+            <div class="row">Email: ${u.email || "-"}</div>
+            <div class="row">Város: ${u.city || "-"}</div>
+            <div class="row">Szakma: ${u.szakma || "-"}</div>
+            <div class="row">${onlineTag}</div>
+
+            <div class="row">
+                <button class="btn-action btn-small"
+                    onclick="togglePremium('${u.id}', ${!!u.premium})">
+                    ${u.premium ? "Prémium kikapcs" : "Prémium bekapcs"}
+                </button>
+
+                <button class="btn-action btn-small"
+                    onclick="resetChats('${u.id}')">Chat számláló nullázása</button>
+
+                <button class="btn-danger btn-small"
+                    onclick="banUser('${u.id}')">Blokkolás</button>
+            </div>
+        </div>
+    `;
+}
+
+/* ⭐ Prémium állítás */
+window.togglePremium = async function(uid, current) {
+    await updateDoc(doc(db, "users", uid), { premium: !current });
+    logAction(uid, current ? "Premium OFF" : "Premium ON");
+};
+
+/* 🔄 Chat counter nullázása */
+window.resetChats = async function(uid) {
+    await updateDoc(doc(db, "users", uid), { chatCount: 0 });
+    alert("Chat számláló nullázva!");
+    logAction(uid, "Chat reset");
+};
+
+/* 🚫 Ban */
+window.banUser = async function(uid) {
+    await updateDoc(doc(db, "users", uid), { banned: true });
+    alert("Felhasználó blokkolva!");
+    logAction(uid, "User banned");
+};
+
+/* 📝 Admin log */
+async function logAction(targetUid, actionText) {
+    await setDoc(doc(db, "adminLogs", Date.now().toString()), {
+        target: targetUid,
+        action: actionText,
+        time: new Date().toISOString()
+    });
+}
+
+</script>
+
+</body>
+</html>

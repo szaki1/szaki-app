@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <title>Megrendelő profil – SzakiChat</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Globális stílus -->
+    <link rel="stylesheet" href="style.css">
+
+    <style>
+        header {
+            background:#007aff; 
+            color:white; 
+            padding:16px;
+            text-align:center; 
+            font-size:20px; 
+            font-weight:bold;
+        }
+
+        .box {
+            background:white; 
+            border-radius:12px; 
+            padding:18px;
+            box-shadow:0 2px 10px rgba(0,0,0,0.08);
+            margin:14px;
+        }
+
+        .infoText {
+            padding:10px 0; 
+            font-size:18px; 
+            font-weight:bold;
+        }
+
+        input, select {
+            width:100%; padding:12px; 
+            border-radius:8px;
+            border:1px solid #ccc; 
+            margin-top:8px; 
+            font-size:16px;
+        }
+
+        .btn {
+            width:100%; 
+            padding:12px; 
+            margin-top:12px;
+            background:#007aff; 
+            color:white; 
+            border:none;
+            border-radius:8px; 
+            cursor:pointer; 
+            font-size:16px;
+            font-weight:bold;
+        }
+
+        .btn:hover { transform:scale(1.03); }
+    </style>
+</head>
+
+<body>
+
+<header>Megrendelő – Profil</header>
+
+<div class="container">
+
+    <!-- BEJÖVŐ ÜZENETEK -->
+    <div class="box">
+        <b>📩 Bejövő üzenetek</b>
+        <div id="incomingMessages" class="infoText" style="margin-top:12px; font-size:16px;">0</div>
+        <div id="messagesList" style="margin-top:12px; max-height:300px; overflow-y:auto;"></div>
+    </div>
+
+    <!-- SZAKMA VÁLASZTÁS -->
+    <div class="box">
+        <b>⚙️ SZAKMA VÁLASZTÁS</b>
+        <div id="professionDropdown" style="margin-top:12px; max-height:280px; overflow-y:auto; border:1px solid #ddd; border-radius:8px; padding:8px;">
+            <div style="text-align:center; color:#999; padding:20px;">Betöltés...</div>
+        </div>
+        <input id="professionSearch" type="text" placeholder="Keresés név, város vagy kerület szerint..." style="margin-top:12px;">
+    </div>
+
+    <!-- PROFIL ADATOK -->
+    <div class="box">
+        <b>Profil adatok</b>
+        <div style="margin-top:12px;">
+            <div style="margin-bottom:10px;">
+                <b>Név:</b> <span id="nameDisplay">Betöltés...</span>
+            </div>
+            <div style="margin-bottom:10px;">
+                <b>Email:</b> <span id="emailDisplay">Betöltés...</span>
+            </div>
+            <div style="margin-bottom:10px;">
+                <b>Telefonszám:</b> <span id="phoneDisplay">Betöltés...</span>
+            </div>
+            <div style="margin-bottom:10px;">
+                <b>Város:</b> <span id="cityDisplay">Betöltés...</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- VÁROS SZERKESZTÉS -->
+    <div class="box">
+        <b>Hol keresel szakembert?</b>
+        <select id="citySelect" style="margin-top:8px;">
+            <option value="">Válassz várost</option>
+            <option>Budapest</option>
+            <option>Gödöllő</option>
+            <option>Vác</option>
+            <option>Kecskemét</option>
+            <option>Debrecen</option>
+            <option>Szeged</option>
+            <option>Pécs</option>
+            <option>Győr</option>
+        </select>
+        <button class="btn" id="saveCityBtn">Város mentése</button>
+    </div>
+
+    <!-- MEGOSZTÁS -->
+    <div class="box">
+        <b>Megosztások száma:</b>
+        <div id="shareCountBox" class="infoText">0 / 5</div>
+        <button class="btn" id="addShareBtn">Megosztottam! (+1)</button>
+
+        <p id="unlockInfo" style="margin-top:10px; font-size:14px;"></p>
+    </div>
+
+    <!-- KILÉPÉS -->
+    <div class="box">
+        <button class="btn" id="logoutBtn" style="background:#444;">Kilépés</button>
+    </div>
+
+</div>
+
+<!-- ❤️ Támogatás gomb -->
+<div id="supportFloatingBtn"
+     onclick="window.open('https://www.paypal.com/donate/?hosted_button_id=QGU3WXVSCH22A','_blank')">
+    <span class="heart">❤️</span> Támogatás
+</div>
+
+<script type="module">
+/* ============================================================
+   FIREBASE IMPORT
+============================================================ */
+import { auth, db } from "./firebase-config.js";
+
+import {
+    onAuthStateChanged, signOut
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+import {
+    doc, getDoc, updateDoc, getDocs, collection, query, where
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+
+/* ============================================================
+   FELHASZNÁLÓ BETÖLTÉSE
+============================================================ */
+let uid = null;
+let shareCount = 0;
+let city = "";
+let userEmail = "";
+let userPhone = "";
+
+onAuthStateChanged(auth, async (user) => {
+    if (!user) return window.location.href = "login.html";
+
+    uid = user.uid;
+
+    const ref = doc(db, "users", uid);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) return;
+
+    const data = snap.data();
+
+    // Profil adatok megjelenítése
+    document.getElementById("nameDisplay").innerText = data.name || "Nincs név";
+    document.getElementById("emailDisplay").innerText = data.email || "Nincs email";
+    document.getElementById("phoneDisplay").innerText = data.phone || "Nincs telefonszám";
+    document.getElementById("cityDisplay").innerText = data.city || "Nincs város";
+
+    shareCount = data.shareCount || 0;
+    city = data.city || "";
+    userEmail = data.email || "";
+    userPhone = data.phone || "";
+
+    if (city) document.getElementById("citySelect").value = city;
+
+    updateShareUI();
+    loadIncomingMessages();
+    loadProfessions();
+});
+
+
+/* ============================================================
+   VÁROS MENTÉSE
+============================================================ */
+document.getElementById("saveCityBtn").onclick = async () => {
+    const selected = document.getElementById("citySelect").value;
+    if (!selected) return alert("Válassz várost!");
+
+    await updateDoc(doc(db, "users", uid), { city: selected });
+    alert("Város mentve!");
+};
+
+
+/* ============================================================
+   MEGOSZTÁS +1
+============================================================ */
+document.getElementById("addShareBtn").onclick = async () => {
+    if (shareCount < 5) shareCount++;
+
+    await updateDoc(doc(db, "users", uid), { shareCount });
+
+    updateShareUI();
+};
+
+
+/* ============================================================
+   UI FRISSÍTÉS
+============================================================ */
+function updateShareUI() {
+    document.getElementById("shareCountBox").innerText = `${shareCount} / 5`;
+
+    if (shareCount >= 5) {
+        document.getElementById("unlockInfo").innerHTML =
+            "<b style='color:green;'>Feloldva! Küldhetsz telefonszámot a chatben.</b>";
+    } else {
+        document.getElementById("unlockInfo").innerHTML =
+            "<span style='color:red;'>Elérhetőség küldése zárolva (min. 5 megosztás).</span>";
+    }
+}
+
+
+/* ============================================================
+   KILÉPÉS
+============================================================ */
+document.getElementById("logoutBtn").onclick = async () => {
+    await signOut(auth);
+    window.location.href = "login.html";
+};
+
+
+/* ============================================================
+   BEJÖVŐ ÜZENETEK BETÖLTÉSE
+============================================================ */
+async function loadIncomingMessages() {
+    const q = query(
+        collection(db, "chats"),
+        where("userID", "==", uid)
+    );
+
+    const snap = await getDocs(q);
+    const messagesList = document.getElementById("messagesList");
+    const incomingCount = document.getElementById("incomingMessages");
+
+    if (snap.empty) {
+        messagesList.innerHTML = "<i style='color:#999;'>Nincs bejövő üzenet.</i>";
+        incomingCount.innerText = "0";
+        return;
+    }
+
+    incomingCount.innerText = snap.size;
+    messagesList.innerHTML = "";
+
+    snap.forEach(async (docu) => {
+        const c = docu.data();
+        const sRef = doc(db, "users", c.szakiID);
+        const sSnap = await getDoc(sRef);
+        const szaki = sSnap.data();
+
+        const online = szaki.online ? "🟢 Online" : "⚪ Offline";
+
+        messagesList.innerHTML += `
+            <div style="padding:10px; border-bottom:1px solid #eee; cursor:pointer;" 
+                 onclick="openChat('${docu.id}', '${c.szakiID}')">
+                <div><b>${szaki.name}</b> <span style="font-size:12px;">${online}</span></div>
+                <div style="font-size:13px; color:#666;">${szaki.profession}</div>
+            </div>
+        `;
+    });
+}
+
+/* ============================================================
+   SZAKMÁK BETÖLTÉSE ÉS MEGJELENÍTÉSE
+============================================================ */
+let allProfessions = [];
+
+async function loadProfessions() {
+    const q = query(collection(db, "users"), where("role", "==", "szaki"));
+    const snap = await getDocs(q);
+
+    const professions = new Set();
+    snap.forEach((docu) => {
+        const data = docu.data();
+        if (data.profession) {
+            professions.add(data.profession);
+        }
+    });
+
+    allProfessions = Array.from(professions).sort();
+    renderProfessions(allProfessions);
+}
+
+function renderProfessions(items) {
+    const dropdown = document.getElementById("professionDropdown");
+
+    if (items.length === 0) {
+        dropdown.innerHTML = "<div style='padding:10px; color:#999;'>Nincsenek szakmák.</div>";
+        return;
+    }
+
+    dropdown.innerHTML = items.map(p => `
+        <div style="padding:10px; border-bottom:1px solid #f0f0f0; cursor:pointer; hover: background:#f9f9f9;"
+             onclick="selectProfession('${p}')">
+            ${p}
+        </div>
+    `).join("");
+}
+
+/* ============================================================
+   KERESÉS A SZAKMÁK KÖZÖTT
+============================================================ */
+document.getElementById("professionSearch").oninput = (e) => {
+    const query = e.target.value.toLowerCase();
+    const filtered = allProfessions.filter(p => 
+        p.toLowerCase().includes(query)
+    );
+    renderProfessions(filtered);
+};
+
+/* ============================================================
+   SZAKMA KIVÁLASZTÁSA
+============================================================ */
+window.selectProfession = function(profession) {
+    window.location.href = `szakma-valasztas.html?profession=${encodeURIComponent(profession)}`;
+};
+
+/* ============================================================
+   CHAT MEGNYITÁSA
+============================================================ */
+window.openChat = function(chatID, szakiID) {
+    window.location.href = `chat.html?chatID=${chatID}&partner=${szakiID}&role=megrendelo`;
+};
+</script>
+
+</body>
+</html>

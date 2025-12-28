@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<title>Megrendelő regisztráció – SzakiChat</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background:#f2f2f2;
+        margin:0;
+    }
+    header {
+        background:#007aff;
+        color:white;
+        text-align:center;
+        padding:18px;
+        font-size:24px;
+        font-weight:bold;
+    }
+    .box {
+        max-width:480px;
+        background:white;
+        margin:20px auto;
+        padding:22px;
+        border-radius:14px;
+        box-shadow:0 4px 14px rgba(0,0,0,0.12);
+    }
+    label {
+        font-weight:bold;
+        margin-top:14px;
+        display:block;
+    }
+    input, select {
+        width:100%;
+        padding:12px;
+        margin-top:6px;
+        border-radius:8px;
+        border:1px solid #bbb;
+        font-size:16px;
+        background:#eef5ff;
+    }
+    .btn {
+        width:100%;
+        padding:14px;
+        margin-top:22px;
+        background:#007aff;
+        color:white;
+        border:none;
+        border-radius:10px;
+        font-size:18px;
+        cursor:pointer;
+        font-weight:bold;
+    }
+    .warn {
+        font-size:13px;
+        color:#777;
+        margin-top:5px;
+    }
+
+    /* Adomány gomb */
+    #supportFloatingBtn {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: #ff2d55;
+        padding: 14px 22px;
+        border-radius: 40px;
+        color: white;
+        font-weight: bold;
+        cursor: pointer;
+        box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+</style>
+</head>
+
+<body>
+
+<header>Megrendelő regisztráció</header>
+
+<div class="box">
+
+    <label>Név (pl.: Nagy Zoltán)</label>
+    <input id="name" type="text" placeholder="Add meg a nevedet">
+    <div class="warn">⚠️ Telefonszám, email, FB/Viber/Instagram név beírása TILOS a név mezőbe!</div>
+
+    <label>Milyen szakembert keresel?</label>
+    <input id="profession" type="text" placeholder="pl.: festő">
+
+    <label>Hol keresel szakembert?</label>
+    <input id="city" type="text" placeholder="pl.: Budapest">
+
+    <label>Email</label>
+    <input id="email" type="email" placeholder="Email cím">
+
+    <label>Jelszó</label>
+    <input id="pass1" type="password" placeholder="Jelszó">
+
+    <label>Jelszó újra</label>
+    <input id="pass2" type="password" placeholder="Jelszó ismét">
+
+    <label>Telefonszám</label>
+    <input id="phone" type="text" placeholder="+36...">
+
+    <button class="btn" onclick="registerUser()">Regisztráció</button>
+</div>
+
+<!-- ❤️ Adomány gomb -->
+<div id="supportFloatingBtn"
+     onclick="window.open('https://www.paypal.com/donate/?hosted_button_id=QGU3WXVSCH22A','_blank')">
+    ❤️ Támogasd a SzakiChat-et
+</div>
+
+
+<!-- ========================== FIREBASE + REGISZTRÁCIÓ ============================== -->
+<script type="module">
+
+import { app, auth, db } from "./firebase-config.js";
+
+import {
+    createUserWithEmailAndPassword
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+import {
+    doc, setDoc
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+
+// **** REGISZTRÁCIÓ FUNKCIÓ ****
+window.registerUser = async function() {
+
+    const name = document.getElementById("name").value.trim();
+    const job = document.getElementById("profession").value.trim();
+    const city = document.getElementById("city").value.trim();
+    const email = document.getElementById("email").value.trim();
+    const pass1 = document.getElementById("pass1").value;
+    const pass2 = document.getElementById("pass2").value;
+    const phone = document.getElementById("phone").value.trim();
+
+    if (!name || !job || !city || !email || !pass1 || !pass2 || !phone) {
+        alert("Minden mező kötelező!");
+        return;
+    }
+
+    if (pass1 !== pass2) {
+        alert("A két jelszó nem egyezik!");
+        return;
+    }
+
+    try {
+        // Firebase user létrehozása
+        const userCred = await createUserWithEmailAndPassword(auth, email, pass1);
+        const uid = userCred.user.uid;
+
+        // Mentés Firestore-ba
+        await setDoc(doc(db, "users", uid), {
+            role: "user",
+            name,
+            profession: job,
+            city,
+            phone,
+            shareCount: 0,
+            online: false
+        });
+
+        alert("Sikeres regisztráció!");
+        window.location.href = "user-chat-list.html";
+
+    } catch (err) {
+        alert("Hiba történt: " + err.message);
+        console.error(err);
+    }
+};
+
+</script>
+
+</body>
+</html>
