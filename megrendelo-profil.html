@@ -38,6 +38,7 @@
             border:1px solid #ccc; 
             margin-top:8px; 
             font-size:16px;
+            box-sizing: border-box;
         }
 
         .btn {
@@ -54,6 +55,17 @@
         }
 
         .btn:hover { transform:scale(1.03); }
+
+        .profession-item {
+            padding:10px;
+            border-bottom:1px solid #f0f0f0;
+            cursor:pointer;
+            transition: 0.15s;
+        }
+
+        .profession-item:hover {
+            background:#f9f9f9;
+        }
     </style>
 </head>
 
@@ -70,13 +82,15 @@
         <div id="messagesList" style="margin-top:12px; max-height:300px; overflow-y:auto;"></div>
     </div>
 
-    <!-- SZAKMA VÁLASZTÁS -->
+    <!-- SZAKMA VÁLASZTÁS - RÖGZÍTETT SORREND -->
     <div class="box">
         <b>⚙️ SZAKMA VÁLASZTÁS</b>
-        <div id="professionDropdown" style="margin-top:12px; max-height:280px; overflow-y:auto; border:1px solid #ddd; border-radius:8px; padding:8px;">
+        <input id="professionSearch" type="text" placeholder="Keresés név, város vagy kerület szerint..." style="margin-top:8px;">
+        
+        <!-- KÖZVETLENÜL ALATTA A SZAKMÁK LISTÁJA -->
+        <div id="professionDropdown" style="margin-top:12px; max-height:280px; overflow-y:auto; border:1px solid #ddd; border-radius:8px; background:#fafafa;">
             <div style="text-align:center; color:#999; padding:20px;">Betöltés...</div>
         </div>
-        <input id="professionSearch" type="text" placeholder="Keresés név, város vagy kerület szerint..." style="margin-top:12px;">
     </div>
 
     <!-- PROFIL ADATOK -->
@@ -101,7 +115,7 @@
     <!-- VÁROS SZERKESZTÉS -->
     <div class="box">
         <b>Hol keresel szakembert?</b>
-        <select id="citySelect" style="margin-top:8px;">
+        <select id="citySelect">
             <option value="">Válassz várost</option>
             <option>Budapest</option>
             <option>Gödöllő</option>
@@ -158,8 +172,6 @@ import {
 let uid = null;
 let shareCount = 0;
 let city = "";
-let userEmail = "";
-let userPhone = "";
 
 onAuthStateChanged(auth, async (user) => {
     if (!user) return window.location.href = "login.html";
@@ -180,8 +192,6 @@ onAuthStateChanged(auth, async (user) => {
 
     shareCount = data.shareCount || 0;
     city = data.city || "";
-    userEmail = data.email || "";
-    userPhone = data.phone || "";
 
     if (city) document.getElementById("citySelect").value = city;
 
@@ -310,8 +320,7 @@ function renderProfessions(items) {
     }
 
     dropdown.innerHTML = items.map(p => `
-        <div style="padding:10px; border-bottom:1px solid #f0f0f0; cursor:pointer; hover: background:#f9f9f9;"
-             onclick="selectProfession('${p}')">
+        <div class="profession-item" onclick="selectProfession('${p}')" title="${p}">
             ${p}
         </div>
     `).join("");
@@ -321,9 +330,9 @@ function renderProfessions(items) {
    KERESÉS A SZAKMÁK KÖZÖTT
 ============================================================ */
 document.getElementById("professionSearch").oninput = (e) => {
-    const query = e.target.value.toLowerCase();
+    const searchQuery = e.target.value.toLowerCase();
     const filtered = allProfessions.filter(p => 
-        p.toLowerCase().includes(query)
+        p.toLowerCase().includes(searchQuery)
     );
     renderProfessions(filtered);
 };
