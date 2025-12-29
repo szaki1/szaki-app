@@ -97,18 +97,18 @@ onclick="window.open('https://www.paypal.com/donate/?hosted_button_id=QGU3WXVSCH
 
 <script type="module">
 
-/* FIREBASE IMPORT – MINDEN 12.6.0 VERZIÓ! */
+/* FIREBASE IMPORT – MINDEN 10.12.0 VERZIÓ! */
 import { auth, db } from "./firebase-config.js";
 
 import {
     onAuthStateChanged,
     signOut
-} from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 import {
     collection, onSnapshot,
     doc, updateDoc, setDoc, getDoc
-} from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const userList = document.getElementById("userList");
 const searchInput = document.getElementById("searchInput");

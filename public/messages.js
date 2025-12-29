@@ -84,7 +84,7 @@ export async function sendMessage(chatId, senderUid, text) {
     if (!text.trim()) return;
 
     // új üzenet tárolása
-    await addDoc(collection(db, "messages", chatId, "items"), {
+    await addDoc(collection(db, "chatSessions", chatId, "messages"), {
         sender: senderUid,
         text,
         time: serverTimestamp()
